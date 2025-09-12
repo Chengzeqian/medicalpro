@@ -1,0 +1,7 @@
+Plugin-SymbolicName: medical.processing
+Plugin-Version: 1.0.0
+Plugin-Name: Medical Image Processing Plugin
+Plugin-Description: Medical image processing algorithms and services
+Plugin-Activator: MedicalProcessingActivator
+Plugin-Category: medical
+Require-Plugin: medical.image.core

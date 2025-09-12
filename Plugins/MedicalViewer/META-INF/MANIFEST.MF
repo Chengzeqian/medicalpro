@@ -1,0 +1,7 @@
+Plugin-SymbolicName: medical.viewer
+Plugin-Version: 1.0.0
+Plugin-Name: Medical Image Viewer Plugin
+Plugin-Description: Medical image display and visualization services
+Plugin-Activator: MedicalViewerActivator
+Plugin-Category: medical
+Require-Plugin: medical.image.core

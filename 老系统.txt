@@ -1,0 +1,437 @@
+综述
+ASNS（Ankle Surgery Navigation Software）是一套用 C++/Qt + VTK + ITK 实现的踝关节手术导航软件。它覆盖从登录/病人管理、医学影像加载与浏览、术前规划、2D-3D 图像配准、光学定位融合、术中导航到结果输出的完整流程。系统以桌面应用形式运行，使用 Qt 进行 UI 构建，VTK 负责三维/体渲染与交互，ITK 用于图像处理；同时集成 Python 模块实现 DRR 生成、2D-3D 配准和特征点投影等算法。数据库层使用 sqlite3 管理用户/病人/影像记录，硬件侧对接 FusionTrack 光学定位设备，并内置探针枢轴（Pivot）标定算法（来自 Slicer/IGSIO 的 C++ 实现）。
+
+下面从架构、主要模块与数据流、关键功能实现细节，以及运行依赖进行系统化分析。
+
+技术栈与依赖
+语言与工具
+C++17，Visual Studio 2019
+CMake 3.26.2
+Qt 5.15.2（UI、线程、资源管理、信号槽）
+VTK 9.2.6（体渲染、几何、交互、测量工具、ICP）
+ITK 5.2.1（图像读取/处理，含 ITK 工厂注册）
+sqlite3（外部 include/lib）
+Python 嵌入（CPython，内嵌 python 目录；QThread + GIL 管理）
+外设/SDK
+FusionTrack 光学定位 SDK（“fusionTrack SDK x64/samples” 头文件引用）
+PivotCalibration/IGSIO/Slicer 的 C++ 逻辑类（本仓内源码）
+顶层结构与启动流程
+启动入口 source/main.cpp
+创建 QApplication
+关闭 VTK 弹窗（vtkOutputWindow::SetGlobalWarningDisplay(0)）
+共享内存防重复启动（key: plk_ankleSystem）
+启动 InitializeWidget（初始化向导：系统设置、医生信息、数据库/配置初始化等）
+备注：包含自定义 Qt 日志落盘与自定义 vtkOutputWindow（注释/可选）
+主要 UI 窗口
+InitializeWidget：初始设置、进入系统管理、医生界面等
+MainInterfaceWidget：主手术流程界面，四大步骤标签切换
+器械管理（InstrumentsManageWidget）
+手术规划（SurgicalPlanning）
+手术注册（2D3D 或光学配准）
+手术导航（ImageBrowseWidget -> ImageManage）
+资源与配置
+resource/：图片、字体、Qt 资源 qrc
+configure/：display_items.xml、db_update.xml 等配置模板
+ASNS/：运行构建产物与配置（ini、xml、geometry）
+核心模块与职责
+1) 影像浏览与三维交互（ImageManage / ImageBrowseWidget）
+ImageBrowseWidget（UI 容器/模式切换/算法联动）
+管理子组件：ImageManage（3D/2D 视图）、ImageSelect（影像/DRR/Xray 预览）
+提供三种模式
+set2D3DRegisterModel：2D-3D 配准界面（右侧参数/图像）
+setOpticalRegisterModel：光学配准（与定位设备数据流交互）
+setNavigationModel：术中导航（左侧工具/三维交互）
+集成 PythonWorker（独立 QThread）调用 Python 算法：
+initPython -> pythonInit（内嵌 CPython 环境与 sys.path 配置）
+getInitDRR -> generateDRR.func 生成初始 DRR
+startRegi -> Regii.Regi 进行 2D-3D 配准（返回 AP/Lat 两套位姿）
+get2Dpoints -> projector.findPoint 基于 3D 特征点与配准结果，求二维投影点
+集成 FusionTrack 与 PivotCalibration：
+fusionTrack 线程实时产出工具与参考系矩阵、特征点、旋转/位移
+将工具-参考系矩阵输入 vtkSlicerPivotCalibrationLogic，进行枢轴/旋转标定；获得 ToolTipToTool 矩阵和 RMSE
+定时器控制采样与计算；结果显示与数据注入 ImageManage
+关键交互：
+插入/清空 3D 特征点（来自 ImageManage 的信号）
+控件状态联动（翻转 Xray、加载 DICOM、启动配准、显示结果、导出数据）
+与 ShareMemory 交互：CT/Xray 路径，flip 状态，配准初值与搜索范围、结果位姿、临时目录等
+ImageManage（三维/体渲染与操作）
+负责 2D 三正交视图与 3D 视图的 VTK 组件初始化、数据读取、交互绑定
+功能：
+DICOM/NIfTI 加载（vtkDICOMImageReader/vtkNIFTIImageReader）
+体渲染（vtkGPUVolumeRayCastMapper + vtkVolume/VolumeProperty/Opacity）
+三视图切换/布局（Axial/Coronal/Sagittal/四视图/3D）
+测量组件：距离、角度（vtkDistanceWidget/vtkAngleWidget）
+点/线交互绘制、工具模型加载/染色、ICPs 对齐（vtkIterativeClosestPointTransform）
+特征点/线点管理（vtkPoints），支持信号 InsertNextPoint、clearPoints，供上层使用
+接收光学追踪的参考/工具矩阵与位移旋转，渲染/对齐模型
+对外信号/槽：
+canIcp（可执行配准）
+signal_Registration（触发注册流程）
+InsertNextPoint/clearPoints（供 ImageBrowseWidget 记录 3D 点并映射到 2D）
+recive_center_rotation/receive_ref_center_rotation（融合追踪数据）
+数据结构密集（actor、mapper、matrix、transform、points 等成员非常多），组合多路渲染与交互对象
+2) 2D-3D 配准与 Python 嵌入（python_func/pythonworker）
+python_func.cpp/.h
+pythonInit：设置 PYTHONHOME/PYTHONPATH，初始化 CPython 与多线程支持（GIL 释放）
+Regi2D3D：
+从 ShareMemory 获取初值/范围/kdTreeNum/翻转布尔/AP/Lat 路径/临时目录
+调用 Python 模块 Regii.Regi，传入上述参数，获得 AP、Lat 两组 6DoF 位姿
+写回 ShareMemory，以触发 UI 更新
+getInitDRR：调用 generateDRR.func 输出初始化 DRR PNG
+get2Dpoints：调用 projector.findPoint，输入 3D 三个特征点（体素坐标）、两套位姿与翻转状态，得到在两张 Xray 上的二维点坐标（并写入 ShareMemory）
+Xray_process：将 refRotationMatrixAp/Lat（非单位矩阵时传实值，否则传 0）与像素点集传入 imageProcess.image_process（Python），返回处理结果（字符串数组，含重建的 3D 点等）
+PythonWorker（QObject）
+运行在独立线程，串行调度 Python API 调用
+通过 Qt 信号与 ImageBrowseWidget 通信：初始化完成、配准完成、点计算完成
+ShareMemory（单例）
+提供多处关键数据的进程内共享存取：路径、CT 元信息、DICOM size/spacing、Xray 翻转标记、配准参数、点集等
+既承担“跨模块数据中心”的职责，也存放部分 UI 辅助状态
+3) 光学定位与标定（fusionTrack + PivotCalibration）
+fusionTrack（QThread）
+调用 FusionTrack SDK，读取帧、rigidbody、marker
+维护矩阵：
+ReferenceToTracker，ToolToTracker，ToolToReference 等
+输出信号：
+send_fiducials（四点坐标）
+send_center_rotation（针的旋转/位移）
+send_ref_center_rotation（参考标记旋转/位移）
+send_toolToRenferenceMatrix（用于 PivotCalibration）
+ImageBrowseWidget 连接这些信号，将数据输送到 ImageManage 与 PivotCalibration
+PivotCalibration（源代码在 source/PivotCalibration/）
+vtkSlicerPivotCalibrationLogic, vtkIGSIOSpinCalibrationAlgo 等类实现枢轴/旋转轴标定
+ImageBrowseWidget 定时采样 + ComputePivotCalibration
+输出工具尖端相对工具的 4x4 矩阵与 RMSE
+4) 数据层（db_sqlite3）
+DBOperator（单例）
+初始化数据库/建表（由配置 XML 生成 SQL）
+增删查改：登录、医生、病人、影像记录；更新假体与变换路径；按 uid 取影像列表等
+依赖 external/include/sqlite/sqlite3hpp.hpp
+struct_define.h
+统一数据结构：LoginInfo、DoctorInfo、PatientInfo、PatientImageInfo、InstrumentInfo、SurgicalInfo、CTInfo 等
+SurgicalInfo 与 ShareMemory 紧密对应，包含 CT/Xray 路径、翻转、配准参数与点等
+5) 其他 UI 模块
+InstrumentsManageWidget：器械库管理，工具模型加载、注册状态、颜色等
+SurgicalPlanning：术前规划界面（与 ImageManage、工具模型交互）
+SurgicalGuidanceWidget：分割/切割/生长/显示（与 ITK/VTK 流程结合，UI 按钮调用）
+Patient/Doctor/SystemManage：医生/病人/系统设置窗口
+自定义控件：三方工具栏/悬浮工具条/等待对话框/自定义列表项/校准对话框等
+运行时数据流（高层）
+初始化
+main -> InitializeWidget：初始化数据库/配置、登录/医生信息
+进入 MainInterfaceWidget
+器械管理
+InstrumentsManageWidget：选择工具、加载 STL 模型、建立列表与颜色/状态；更新到 ImageManage/SurgicalPlanning
+手术规划
+SurgicalGuidanceWidget：图像显示、分割、切割（待集成/部分注释）；规划参数/结果与 ShareMemory/数据库交互
+手术注册（两种模式）
+2D-3D 配准模式
+ImageBrowseWidget 打开 Xray（DICOM -> JPG 缓存），设置翻转
+设置配准初值与搜索范围（UI -> ShareMemory）
+PythonWorker 调用 Regii.Regi 返回 AP/Lat 位姿 -> ShareMemory -> UI 显示
+三个 3D 特征点（在 ImageManage 3D 视图拾取）-> Python projector.findPoint 映射为两幅 Xray 上的 2D 点 -> UI 显示
+可调用 Xray_process，将 2D 点与 refRotationMatrixAp/Lat 融合，估计空间点，返回给 ImageManage 作为线点插入
+ICP/箭头/切割等操作与渲染在 ImageManage 中完成
+光学配准模式
+fusionTrack 线程实时采集
+采样 -> PivotCalibration -> 输出 ToolTipToTool 矩阵与误差
+ImageManage 接收 ref/marker 位姿与点集，驱动 3D 可视化与对齐
+手术导航
+ImageManage 切为导航模式，展示工具/骨模型/体渲染；支持测量、点标注、模型添加等
+输出/退出
+Architecture.drawio 中规划有 Output documentation/Exit
+关键实现细节与注意点
+多线程与 GIL
+Python 调用在 PythonWorker 线程执行，pythonInit 中开启多线程支持并释放 GIL；每次调用前用 PyThreadStateLock 保护
+FusionTrack 在独立线程，信号派发到 UI/逻辑对象
+ShareMemory 用途广
+内部存储多种类型数据（路径、bool、矩阵参数、点集、CT 基本信息），跨模块通信集中于此，需注意线程安全（类内部未见显式锁，Qt 容器在特定用法下是线程不安全的；但大部分调用在 UI 线程或 PythonWorker 线程中）
+VTK 渲染管理复杂
+ImageManage 维护了大量 VTK 对象、状态位（拾取、测量、角度、点线、体渲染属性等），需要严格的初始化/生命周期管理
+大量对象通过指针/SmartPointer 管理，删除/重建时注意 detach/clear
+外部 SDK/资源的约束
+FusionTrack SDK 需存在且匹配
+python 目录、pythonFiles/Regi/pythonfile 等脚本需与二进制同目录部署
+ITK/VTK/Qt 的 CMake/运行时路径需正确（README 有环境配置说明）
+目录导览（与职责）
+source/
+custom_widget/：各功能 UI 窗口
+Image_manage/：影像加载、三视图/3D 渲染与交互核心
+PivotCalibration/：探针枢轴标定算法（Slicer/IGSIO）
+fusionTrack/：光学追踪设备线程
+db_sqlite3/：数据库层
+public_function/：公共工具（ShareMemory、Python 嵌入封装、通用工具、配置文件、日志）
+2D3DRegistration/：配准 worker（旧/备用，当前主路径用 PythonWorker + python_func）
+custom_item/：自定义 UI 控件与弹窗
+main.cpp, main_interfaceWidget.*：主界面与流程控制
+resource/：资源及 qrc
+external/：第三方头文件/库
+configure/：配置模板
+ui/：自动生成的 ui_* 头文件（供 Qt 使用）
+功能清单（用户视角）
+病人/医生/系统管理（新增/列表/选择）
+影像数据管理
+DICOM/NIfTI 加载
+三视图浏览，体渲染
+测量（距离/角度），点/线标注
+STL 器械模型加载与显示
+2D-3D 配准
+初始位姿与搜索范围设置，KDTree 划分
+Xray DICOM 导入与翻转设置
+Python 算法计算 AP/Lat 位姿并显示
+三维特征点选择 -> 二维投影点计算
+结合 Xray_process 进行射线几何与特征提取，反求 3D 点并加入 3D 视图
+光学配准与导航
+FusionTrack 数据采集
+PivotCalibration 枢轴标定，显示 RMSE
+将工具/参考系位姿叠加到 3D 场景，导航可视
+日志与运行记录
+Qt/自定义日志落盘（RunLog/日期/Debug/Critical 等）
+运行与部署要点
+环境
+配置 Qt/VTK/ITK 安装路径（README 指定添加到系统 PATH 以便 CMake 查找）
+external 库包含 sqlite3hpp
+需准备 FusionTrack SDK 运行环境和硬件
+程序目录下需有 python 子目录与所需 Python 脚本（generateDRR.py、Regii.py、projector.py、imageProcess.py 等）
+启动
+运行 ASNS 可执行，InitializeWidget 进行配置，进入主流程
+若要直接体验 2D-3D 模块，需提供 CT NIfTI 路径与 Xray DICOM
+架构评价与改进建议（简要）
+优点
+模块划分清晰：UI 层（Qt）/ 渲染交互层（VTK）/ 算法层（Python）/ 硬件交互层（FusionTrack）/ 数据层（sqlite）
+通过 ShareMemory 降低模块耦合，简化跨线程与跨组件数据传递
+使用 Python 提供算法灵活性，减少 C++ 重编译成本
+风险/改进
+ShareMemory 读写并发安全未显式保障（建议加读写锁或在接口保证同线程使用）
+Python 环境部署与路径配置较脆弱（建议统一封装环境探测，脚本完整性校验）
+ImageManage 体量较大，建议分拆子组件（测量/点线/体渲染/模型/ICP 管理器）
+错误处理改进：Python 调用处应系统性处理 PyErr_Print，返回值校验与 UI 提示
+配置项/路径硬编码（例如 CT 临时测试路径）建议改为可配置或 UI 选择
+你可能关心的代码位置（快速索引）
+应用入口
+source/main.cpp
+主流程与四大步骤
+source/main_interfaceWidget.*（步骤切换、窗口组合）
+影像加载与 3D/2D 渲染
+source/Image_manage/image_manage.* 与 Core 子目录
+2D-3D 配准（Python 调用）
+source/public_function/pythonworker.、python_func.
+光学追踪与标定
+source/fusionTrack/fusiontrack.、source/PivotCalibration/
+共享数据中心
+source/public_function/shareMemory.*
+数据库
+source/db_sqlite3/* 与 configure/*.xml
+手术规划/分割 UI
+source/custom_widget/surgicalGuidance_widget.*
+
+
+总体架构与主程序
+技术栈
+C++17 + Qt 5.15.2（UI、线程、信号槽、资源）
+VTK 9.2.6（3D/体渲染、交互、测量、ICP）
+ITK 5.2.1（读写/处理医疗图像）
+嵌入式 Python（CPython，内置 python 运行时与脚本）
+sqlite3（sqlite3hpp C++ 封装）
+FusionTrack 光学定位 SDK（外部设备）
+启动流程（source/main.cpp）
+QApplication 初始化，屏蔽 VTK 报错弹窗
+共享内存防止重复启动
+显示 InitializeWidget（初始化/登录/系统步骤），再进入 MainInterfaceWidget（主流程）
+顶层 UI 组织
+InitializeWidget：系统初始化/数据库与配置/医生信息入口
+MainInterfaceWidget：核心四步流程（器械管理→手术规划→手术注册→手术导航），通过 stackedWidget 装载各功能页（InstrumentsManageWidget、SurgicalPlanning、Regi/Optical、ImageBrowseWidget）
+UI & 流程控制
+InitializeWidget（初始化/入口）
+典型职责
+初始化数据库（DBOperator::initDB）
+初始化配置（ConfigurationFiles）
+列出系统入口项（医生管理、系统设置、等），点击进入相应管理页
+关键点
+注册自定义类型用于信号槽
+动画/无边框窗口管理
+关闭/下一步/进入管理页等槽函数
+MainInterfaceWidget（主流程容器）
+成员与子页面
+InstrumentsManageWidget（器械管理）
+SurgicalPlanning（手术规划）
+Regi2D3DWidget（留存/备用）
+ImageBrowseWidget（导航/配准桥接）
+行为
+四个“步骤”按钮统一由 on_btnsClicked 控制
+懒加载某些子页面，避免启动开销（如 SurgicalGuidanceWidget/Regi2D3D 注释/延后）
+在“手术导航/注册”模式下调用 ImageBrowseWidget 切换不同工作模式
+与日志/共享数据
+使用 DataLogger 记录关键操作
+与 ImageManage 互联（如 openFolder/定时器启动）
+影像管理与渲染核心：ImageManage
+ImageManage 是影像显示与交互的核心组件，负责 2D/3D 的 VTK 渲染、交互拾取、测量工具、模型加载、点线绘制与 ICP 配准等。
+
+图像加载与显示
+支持 DICOM（vtkDICOMImageReader）与 NIfTI（vtkNIFTIImageReader）
+三正交 2D 视图（vtkResliceImageViewer + vtkImagePlaneWidget）
+体渲染（vtkGPUVolumeRayCastMapper + vtkVolume + vtkVolumeProperty + vtkPiecewiseFunction）
+交互/测量/拾取
+距离/角度工具（vtkDistanceWidget / vtkAngleWidget）
+自定义点拾取（VTKPointPickerInteractorStyle），将拾取坐标转换为体素/世界坐标
+3D 交互模式切换（旋转/拾取/标注）
+3D 几何/模型
+STL 模型装载（vtkSTLReader/Mapper/Actor），支持多模型列表与染色
+特征点（featurePoints）与“线段点”（linePoints）集合，用于几何约束/配准
+箭头/线段/球体/圆柱等基础几何用于辅助呈现（vtkConeSource、vtkLineSource、vtkSphereSource 等）
+ICP 配准与变换
+vtkIterativeClosestPointTransform、vtkTransformPolyDataFilter 将工具或骨模型对齐到目标
+外部（光学）矩阵/参考系输入后应用到 actor 或体数据
+提供 on_pushButton_Registration_clicked 等函数输出误差/RMSE，供 UI 显示
+信号/槽设计（与外部协同）
+发出 InsertNextPoint(double[3])（ImageBrowseWidget 接收并做 2D 投影/记录）
+发出 clearPoints()（清空 3D 特征点）
+canIcp（当满足条件时允许执行配准）
+接收光学数据 recive_center_rotation / receive_ref_center_rotation 等，并更新场景
+数据与状态
+refRotationMatrix：参考系与 tracker 之间关系矩阵，2D/3D/光学流程中用于坐标映射
+多个 transform/filter 管理到工具/模型/点集的变换链路
+丰富的 UI 控制（四视图/单视图按钮、调窗宽/窗位等）
+图像浏览与算法桥接：ImageBrowseWidget
+ImageBrowseWidget 聚合 UI 操作、Python 算法、FusionTrack、Pivot 标定，与 ImageManage 紧密协作，是“注册/导航”阶段的中枢。
+
+模式切换
+set2D3DRegisterModel：右侧参数/DRR/投影计算，左侧隐藏工具
+setOpticalRegisterModel：光学配准页，右侧显示，左侧隐藏
+setNavigationModel：术中导航页，左侧工具区显示，右侧隐藏
+与 ImageManage 协作
+载入 CT 文件夹（openFolder），启动渲染定时器
+监听 InsertNextPoint/clearPoints，在 UI 栏更新 3 个特征点，换算为体素坐标（用 CT spacing/size）
+在“地图坐标”功能中，将特征点/相机矩阵输入 Python 函数 Xray_process，回写 3D 估计点到 linePoints 并驱动对齐
+Python 子系统（通过 PythonWorker）
+initPython（CPython 环境初始化）
+getInitDRR：生成初始 DRR PNG（AP/Lat）
+startRegi：2D-3D 注册，返回 AP/Lat 两套 6DoF 位姿，更新 UI
+get2Dpoints：将 3D 特征点投影到两幅 Xray 上（供用户核验/后续几何）
+FusionTrack 与 Pivot 标定
+启动 fusionTrack 线程，接收 send_center_rotation / send_ref_center_rotation / send_toolToRenferenceMatrix 等
+onStarTimeout / onpivotSamplingTimeout 组合定时标定采样与计算，使用 vtkSlicerPivotCalibrationLogic
+将标定输出矩阵应用到 ImageManage 的 transform（工具尖端/工具体）
+Python 算法子系统（pythonworker/python_func）
+嵌入初始化（python_func::pythonInit）
+设置 PYTHONHOME/PYTHONPATH 指向程序内置 python 目录
+Py_Initialize，追加 sys.path（./、pythonFiles、Regi、pythonfile）
+开启多线程支持并释放 GIL（PyEval_InitThreads/PyEval_ReleaseThread）
+调用接口（C++ → Python）
+getInitDRR(CT, outLatPng, outApPng) → generateDRR.func
+Regi2D3D(CT) → Regii.Regi
+参数：CT 路径、AP/Lat Xray 路径、初始位姿、搜索范围、KD 树数量、翻转状态、临时目录
+返回：两个列表（Lat/AP 的 rx,ry,rz,tx,ty,tz）
+回写 ShareMemory::setRegidPoseLat/AP
+get2Dpoints(CT) → projector.findPoint
+参数：3 个 3D 点、Lat/AP 位姿、翻转、临时目录
+返回：两套二维点坐标（lat/ap）
+回写 ShareMemory::setPoints2D
+Xray_process(rootpath, pix_points, refMatrixAp, refMatrixLat) → imageProcess.image_process
+将 4x4 矩阵打包为 Python 列表（若为单位矩阵，传零矩阵）
+返回字符串数组（包含用于回插 3D 的坐标等）
+线程模型（PythonWorker）
+QObject 驻留独立 QThread
+槽函数串行执行 Python 调度，并发出完成信号（GetInitDRRFinished / regiFinished / get2dPointsFinished）
+与 UI via Qt 信号槽解耦
+2D-3D 注册流程（细节）
+准备阶段
+载入 CT（三维数据）与 Xray（AP/Lat），将 DICOM 转 JPG 缓存到病人临时目录
+设置翻转标志（AP/Lat 左右/上下）
+设置初始位姿（rx/ry/rz/tx/ty/tz）、搜索范围、KD 树数量
+配准计算
+emit startRegi(CT) → PythonWorker::onStartRegi → Regi2D3D
+Python 调 Regii.Regi 返回两套位姿（AP/Lat）
+C++ 存入 ShareMemory；UI 展示数值结果
+特征点投影
+用户在 ImageManage 3D 视图选择 3 个特征点（特征点→体素坐标→保存）
+emit get2Dpoints(CT) → projector.findPoint
+返回两幅 2D 像素点坐标，UI 更新输入框
+Xray 几何处理 / 3D 反投影（可选）
+Xray_process 将 refRotationMatrixAp/Lat 与 2D 点、图像处理结果结合，输出 3D 点估计
+将估计出的 3D 点插入 linePoints，配合 ICP/几何线段做进一步几何约束或对齐
+光学定位与枢轴标定（细节）
+FusionTrack 线程
+初始化设备/rigid body，持续抓取帧
+计算 ReferenceToTracker / ToolToTracker / ToolToReference（以及逆矩阵）
+输出
+send_center_rotation（针的旋转/位移）
+send_ref_center_rotation（参考标记旋转/位移）
+send_toolToRenferenceMatrix（工具-参考系 4x4）
+send_fiducials（四点坐标）
+Pivot 标定（ImageBrowseWidget 时序）
+onStarTimeout：
+开始枢轴采样（PivotCalibration->SetRecordingState(true)）
+fusionTrack 切到采样模式（model=1）
+onpivotSamplingTimeout：
+停止采样（RecordingState(false)）
+ComputePivotCalibration / GetToolTipToToolMatrix / GetPivotRMSE
+将工具尖端矩阵设置到 ImageManage->transform4，用于后续导航显示
+UI 显示 RMSE 等指标
+共享数据中心：ShareMemory
+作用
+全局单例，跨模块共享“路径、参数、尺寸/spacing、翻转、配准结果、点集”等
+典型键值
+CT 路径/分割路径/胫骨路径/变换后 CT、AP/Lat Xray 路径
+Xray 翻转标记（四个 bool）
+配准初值、搜索范围、KD 树数量、配准输出位姿（AP/Lat）
+CT 尺寸(size)/间距(spacing)、选取的 3D 点与计算出的 2D 点
+对外接口：set/get 成对方法；一次性 getXrayFlip/getRegiInitPose 等
+注意
+内部使用 QHash 存储字符串/整型，兼具自有结构体（_SurgicalInfo/_CTInfo）
+线程安全未显式加锁，当前使用方式主要在 UI 线程与 PythonWorker 线程间（建议后续增强并发保护）
+数据库层（db_sqlite3）
+DBOperator（单例）
+初始化数据库、建表（从 configure/db_update.xml 读取 SQL 语句）
+操作对象：LoginInfo/DoctorInfo/PatientInfo/PatientImageInfo
+典型 API
+insertLoginRecord/insertDoctorRecord/insertPatientRecord/insertImageRecord
+deletePatient/deleteUser/updateImageRecord
+searchDoctor/searchPatient/searchPatientImageByUid
+sqlite3hpp::Database 封装，配合 JSON 对象数组输出查询结果
+手术规划/分割（SurgicalGuidanceWidget）
+能力（按 UI 按钮组织）
+切割/创建/保存/切片/显示
+选择骨头编号、设置颜色、左右侧/模式切换等
+ITK/VTK 算法接口
+growCut 等分割流程供二次开发，示例/占位逻辑与 UI 已铺设
+器械管理（InstrumentsManageWidget 与相关 Item）
+读取工具列表（XML/目录），展示为信息 Item（图片、介绍、颜色）
+工具选中后加载 STL 模型（ImageManage.addModel/addAllModel）
+支持“已选列表/所有工具列表”的双栏管理、颜色渲染、状态标记（added/status）
+公共工具与日志
+general_tools：常用工具（如屏幕尺寸 getScreenSize 等）
+DataLogger：单例日志落盘（RunLog/按天分目录，四级别日志）
+configurationfiles：读取/落地系统配置与数据库脚本
+ITKFactoryRegistration：确保 ITK IO/Transform/Mesh 等工厂注册（静态链接场景）
+资源与打包
+resource/image.qrc：UI 静态资源（图标/图片）
+外置 python 目录：嵌入式 Python 运行时 + 算法脚本目录（pythonFiles/Regi/pythonfile 等）
+external/include/lib：第三方头文件/库（sqlite 等）
+configure/*：xml 配置模板（数据库表、显示项）
+线程模型与错误处理（要点）
+线程
+UI 主线程：大部分 Qt/VTK UI 逻辑
+FusionTrack：QThread，持续读取/计算并通过信号派发
+PythonWorker：QThread 驻留 QObject，串行处理 Python 调用；GIL 通过 PyThreadStateLock 保护
+VTK 渲染：UI 内定时器驱动刷新
+错误与健壮性
+Python 调用处多有 if (!module/!func) 检查，并打印 PyErr
+建议：统一错误提示/回退策略；ShareMemory 并发访问加保护；对路径/脚本存在性做完整性校验
+典型数据流图
+2D-3D 注册工作流
+从 UI 设置初值/翻转与 Xray/CT 路径 → Python 配准 → 回写 → 投影/校验/反投影 → 3D 对齐展示
+你可点开查看完整流程图。
+
+核心参与者：ImageBrowseWidget、PythonWorker、ShareMemory、ImageManage
+光学定位 + 枢轴标定
+FusionTrack 线程 → 信号派发 → PivotCalibration 采样/计算 → 工具尖端矩阵 → ImageManage 应用 → 导航显示
+小结与建议
+模块分工清晰：UI/渲染/算法/硬件/数据层
+ShareMemory 将多模块解耦，Python 提供算法灵活性，VTK 负责强交互三维
+建议优先改进
+ShareMemory 的线程安全（读写锁/原子性）
+Python 环境健壮性（路径/脚本完整性检测）
+ImageManage 过于庞大，拆分子管理器（测量、点线、模型、ICP）
+统一错误处理与用户提示
+
+

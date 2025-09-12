@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PatientListWidget</class>
+ <widget class="QWidget" name="PatientListWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1000</width>
+    <height>700</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>患者列表管理</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget {
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    font-size: 12px;
+}</string>
+  </property>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,8 @@
+Plugin-SymbolicName: SamplePlugin
+Plugin-ActivationPolicy: eager
+Plugin-Category: Medical
+Plugin-ContactAddress: https://github.com/medicalpro
+Plugin-Description: A sample plugin for Medical Pro application demonstrating CTK plugin framework integration
+Plugin-Name: Sample Medical Plugin
+Plugin-Vendor: Medical Solutions
+Plugin-Version: 1.0.0

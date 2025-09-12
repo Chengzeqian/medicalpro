@@ -1,0 +1,8 @@
+Plugin-SymbolicName: OpticalTracking
+Plugin-ActivationPolicy: eager
+Plugin-Category: Medical
+Plugin-ContactAddress: https://github.com/medicalpro
+Plugin-Description: Atracsys optical tracking plugin for real-time marker tracking and surgical navigation
+Plugin-Name: Optical Tracking Plugin
+Plugin-Vendor: Medical Solutions
+Plugin-Version: 1.0.0
