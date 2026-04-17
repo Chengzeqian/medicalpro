@@ -305,6 +305,7 @@ int main(int argc, char* argv[])
         // ========================================
         qDebug() << "[Phase 3] Startup surface preparation";
         qDebug() << "----------------------------------------";
+
         CTKManager* ctkManager = CTKManager::instance();
         qDebug() << "[Phase 3] Completed\n";
 
@@ -329,6 +330,7 @@ int main(int argc, char* argv[])
         qDebug() << "----------------------------------------";
 
         // 注册 CTK 框架初始化阶段处理器
+#ifdef CTK_PLUGIN_FRAMEWORK
         orchestrator->registerPhaseHandler(StartupPhase::CTKFrameworkInit, [ctkManager](QApplication* app) {
             qDebug() << "[StartupOrchestrator] Running CTK framework initialization...";
             if (!ctkManager->initializeFramework(app)) {
@@ -520,6 +522,10 @@ int main(int argc, char* argv[])
             qDebug() << "[StartupOrchestrator] Service warmup completed";
             return true;  // 即使Python初始化失败也不阻止启动
         });
+
+#else
+        qDebug() << "[Phase 5] CTK plugin framework disabled, skipping CTK startup handlers";
+#endif
 
         QObject::connect(orchestrator, &StartupOrchestrator::startupCompleted,
                              &app, [mainInterface, safeMode](bool success) {

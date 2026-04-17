@@ -32,10 +32,6 @@ set(NEWPAGES_HEADERS
     ManagementPage.h
     DashboardPage.h
     NavigationPage.h
-    # Shared workflow implementation lives under Plugins but is used by NewPagesLib
-    ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/RegistrationWorkflow.h
-    # Force MOC for plugin service interface used by RegistrationWorkflow
-    ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/PointRegistrationService.h
     # BoneSurfaceMotionSimulator used by NavigationPage
     ${CMAKE_SOURCE_DIR}/Plugins/OpticalTracking/BoneSurfaceMotionSimulator.h
 )
@@ -52,7 +48,6 @@ set(NEWPAGES_SOURCES
     ManagementPage.cpp
     DashboardPage.cpp
     NavigationPage.cpp
-    ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/RegistrationWorkflow.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/OpticalTracking/BoneSurfaceMotionSimulator.cpp
 )
 
@@ -107,6 +102,13 @@ endif()
 
 # CTK编译定义（从父项目继承）
 if(CTK_FOUND)
+    list(APPEND NEWPAGES_HEADERS
+        ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/RegistrationWorkflow.h
+        ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/PointRegistrationService.h
+    )
+    list(APPEND NEWPAGES_SOURCES
+        ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/RegistrationWorkflow.cpp
+    )
     target_compile_definitions(NewPagesLib PRIVATE CTK_PLUGIN_FRAMEWORK)
 endif()
 
