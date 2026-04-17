@@ -1,0 +1,12 @@
+Plugin-SymbolicName: PointRegistration
+Plugin-ActivationPolicy: eager
+Plugin-Category: Registration
+Plugin-ContactAddress: support@medicalpro.com
+Plugin-Copyright: Copyright (c) 2024 MedicalPro. All rights reserved.
+Plugin-Description: 基于点的配准插件，提供手术导航中的点配准功能
+Plugin-DocURL: https://docs.medicalpro.com/plugins/point-registration
+Plugin-Icon:
+Plugin-Name: 点配准
+Plugin-Vendor: MedicalPro
+Plugin-Version: 1.0.0
+

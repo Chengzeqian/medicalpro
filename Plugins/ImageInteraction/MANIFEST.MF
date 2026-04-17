@@ -1,8 +1,0 @@
-Plugin-SymbolicName: ImageInteraction
-Plugin-ActivationPolicy: eager
-Plugin-Category: Medical
-Plugin-ContactAddress: https://github.com/medicalpro
-Plugin-Description: Medical image interaction plugin focused on point picking, measurement and 3D interaction tools (refactored for specialized interaction functionality)
-Plugin-Name: Image Interaction Plugin
-Plugin-Vendor: Medical Solutions
-Plugin-Version: 1.0.0

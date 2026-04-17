@@ -1,0 +1,29 @@
+# BoneSegmentation 编译错误修复清单
+
+## 错误 1: 缺少头文件
+在 SegmentationServiceImpl.cpp 第8行后添加:
+```cpp
+#include <QRegularExpression>
+```
+
+## 错误 2: 第25行 错误的括号
+将:
+```cpp
+m_parameters("smoothing") = true;
+```
+改为:
+```cpp
+m_parameters["smoothing"] = true;
+```
+
+## 错误 3: 删除未实现的函数调用
+第29行: loadConfiguration(); -> 注释掉
+第309行: saveConfiguration(); -> 注释掉
+第347行: saveConfiguration(); -> 注释掉
+第704-711行: 删除 loadConfiguration() 和 saveConfiguration() 的实现
+
+## 错误 4: getSegmentationFiles 签名问题
+这个方法需要是 const 的,已经在头文件中定义
+
+## 推荐: 使用预编译好的版本
+由于编译错误较多,建议直接使用简化版本重新编写

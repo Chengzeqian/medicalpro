@@ -1,0 +1,13 @@
+Plugin-SymbolicName: FourViewDisplay
+Bundle-ActivationPolicy: lazy
+Plugin-Category: Medical
+Plugin-ContactAddress: support@medicalpro.com
+Plugin-Copyright: Copyright (c) 2024 MedicalPro. All rights reserved.
+Plugin-Description: 四视图显示插件，提供轴位、矢状位、冠状位和3D视图显示功能，用于显示医学影像nii.gz文件
+Plugin-DocURL: https://docs.medicalpro.com/plugins/four-view-display
+Plugin-Icon: 
+Plugin-Name: 四视图显示
+Plugin-Vendor: MedicalPro
+Plugin-Version: 1.0.0
+Service-Component: OSGI-INF/org.medicalpro.FourViewDisplay.xml
+

@@ -1,8 +1,0 @@
-Plugin-SymbolicName: PatientManagement
-Plugin-ActivationPolicy: eager
-Plugin-Category: Medical
-Plugin-ContactAddress: https://github.com/medicalpro
-Plugin-Description: Comprehensive patient data management system for medical navigation
-Plugin-Name: Patient Management Plugin
-Plugin-Vendor: Medical Solutions
-Plugin-Version: 1.0.0

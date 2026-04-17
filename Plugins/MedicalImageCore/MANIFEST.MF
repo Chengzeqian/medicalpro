@@ -1,7 +1,0 @@
-Plugin-SymbolicName: medical.imagecore
-Plugin-Version: 1.0.0
-Plugin-Name: Medical Image Core
-Plugin-Description: Unified medical image processing and loading service layer
-Plugin-Vendor: Medical Navigation System
-Plugin-Category: Medical
-Plugin-ActivationPolicy: eager

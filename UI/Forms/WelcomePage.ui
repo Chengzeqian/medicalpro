@@ -15,22 +15,34 @@
   </property>
   <layout class="QVBoxLayout" name="mainLayout">
    <property name="spacing">
-    <number>20</number>
+    <number>14</number>
    </property>
    <property name="leftMargin">
-    <number>48</number>
+    <number>32</number>
    </property>
    <property name="topMargin">
-    <number>36</number>
+    <number>22</number>
    </property>
    <property name="rightMargin">
-    <number>48</number>
+    <number>32</number>
    </property>
    <property name="bottomMargin">
-    <number>32</number>
+    <number>22</number>
    </property>
    <item>
     <widget class="QFrame" name="welcomeHeroFrame">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>1</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>458</height>
+      </size>
+     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -39,50 +51,62 @@
        <number>24</number>
       </property>
       <property name="leftMargin">
-       <number>28</number>
+       <number>0</number>
       </property>
       <property name="topMargin">
-       <number>28</number>
+       <number>0</number>
       </property>
       <property name="rightMargin">
-       <number>28</number>
+       <number>0</number>
       </property>
       <property name="bottomMargin">
-       <number>28</number>
+       <number>0</number>
       </property>
       <item>
        <widget class="QFrame" name="brandPanelFrame">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
         </property>
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>380</height>
+          <height>404</height>
          </size>
         </property>
         <layout class="QVBoxLayout" name="brandPanelLayout">
          <property name="spacing">
-          <number>10</number>
+          <number>8</number>
          </property>
          <property name="leftMargin">
-          <number>0</number>
+          <number>32</number>
          </property>
          <property name="topMargin">
-          <number>0</number>
+          <number>32</number>
          </property>
          <property name="rightMargin">
-          <number>0</number>
+          <number>32</number>
          </property>
          <property name="bottomMargin">
-          <number>0</number>
+          <number>32</number>
          </property>
          <item>
           <widget class="QLabel" name="logoLabel">
            <property name="minimumSize">
             <size>
-             <width>180</width>
-             <height>180</height>
+             <width>396</width>
+             <height>150</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>396</width>
+             <height>150</height>
             </size>
            </property>
            <property name="alignment">
@@ -97,7 +121,7 @@
           <widget class="QLabel" name="productEyebrowLabel">
            <property name="font">
             <font>
-             <pointsize>14</pointsize>
+             <pointsize>15</pointsize>
              <bold>true</bold>
             </font>
            </property>
@@ -113,7 +137,7 @@
           <widget class="QLabel" name="heroTitleLabel">
            <property name="font">
             <font>
-             <pointsize>28</pointsize>
+             <pointsize>32</pointsize>
              <bold>true</bold>
             </font>
            </property>
@@ -129,7 +153,7 @@
           <widget class="QLabel" name="heroSubtitleLabel">
            <property name="font">
             <font>
-             <pointsize>14</pointsize>
+             <pointsize>16</pointsize>
             </font>
            </property>
            <property name="text">
@@ -146,29 +170,41 @@
             <enum>Qt::Vertical</enum>
            </property>
            <property name="sizeType">
-            <enum>QSizePolicy::Expanding</enum>
+            <enum>QSizePolicy::Fixed</enum>
            </property>
            <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="heroButtonLayout">
-           <property name="spacing">
-            <number>14</number>
-           </property>
-           <item>
-            <widget class="QPushButton" name="enterButton">
-             <property name="minimumSize">
-              <size>
-               <width>220</width>
-               <height>48</height>
-              </size>
-             </property>
+             <size>
+              <width>20</width>
+              <height>8</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="heroButtonLayout">
+            <property name="spacing">
+             <number>14</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>10</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QPushButton" name="enterButton">
+              <property name="minimumSize">
+               <size>
+                <width>268</width>
+                <height>60</height>
+               </size>
+              </property>
              <property name="cursor">
               <cursorShape>PointingHandCursor</cursorShape>
              </property>
@@ -178,13 +214,13 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="exitButton">
-             <property name="minimumSize">
-              <size>
-               <width>160</width>
-               <height>48</height>
-              </size>
-             </property>
+             <widget class="QPushButton" name="exitButton">
+              <property name="minimumSize">
+               <size>
+                <width>144</width>
+                <height>44</height>
+               </size>
+              </property>
              <property name="cursor">
               <cursorShape>PointingHandCursor</cursorShape>
              </property>
@@ -192,6 +228,22 @@
               <string>退出</string>
              </property>
             </widget>
+           </item>
+           <item>
+            <spacer name="heroButtonRightSpacer">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Expanding</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
            </item>
           </layout>
          </item>
@@ -212,30 +264,36 @@
       </item>
       <item>
        <widget class="QFrame" name="runtimeSummaryFrame">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
         <property name="minimumSize">
          <size>
-          <width>360</width>
-          <height>380</height>
+          <width>352</width>
+          <height>300</height>
          </size>
         </property>
         <layout class="QVBoxLayout" name="runtimeSummaryLayout">
          <property name="spacing">
-          <number>14</number>
+          <number>10</number>
          </property>
          <property name="leftMargin">
-          <number>24</number>
+          <number>22</number>
          </property>
          <property name="topMargin">
-          <number>24</number>
+          <number>22</number>
          </property>
          <property name="rightMargin">
-          <number>24</number>
+          <number>22</number>
          </property>
          <property name="bottomMargin">
-          <number>24</number>
+          <number>22</number>
          </property>
          <item>
           <widget class="QLabel" name="runtimeSummaryTitleLabel">
@@ -270,22 +328,22 @@
            <property name="frameShape">
             <enum>QFrame::StyledPanel</enum>
            </property>
-           <layout class="QVBoxLayout" name="frameworkQuickStatLayout">
-            <property name="spacing">
-             <number>6</number>
-            </property>
-            <property name="leftMargin">
-             <number>16</number>
-            </property>
-            <property name="topMargin">
-             <number>16</number>
-            </property>
-            <property name="rightMargin">
-             <number>16</number>
-            </property>
-            <property name="bottomMargin">
-             <number>16</number>
-            </property>
+            <layout class="QVBoxLayout" name="frameworkQuickStatLayout">
+             <property name="spacing">
+              <number>6</number>
+             </property>
+              <property name="leftMargin">
+               <number>12</number>
+              </property>
+              <property name="topMargin">
+               <number>12</number>
+              </property>
+              <property name="rightMargin">
+               <number>12</number>
+              </property>
+              <property name="bottomMargin">
+               <number>12</number>
+              </property>
             <item>
              <widget class="QLabel" name="frameworkQuickTitleLabel">
               <property name="font">
@@ -331,22 +389,22 @@
            <property name="frameShape">
             <enum>QFrame::StyledPanel</enum>
            </property>
-           <layout class="QVBoxLayout" name="serviceQuickStatLayout">
-            <property name="spacing">
-             <number>6</number>
-            </property>
-            <property name="leftMargin">
-             <number>16</number>
-            </property>
-            <property name="topMargin">
-             <number>16</number>
-            </property>
-            <property name="rightMargin">
-             <number>16</number>
-            </property>
-            <property name="bottomMargin">
-             <number>16</number>
-            </property>
+            <layout class="QVBoxLayout" name="serviceQuickStatLayout">
+             <property name="spacing">
+              <number>6</number>
+             </property>
+              <property name="leftMargin">
+               <number>12</number>
+              </property>
+              <property name="topMargin">
+               <number>12</number>
+              </property>
+              <property name="rightMargin">
+               <number>12</number>
+              </property>
+              <property name="bottomMargin">
+               <number>12</number>
+              </property>
             <item>
              <widget class="QLabel" name="serviceQuickTitleLabel">
               <property name="font">
@@ -392,22 +450,22 @@
            <property name="frameShape">
             <enum>QFrame::StyledPanel</enum>
            </property>
-           <layout class="QVBoxLayout" name="directoryQuickStatLayout">
-            <property name="spacing">
-             <number>6</number>
-            </property>
-            <property name="leftMargin">
-             <number>16</number>
-            </property>
-            <property name="topMargin">
-             <number>16</number>
-            </property>
-            <property name="rightMargin">
-             <number>16</number>
-            </property>
-            <property name="bottomMargin">
-             <number>16</number>
-            </property>
+            <layout class="QVBoxLayout" name="directoryQuickStatLayout">
+             <property name="spacing">
+              <number>6</number>
+             </property>
+              <property name="leftMargin">
+               <number>12</number>
+              </property>
+              <property name="topMargin">
+               <number>12</number>
+              </property>
+              <property name="rightMargin">
+               <number>12</number>
+              </property>
+              <property name="bottomMargin">
+               <number>12</number>
+              </property>
             <item>
              <widget class="QLabel" name="directoryQuickTitleLabel">
               <property name="font">
@@ -454,12 +512,12 @@
             <enum>Qt::Vertical</enum>
            </property>
            <property name="sizeType">
-            <enum>QSizePolicy::Expanding</enum>
+            <enum>QSizePolicy::Minimum</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
-             <width>20</width>
-             <height>20</height>
+              <width>20</width>
+              <height>8</height>
             </size>
            </property>
           </spacer>
@@ -488,15 +546,21 @@
    </item>
    <item>
     <widget class="QFrame" name="statusCardsFrame">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="frameShape">
       <enum>QFrame::NoFrame</enum>
      </property>
      <layout class="QGridLayout" name="statusCardsGridLayout">
       <property name="horizontalSpacing">
-       <number>18</number>
+       <number>12</number>
       </property>
       <property name="verticalSpacing">
-       <number>18</number>
+       <number>10</number>
       </property>
       <property name="leftMargin">
        <number>0</number>
@@ -517,20 +581,20 @@
         </property>
         <layout class="QVBoxLayout" name="pluginFrameworkCardLayout">
          <property name="spacing">
-          <number>10</number>
-         </property>
-         <property name="leftMargin">
-          <number>20</number>
-         </property>
-         <property name="topMargin">
-          <number>20</number>
-         </property>
-         <property name="rightMargin">
-          <number>20</number>
-         </property>
-         <property name="bottomMargin">
-          <number>20</number>
-         </property>
+          <number>8</number>
+          </property>
+          <property name="leftMargin">
+           <number>16</number>
+          </property>
+          <property name="topMargin">
+           <number>16</number>
+          </property>
+          <property name="rightMargin">
+           <number>16</number>
+          </property>
+          <property name="bottomMargin">
+           <number>16</number>
+          </property>
          <item>
           <widget class="QLabel" name="pluginFrameworkTitleLabel">
            <property name="font">
@@ -587,22 +651,6 @@
            </property>
           </widget>
          </item>
-         <item>
-          <spacer name="pluginFrameworkSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Expanding</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
         </layout>
        </widget>
       </item>
@@ -613,20 +661,20 @@
         </property>
         <layout class="QVBoxLayout" name="serviceStatusCardLayout">
          <property name="spacing">
-          <number>10</number>
-         </property>
-         <property name="leftMargin">
-          <number>20</number>
-         </property>
-         <property name="topMargin">
-          <number>20</number>
-         </property>
-         <property name="rightMargin">
-          <number>20</number>
-         </property>
-         <property name="bottomMargin">
-          <number>20</number>
-         </property>
+          <number>8</number>
+          </property>
+          <property name="leftMargin">
+           <number>16</number>
+          </property>
+          <property name="topMargin">
+           <number>16</number>
+          </property>
+          <property name="rightMargin">
+           <number>16</number>
+          </property>
+          <property name="bottomMargin">
+           <number>16</number>
+          </property>
          <item>
           <widget class="QLabel" name="serviceStatusTitleLabel">
            <property name="font">
@@ -683,22 +731,6 @@
            </property>
           </widget>
          </item>
-         <item>
-          <spacer name="serviceStatusSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Expanding</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
         </layout>
        </widget>
       </item>
@@ -709,20 +741,20 @@
         </property>
         <layout class="QVBoxLayout" name="dataDirectoryCardLayout">
          <property name="spacing">
-          <number>10</number>
-         </property>
-         <property name="leftMargin">
-          <number>20</number>
-         </property>
-         <property name="topMargin">
-          <number>20</number>
-         </property>
-         <property name="rightMargin">
-          <number>20</number>
-         </property>
-         <property name="bottomMargin">
-          <number>20</number>
-         </property>
+          <number>8</number>
+          </property>
+          <property name="leftMargin">
+           <number>16</number>
+          </property>
+          <property name="topMargin">
+           <number>16</number>
+          </property>
+          <property name="rightMargin">
+           <number>16</number>
+          </property>
+          <property name="bottomMargin">
+           <number>16</number>
+          </property>
          <item>
           <widget class="QLabel" name="dataDirectoryTitleLabel">
            <property name="font">
@@ -779,22 +811,6 @@
            </property>
           </widget>
          </item>
-         <item>
-          <spacer name="dataDirectorySpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Expanding</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
         </layout>
        </widget>
       </item>
@@ -807,12 +823,12 @@
       <enum>Qt::Vertical</enum>
      </property>
      <property name="sizeType">
-      <enum>QSizePolicy::Expanding</enum>
+      <enum>QSizePolicy::Minimum</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>20</width>
-       <height>20</height>
+        <width>20</width>
+        <height>4</height>
       </size>
      </property>
     </spacer>

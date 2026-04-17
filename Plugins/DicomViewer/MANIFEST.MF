@@ -1,0 +1,12 @@
+Plugin-SymbolicName: DicomViewer
+Bundle-ActivationPolicy: lazy
+Plugin-Category: Medical
+Plugin-ContactAddress: support@medicalpro.com
+Plugin-Copyright: Copyright (c) 2024 MedicalPro. All rights reserved.
+Plugin-Description: DICOM影像查看插件，提供足踝外科CT影像显示、测量、标注等功能
+Plugin-DocURL: https://docs.medicalpro.com/plugins/dicom-viewer
+Plugin-Icon: 
+Plugin-Name: DICOM影像查看器
+Plugin-Vendor: MedicalPro
+Plugin-Version: 1.0.0
+Service-Component: OSGI-INF/org.medicalpro.DicomViewer.xml

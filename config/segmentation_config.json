@@ -1,0 +1,29 @@
+{
+    "python": {
+        "path": "D:/Qtproject/medicalpro/Python39/python.exe",
+        "totalSegmentatorPath": ""
+    },
+    "parameters": {
+        "fast": false,
+        "ml": true,
+        "smoothing": true,
+        "smoothing_iterations": 30,
+        "smoothing_passband": 0.1,
+        "mask_gaussian_sigma": 0.8,
+        "hu_threshold": 200,
+        "volume_gaussian_sigma": 0.0,
+        "device": "gpu",
+        "task": "appendicular_bones",
+        "quiet": false
+    },
+    "notes": {
+        "path": "Python interpreter path. Can be absolute path or just 'python' to use system PATH",
+        "totalSegmentatorPath": "Path to TotalSegmentator source directory (optional if pip installed)",
+        "device": "Options: 'gpu', 'cpu', 'mps', or 'gpu:X' where X is GPU device ID",
+        "task": "Options: 'total', 'total_mr', 'lung_vessels', 'body', etc. See TotalSegmentator docs",
+        "fast": "Use faster 3mm resolution model instead of 1.5mm",
+        "ml": "Output multilabel NIfTI file instead of separate files per class",
+        "hu_threshold": "When exporting mesh from an intensity volume (CT HU), use this iso-value threshold",
+        "volume_gaussian_sigma": "Optional Gaussian smoothing (in voxel units) before marching cubes for intensity volumes; 0 disables"
+    }
+}

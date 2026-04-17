@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/Registration2D3D/META-INF">
+        <file>MANIFEST.MF</file>
+    </qresource>
+</RCC>
+

@@ -16,11 +16,38 @@
 #include <QDateTime>
 #include <QThread>
 #include <QUdpSocket>
+#include <QHostAddress>
+#include <QRadioButton>
+#include <QLibrary>
 #include <cstdint>
 #include <fstream>
+#include <random>
 
-// Atracsys SDK
+// 必要的Qt包含（在SDK定义之前）
+#include <QString>
+#include <QList>
+
+// Atracsys SDK - 条件编译支持
+#ifdef ATRACSYS_SDK_AVAILABLE
 #include <ftkInterface.h>
+#else
+// 模拟SDK类型定义
+typedef void* ftkLibrary;
+typedef struct { char data[256]; } ftkBuffer;
+typedef enum { FTK_OK = 0, FTK_ERROR = 1 } ftkError;
+typedef int ftkDeviceType;
+typedef uint64_t uint64;
+
+// 模拟刚体结构定义
+struct ftkRigidBody {
+    uint64 id;
+    QString name;
+    QList<double> geometry;
+    bool active;
+    
+    ftkRigidBody() : id(0), active(false) {}
+};
+#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -137,8 +164,18 @@ public:
     QVariantMap validateToolAccuracy(const QString& sessionId, const QString& toolId, const QList<QList<double>>& referencePoints) override;
     QVariantMap getSystemStatusReport(const QString& sessionId) override;
 
+    // ==================== VTK渲染控制 ====================
+
+    void pauseRendering() override;
+    void resumeRendering() override;
+
+    // ==================== 错误处理 ====================
+
+    QString getLastError() const override;
+
     // ==================== UI显示管理（遵循PatientManagement成功模式） ====================
     
+    QWidget* createTrackingWidget(QWidget* parent = nullptr) override;
     bool showTrackingControlPanel(QWidget* parent = nullptr) override;
     bool showDeviceConfigDialog(QWidget* parent = nullptr) override;
     bool showCalibrationWizardDialog(QWidget* parent = nullptr) override;
@@ -556,16 +593,23 @@ private:
     bool startUDPServer(quint16 port = 8888);
     bool stopUDPServer();
     void broadcastTrackingData(const QMap<QString, QList<double>>& trackingData);
+
+    // UDP 命令处理
+    void processUDPCommand(const QByteArray& datagram, const QHostAddress& sender, quint16 senderPort);
+    void handleTextCommand(const QString& command, const QHostAddress& sender, quint16 senderPort);
+    void sendUDPBroadcast(const QString& message, quint16 port);
+    void sendDeviceList(const QHostAddress& sender, quint16 senderPort);
+    void sendSessionList(const QHostAddress& sender, quint16 senderPort);
+    void sendToolStatus(const QHostAddress& sender, quint16 senderPort);
+    void sendAcknowledge(const QHostAddress& sender, quint16 senderPort, quint8 commandType, bool success);
+    void sendPong(const QHostAddress& sender, quint16 senderPort);
     
-        // 设备管理辅助方法
+    // 设备管理辅助方法
     void addSimulatedDevices();
     bool validateDeviceId(const QString& deviceId);
-    
-    // 会话管理辅助方法  
+
+    // 会话管理辅助方法
     QString createTrackingSession(const QString& deviceId);
-    
-    // 服务信息
-    QString getLastError() const;
 
     // CTK插件上下文
     ctkPluginContext* m_pluginContext;
@@ -615,18 +659,116 @@ private:
     bool m_imageServiceConnected;
     bool m_interactionServiceConnected;
     bool m_componentsInitialized;
-    
+
     // 定时器
     QTimer* m_realTimeTimer;
-    
+
     // 默认设备参数
     QMap<QString, QVariantMap> m_defaultDeviceParameters;
-    
+
     // 模拟数据生成器
     QMap<QString, QVariantMap> m_simulationState;
-    
+
     // 控制界面注册表
     QMap<QString, QWidget*> m_controlInterfaces;
+
+    // ==================== 新增：工具位置历史数据 ====================
+    struct ToolTrackingData {
+        QList<double> currentPosition;      // [x, y, z, rx, ry, rz]
+        QList<double> previousPosition;     // 上一帧位置
+        QList<double> velocity;             // 速度 [vx, vy, vz, vrx, vry, vrz]
+        QList<QList<double>> positionHistory; // 历史位置（用于滤波）
+        qint64 lastUpdateTime;
+        bool visible;
+        double quality;                     // 0.0 - 1.0
+        QString motionPattern;              // "probe", "pointer", "reference", "custom"
+
+        // 滤波器状态
+        QList<double> kalmanState;          // 卡尔曼滤波状态
+        QList<double> kalmanCovariance;     // 卡尔曼协方差
+
+        // 校准偏移
+        QList<double> calibrationOffset;    // 校准后的工具尖端偏移
+
+        ToolTrackingData() : lastUpdateTime(0), visible(false), quality(0.0) {
+            currentPosition = {0, 0, 0, 0, 0, 0};
+            previousPosition = {0, 0, 0, 0, 0, 0};
+            velocity = {0, 0, 0, 0, 0, 0};
+            calibrationOffset = {0, 0, 0};
+        }
+    };
+
+    // 工具跟踪数据缓存 (sessionId -> toolId -> data)
+    QMap<QString, QMap<QString, ToolTrackingData>> m_toolTrackingData;
+
+    // 实时流配置
+    struct StreamingConfig {
+        bool enabled;
+        double frequency;           // Hz
+        qint64 lastBroadcastTime;
+
+        StreamingConfig() : enabled(false), frequency(30.0), lastBroadcastTime(0) {}
+    };
+    QMap<QString, StreamingConfig> m_streamingConfigs;
+
+    // 记录文件句柄
+    QMap<QString, std::ofstream*> m_recordingFiles;
+
+    // 回放数据缓存
+    struct PlaybackData {
+        QList<qint64> timestamps;
+        QList<QMap<QString, QList<double>>> frames;  // toolId -> position per frame
+    };
+    QMap<QString, PlaybackData> m_playbackDataCache;
+
+    // 随机数生成器（用于模拟）
+    std::mt19937 m_randomGenerator;
+
+    // VTK渲染控制状态
+    bool m_renderingPaused;
+    QList<QWidget*> m_vtkWidgets;  // 跟踪所有创建的VTK Widget
+
+    // ==================== ProbeCalibration DLL ====================
+
+    // DLL 函数指针类型（probe_calibration_c_api.h）
+    using PC_CreatePipelineFn = void* (*)();
+    using PC_DestroyPipelineFn = void (*)(void*);
+    using PC_InitializePipelineFn = int (*)(void*, const char*);
+    using PC_ShutdownPipelineFn = void (*)(void*);
+    using PC_StartCalibrationFn = int (*)(void*);
+    using PC_FinishCalibrationFn = int (*)(void*);
+    using PC_SaveCalibrationFn = int (*)(void*, const char*);
+    using PC_LoadCalibrationFn = int (*)(void*, const char*);
+    using PC_IsCalibrated = int (*)(void*);
+    using PC_GetLastErrorFn = const char* (*)(void*);
+    // Collector API
+    using PC_CollectorResetFn = int (*)(void*);
+    using PC_CollectorAddPointFn = int (*)(void*, float, float, float, uint64_t);
+    using PC_CollectorGetSuperPointCountFn = int (*)(void*, uint32_t*);
+    using PC_CollectorExportFn = int (*)(void*, float*, float*, float*, uint32_t, uint32_t*);
+
+    bool loadProbeCalibrationDLL(const QString& dllPath = QString());
+    QVariantMap performPivotCalibrationDLL(const QString& calibrationId, CalibrationInfo& calibInfo);
+
+    QLibrary m_pcLib;
+    void* m_pcPipeline = nullptr;
+    bool m_pcLoaded = false;
+
+    // 函数指针
+    PC_CreatePipelineFn m_pcCreate = nullptr;
+    PC_DestroyPipelineFn m_pcDestroy = nullptr;
+    PC_InitializePipelineFn m_pcInitialize = nullptr;
+    PC_ShutdownPipelineFn m_pcShutdown = nullptr;
+    PC_StartCalibrationFn m_pcStartCalibration = nullptr;
+    PC_FinishCalibrationFn m_pcFinishCalibration = nullptr;
+    PC_SaveCalibrationFn m_pcSaveCalibration = nullptr;
+    PC_LoadCalibrationFn m_pcLoadCalibration = nullptr;
+    PC_IsCalibrated m_pcIsCalibrated = nullptr;
+    PC_GetLastErrorFn m_pcGetLastError = nullptr;
+    PC_CollectorResetFn m_pcCollectorReset = nullptr;
+    PC_CollectorAddPointFn m_pcCollectorAddPoint = nullptr;
+    PC_CollectorGetSuperPointCountFn m_pcCollectorGetSuperPointCount = nullptr;
+    PC_CollectorExportFn m_pcCollectorExport = nullptr;
 };
 
 #endif // OPTICAL_TRACKING_SERVICE_IMPL_H

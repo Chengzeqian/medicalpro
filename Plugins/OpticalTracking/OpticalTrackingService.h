@@ -376,6 +376,22 @@ public:
      */
     virtual QVariantMap getSystemStatusReport(const QString& sessionId) = 0;
 
+    // ==================== Widget工厂方法（遵循Plugin-Widget架构） ====================
+    
+    /**
+     * @brief 创建追踪Widget（即插即用，包含VTK 3D视图）
+     * @param parent 父窗口
+     * @return 追踪Widget指针，失败返回nullptr
+     * 
+     * 使用示例：
+     * @code
+     * // 在SurgicalNavigationPage中嵌入TrackingWidget
+     * QWidget* trackingWidget = trackingService->createTrackingWidget(this);
+     * layout->addWidget(trackingWidget);
+     * @endcode
+     */
+    virtual QWidget* createTrackingWidget(QWidget* parent = nullptr) = 0;
+    
     // ==================== UI显示管理（遵循PatientManagement成功模式） ====================
     
     /**
@@ -421,6 +437,28 @@ public:
      * @return 导出ID，失败返回空字符串
      */
     virtual QString exportRecordingData(const QString& recordingId, const QString& exportPath, const QString& exportFormat) = 0;
+
+    // ==================== VTK渲染控制（防闪烁） ====================
+
+    /**
+     * @brief 暂停VTK渲染
+     * @note 在页面切换前调用，防止隐藏的VTK Widget继续渲染导致闪烁
+     */
+    virtual void pauseRendering() = 0;
+
+    /**
+     * @brief 恢复VTK渲染
+     * @note 在页面切换后调用
+     */
+    virtual void resumeRendering() = 0;
+
+    // ==================== 错误处理 ====================
+
+    /**
+     * @brief 获取最后一次错误信息
+     * @return 错误信息字符串
+     */
+    virtual QString getLastError() const = 0;
 
 signals:
     /**
@@ -526,7 +564,14 @@ signals:
      * @param error 错误信息
      */
     void exportFailed(const QString& exportId, const QString& error);
-    
+
+    /**
+     * @brief 导出进度信号
+     * @param exportId 导出ID
+     * @param progress 进度百分比 (0-100)
+     */
+    void exportProgress(const QString& exportId, int progress);
+
     /**
      * @brief 设备连接进度信号
      * @param deviceId 设备ID

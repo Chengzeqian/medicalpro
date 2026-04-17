@@ -1,0 +1,8 @@
+Plugin-SymbolicName: RegistrationCore
+Bundle-ActivationPolicy: lazy
+Plugin-Category: Medical
+Plugin-ContactAddress: https://github.com/medicalpro
+Plugin-Description: Core registration algorithms including Landmark (point-based) and ICP (surface-based) registration for surgical navigation
+Plugin-Name: Registration Core Plugin
+Plugin-Vendor: Medical Solutions
+Plugin-Version: 1.0.0

@@ -1,0 +1,578 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ManagementPage</class>
+ <widget class="QWidget" name="ManagementPage">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1200</width>
+    <height>800</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>数据管理</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget#ManagementPage {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #1a1a2e, stop:1 #16213e);
+}
+
+QLabel#titleLabel {
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+QTabWidget::pane {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.02);
+    top: -1px;
+}
+
+QTabBar::tab {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #a0a0a0;
+    padding: 12px 30px;
+    margin-right: 5px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    font-size: 14px;
+}
+
+QTabBar::tab:selected {
+    background-color: rgba(233, 69, 96, 0.2);
+    color: #ffffff;
+    border-bottom: 2px solid #e94560;
+}
+
+QTabBar::tab:hover:!selected {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+QTableWidget {
+    background-color: transparent;
+    border: none;
+    gridline-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 13px;
+}
+
+QTableWidget::item {
+    padding: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+QTableWidget::item:selected {
+    background-color: rgba(233, 69, 96, 0.3);
+}
+
+QHeaderView::section {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #a0a0a0;
+    padding: 10px;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: bold;
+}
+
+QLineEdit {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+QLineEdit:focus {
+    border-color: #e94560;
+}
+
+QPushButton {
+    background-color: #0f3460;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 13px;
+}
+
+QPushButton:hover {
+    background-color: #e94560;
+}
+
+QPushButton#backButton {
+    background-color: transparent;
+    color: #a0a0a0;
+    border: 1px solid #a0a0a0;
+}
+
+QPushButton#backButton:hover {
+    color: #ffffff;
+    border-color: #ffffff;
+}
+
+QPushButton#enterDashboardButton {
+    background-color: #e94560;
+    padding: 12px 30px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+QPushButton#enterDashboardButton:hover {
+    background-color: #ff6b6b;
+}</string>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <property name="spacing">
+    <number>14</number>
+   </property>
+   <property name="leftMargin">
+    <number>28</number>
+   </property>
+   <property name="topMargin">
+    <number>22</number>
+   </property>
+   <property name="rightMargin">
+    <number>28</number>
+   </property>
+   <property name="bottomMargin">
+    <number>22</number>
+   </property>
+   <item>
+    <layout class="QHBoxLayout" name="headerLayout">
+     <item>
+      <widget class="QPushButton" name="backButton">
+       <property name="text">
+        <string>← 返回</string>
+       </property>
+       <property name="cursor">
+        <cursorShape>PointingHandCursor</cursorShape>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="headerLeftSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="titleLabel">
+       <property name="text">
+        <string>数据管理</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="headerRightSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="enterDashboardButton">
+       <property name="text">
+        <string>进入仪表板 →</string>
+       </property>
+       <property name="cursor">
+        <cursorShape>PointingHandCursor</cursorShape>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="doctorTab">
+      <attribute name="title">
+       <string>医生</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="doctorTabLayout">
+       <property name="spacing">
+        <number>12</number>
+       </property>
+       <property name="leftMargin">
+        <number>14</number>
+       </property>
+       <property name="topMargin">
+        <number>14</number>
+       </property>
+       <property name="rightMargin">
+        <number>14</number>
+       </property>
+       <property name="bottomMargin">
+        <number>14</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="doctorToolbarLayout">
+         <item>
+          <widget class="QLineEdit" name="doctorSearchEdit">
+            <property name="minimumSize">
+             <size>
+              <width>260</width>
+              <height>0</height>
+             </size>
+            </property>
+           <property name="placeholderText">
+            <string>搜索医生...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="doctorToolbarSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="addDoctorButton">
+           <property name="text">
+            <string>+ 添加医生</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="editDoctorButton">
+           <property name="text">
+            <string>编辑</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="deleteDoctorButton">
+           <property name="text">
+            <string>删除</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="refreshDoctorButton">
+           <property name="text">
+            <string>刷新</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="doctorTable">
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SingleSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <column>
+          <property name="text">
+           <string>编号</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>姓名</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>科室</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>职称</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>电话</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>邮箱</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="patientTab">
+      <attribute name="title">
+       <string>患者</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="patientTabLayout">
+       <property name="spacing">
+        <number>12</number>
+       </property>
+       <property name="leftMargin">
+        <number>14</number>
+       </property>
+       <property name="topMargin">
+        <number>14</number>
+       </property>
+       <property name="rightMargin">
+        <number>14</number>
+       </property>
+       <property name="bottomMargin">
+        <number>14</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="patientToolbarLayout">
+         <item>
+          <widget class="QLineEdit" name="patientSearchEdit">
+            <property name="minimumSize">
+             <size>
+              <width>260</width>
+              <height>0</height>
+             </size>
+            </property>
+           <property name="placeholderText">
+            <string>搜索患者...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="patientToolbarSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="addPatientButton">
+           <property name="text">
+            <string>+ 添加患者</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="editPatientButton">
+           <property name="text">
+            <string>编辑</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="deletePatientButton">
+           <property name="text">
+            <string>删除</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="refreshPatientButton">
+           <property name="text">
+            <string>刷新</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="patientTable">
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SingleSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <column>
+          <property name="text">
+           <string>编号</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>姓名</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>性别</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>年龄</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>电话</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>诊断</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>主治医生</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="surgeryTab">
+      <attribute name="title">
+       <string>手术</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="surgeryTabLayout">
+       <property name="spacing">
+        <number>12</number>
+       </property>
+       <property name="leftMargin">
+        <number>14</number>
+       </property>
+       <property name="topMargin">
+        <number>14</number>
+       </property>
+       <property name="rightMargin">
+        <number>14</number>
+       </property>
+       <property name="bottomMargin">
+        <number>14</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="surgeryToolbarLayout">
+         <item>
+          <widget class="QLineEdit" name="surgerySearchEdit">
+            <property name="minimumSize">
+             <size>
+              <width>260</width>
+              <height>0</height>
+             </size>
+            </property>
+           <property name="placeholderText">
+            <string>搜索手术...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="surgeryToolbarSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="addSurgeryButton">
+           <property name="text">
+            <string>+ 添加手术</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="editSurgeryButton">
+           <property name="text">
+            <string>编辑</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="deleteSurgeryButton">
+           <property name="text">
+            <string>删除</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="refreshSurgeryButton">
+           <property name="text">
+            <string>刷新</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="surgeryTable">
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SingleSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <column>
+          <property name="text">
+           <string>编号</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>患者</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>医生</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>类型</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>日期</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>状态</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,1380 @@
+QWidget#WelcomePage,
+QWidget#ModuleSelectionPage,
+QWidget#ManagementPage,
+QWidget#DashboardPage,
+QWidget#SystemSettingsPage {
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 1,
+        stop: 0 ${PAGE_BG_START},
+        stop: 0.58 ${PAGE_BG_END},
+        stop: 1 ${PAGE_BG_ACCENT}
+    );
+    color: ${TEXT_PRIMARY};
+}
+
+QWidget#WelcomePage QLabel,
+QWidget#ModuleSelectionPage QLabel,
+QWidget#ManagementPage QLabel,
+QWidget#DashboardPage QLabel,
+QWidget#SystemSettingsPage QLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 14px;
+}
+
+QWidget#WelcomePage QLabel#titleLabel,
+QWidget#ModuleSelectionPage QLabel#titleLabel,
+QWidget#ManagementPage QLabel#titleLabel,
+QWidget#DashboardPage QLabel#titleLabel,
+QWidget#SystemSettingsPage QLabel#titleLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 30px;
+    font-weight: 700;
+}
+
+QWidget#WelcomePage QLabel#subtitleLabel,
+QWidget#ModuleSelectionPage QLabel#subtitleLabel,
+QWidget#ManagementPage QLabel#subtitleLabel,
+QWidget#SystemSettingsPage QLabel#subtitleLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 16px;
+}
+
+QWidget#WelcomePage QLabel#logoLabel {
+    color: ${ACCENT_PRIMARY};
+    font-size: 32px;
+    font-weight: 700;
+    background: transparent;
+}
+
+QWidget#WelcomePage QLabel#versionLabel {
+    color: ${TEXT_MUTED};
+    font-size: 13px;
+}
+
+QWidget#WelcomePage QPushButton,
+QWidget#ModuleSelectionPage QPushButton,
+QWidget#ManagementPage QPushButton,
+QWidget#DashboardPage QPushButton,
+QWidget#SystemSettingsPage QPushButton {
+    min-height: 42px;
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 1px solid ${BORDER_SOFT};
+    background-color: ${SURFACE_CARD};
+    color: ${TEXT_PRIMARY};
+    font-size: 14px;
+    font-weight: 600;
+}
+
+QWidget#WelcomePage QPushButton:hover,
+QWidget#ModuleSelectionPage QPushButton:hover,
+QWidget#ManagementPage QPushButton:hover,
+QWidget#DashboardPage QPushButton:hover,
+QWidget#SystemSettingsPage QPushButton:hover {
+    background-color: ${SURFACE_CARD_HOVER};
+    border-color: ${ACCENT_SECONDARY};
+}
+
+QWidget#WelcomePage QPushButton:pressed,
+QWidget#ModuleSelectionPage QPushButton:pressed,
+QWidget#ManagementPage QPushButton:pressed,
+QWidget#DashboardPage QPushButton:pressed,
+QWidget#SystemSettingsPage QPushButton:pressed {
+    padding-top: 11px;
+    padding-bottom: 9px;
+}
+
+QWidget#WelcomePage QPushButton#enterButton,
+QWidget#DashboardPage QPushButton#enterNavigationButton,
+QWidget#ManagementPage QPushButton#enterDashboardButton,
+QWidget#ManagementPage QPushButton#enterDashboardButtonSecondary,
+QWidget#ModuleSelectionPage QPushButton#ankleSurgeryButton,
+QWidget#SystemSettingsPage QPushButton#saveButton {
+    background-color: ${ACCENT_PRIMARY};
+    border-color: ${ACCENT_PRIMARY};
+    color: ${TEXT_PRIMARY};
+}
+
+QWidget#WelcomePage QPushButton#enterButton:hover,
+QWidget#DashboardPage QPushButton#enterNavigationButton:hover,
+QWidget#ManagementPage QPushButton#enterDashboardButton:hover,
+QWidget#ManagementPage QPushButton#enterDashboardButtonSecondary:hover,
+QWidget#ModuleSelectionPage QPushButton#ankleSurgeryButton:hover,
+QWidget#SystemSettingsPage QPushButton#saveButton:hover {
+    background-color: ${ACCENT_PRIMARY_HOVER};
+    border-color: ${ACCENT_PRIMARY_HOVER};
+}
+
+QWidget#WelcomePage QPushButton#exitButton,
+QWidget#ModuleSelectionPage QPushButton#logoutButton,
+QWidget#ManagementPage QPushButton#backButton,
+QWidget#DashboardPage QPushButton#logoutButton,
+QWidget#DashboardPage QPushButton#backButton,
+QWidget#SystemSettingsPage QPushButton#backButton {
+    background-color: transparent;
+    color: ${TEXT_SECONDARY};
+    border-color: ${BORDER_STRONG};
+}
+
+QWidget#WelcomePage QPushButton#exitButton:hover,
+QWidget#ModuleSelectionPage QPushButton#logoutButton:hover,
+QWidget#ManagementPage QPushButton#backButton:hover,
+QWidget#DashboardPage QPushButton#logoutButton:hover,
+QWidget#DashboardPage QPushButton#backButton:hover,
+QWidget#SystemSettingsPage QPushButton#backButton:hover {
+    color: ${TEXT_PRIMARY};
+    border-color: ${ACCENT_SECONDARY};
+}
+
+QFrame#ankleSurgeryCard,
+QFrame#systemSettingsCard,
+QFrame#patientListFrame,
+QFrame#patientDetailFrame,
+QFrame#dicomStudyCard {
+    background-color: ${SURFACE_SOFT};
+    border: 1px solid ${BORDER_SOFT};
+    border-radius: 18px;
+}
+
+QFrame#ankleSurgeryCard:hover,
+QFrame#systemSettingsCard:hover,
+QFrame#dicomStudyCard:hover {
+    background-color: ${SURFACE_CARD_HOVER};
+    border-color: ${ACCENT_SECONDARY};
+}
+
+QLabel#ankleSurgeryIcon,
+QLabel#systemSettingsIcon {
+    color: ${ACCENT_SECONDARY};
+    font-size: 28px;
+    font-weight: 700;
+}
+
+QLabel#ankleSurgeryTitle,
+QLabel#systemSettingsTitle,
+QLabel#patientNameLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 20px;
+    font-weight: 700;
+}
+
+QLabel#ankleSurgeryDesc,
+QLabel#systemSettingsDesc,
+QLabel#userInfoLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 14px;
+}
+
+QLabel#patientListTitle,
+QLabel#basicInfoLabel,
+QLabel#doctorInfoLabel,
+QLabel#dicomInfoLabel {
+    color: ${ACCENT_PRIMARY};
+    font-size: 16px;
+    font-weight: 700;
+}
+
+QLineEdit#patientSearchEdit {
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 12px;
+    background-color: ${SURFACE_PANEL};
+    border: 1px solid ${BORDER_SOFT};
+    color: ${TEXT_PRIMARY};
+    selection-background-color: ${ACCENT_SECONDARY};
+}
+
+QLineEdit#patientSearchEdit:focus {
+    border-color: ${ACCENT_SECONDARY};
+}
+
+QListWidget#patientListWidget {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    color: ${TEXT_PRIMARY};
+    font-size: 14px;
+}
+
+QListWidget#patientListWidget::item {
+    min-height: 24px;
+    margin: 4px 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+}
+
+QListWidget#patientListWidget::item:selected {
+    background-color: rgba(91, 182, 255, 0.14);
+    border-color: ${ACCENT_SECONDARY};
+}
+
+QListWidget#patientListWidget::item:hover:!selected {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+QLabel#idLabel,
+QLabel#genderLabel,
+QLabel#ageLabel,
+QLabel#phoneLabel,
+QLabel#diagnosisLabel,
+QLabel#doctorNameLabel,
+QLabel#departmentLabel,
+QLabel#noDicomLabel,
+QLabel#dicomDateLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 14px;
+}
+
+QLabel#idLabelTitle,
+QLabel#genderLabelTitle,
+QLabel#ageLabelTitle,
+QLabel#phoneLabelTitle,
+QLabel#diagnosisLabelTitle,
+QLabel#doctorNameLabelTitle,
+QLabel#departmentLabelTitle {
+    color: ${TEXT_MUTED};
+    font-size: 14px;
+}
+
+QLabel#noDicomLabel {
+    padding: 18px;
+    border: 1px dashed ${BORDER_STRONG};
+    border-radius: 14px;
+    background-color: rgba(8, 18, 30, 0.78);
+}
+
+QLabel#dicomThumbLabel {
+    min-width: 112px;
+    min-height: 78px;
+    border-radius: 10px;
+    background-color: ${SURFACE_PANEL};
+    border: 1px solid ${BORDER_SOFT};
+    color: ${TEXT_MUTED};
+    font-weight: 600;
+}
+
+QScrollArea#detailScrollArea,
+QScrollArea#dicomScrollArea {
+    border: none;
+    background: transparent;
+}
+
+QSplitter#mainSplitter::handle {
+    background-color: transparent;
+    width: 6px;
+}
+
+QWidget#WelcomePage QFrame#welcomeHeroFrame,
+QWidget#WelcomePage QFrame#statusCardsFrame {
+    background: transparent;
+    border: none;
+}
+
+QWidget#WelcomePage QFrame#brandPanelFrame,
+QWidget#WelcomePage QFrame#runtimeSummaryFrame {
+    border-radius: 24px;
+}
+
+QWidget#WelcomePage QFrame#brandPanelFrame {
+    background: qradialgradient(
+        cx: 0.08, cy: 0.12, radius: 1.2,
+        fx: 0.08, fy: 0.12,
+        stop: 0 rgba(44, 126, 173, 0.34),
+        stop: 0.18 rgba(28, 67, 93, 0.26),
+        stop: 0.54 rgba(9, 22, 34, 0.96),
+        stop: 1 rgba(6, 14, 24, 1)
+    );
+    border: 1px solid rgba(78, 205, 224, 0.28);
+}
+
+QWidget#WelcomePage QFrame#runtimeSummaryFrame {
+    background-color: rgba(7, 16, 27, 0.72);
+    border: 1px solid rgba(124, 160, 191, 0.07);
+}
+
+QWidget#WelcomePage QLabel#logoLabel {
+    min-width: 396px;
+    max-width: 396px;
+    min-height: 150px;
+    max-height: 150px;
+    padding: 18px 28px;
+    border-radius: 36px;
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 1,
+        stop: 0 rgba(56, 198, 217, 0.12),
+        stop: 0.5 rgba(24, 57, 84, 0.32),
+        stop: 1 rgba(8, 19, 31, 0.68)
+    );
+    border: 1px solid rgba(56, 198, 217, 0.24);
+    color: ${ACCENT_PRIMARY};
+    font-size: 34px;
+    font-weight: 700;
+}
+
+QWidget#WelcomePage QLabel#logoLabel[brandMode="image"] {
+    padding: 18px 28px;
+}
+
+QWidget#WelcomePage QLabel#logoLabel[brandMode="text"] {
+    color: ${TEXT_PRIMARY};
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}
+
+QWidget#WelcomePage QLabel#productEyebrowLabel {
+    color: ${WELCOME_PRIMARY};
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+}
+
+QWidget#WelcomePage QLabel#heroTitleLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 52px;
+    font-weight: 700;
+}
+
+QWidget#WelcomePage QLabel#versionLabel {
+    color: ${WELCOME_AMBER};
+    font-size: 13px;
+    font-weight: 600;
+}
+
+QWidget#WelcomePage QLabel#heroSubtitleLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 17px;
+    line-height: 1.45em;
+}
+
+QWidget#WelcomePage QLabel#runtimeSummaryTextLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 15px;
+    line-height: 1.45em;
+}
+
+QWidget#WelcomePage QPushButton#enterButton {
+    min-height: 60px;
+    min-width: 268px;
+    border-radius: 18px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+QWidget#WelcomePage QPushButton#exitButton {
+    min-height: 44px;
+    min-width: 144px;
+}
+
+QWidget#WelcomePage QLabel#runtimeSummaryTitleLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 18px;
+    font-weight: 700;
+}
+
+QWidget#WelcomePage QFrame#frameworkQuickStatFrame,
+QWidget#WelcomePage QFrame#serviceQuickStatFrame,
+QWidget#WelcomePage QFrame#directoryQuickStatFrame {
+    background-color: rgba(7, 15, 25, 0.30);
+    border: 1px solid rgba(124, 160, 191, 0.08);
+    border-radius: 14px;
+}
+
+QWidget#WelcomePage QLabel#frameworkQuickTitleLabel,
+QWidget#WelcomePage QLabel#serviceQuickTitleLabel,
+QWidget#WelcomePage QLabel#directoryQuickTitleLabel {
+    color: ${TEXT_MUTED};
+    font-size: 12px;
+    font-weight: 600;
+}
+
+QWidget#WelcomePage QLabel#frameworkQuickValueLabel,
+QWidget#WelcomePage QLabel#serviceQuickValueLabel,
+QWidget#WelcomePage QLabel#directoryQuickValueLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 15px;
+    font-weight: 700;
+}
+
+QWidget#WelcomePage QLabel#frameworkQuickToneLabel,
+QWidget#WelcomePage QLabel#serviceQuickToneLabel,
+QWidget#WelcomePage QLabel#directoryQuickToneLabel {
+    min-height: 24px;
+    padding: 0 9px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+QWidget#WelcomePage QLabel#frameworkQuickValueLabel[statusTone="ok"],
+QWidget#WelcomePage QLabel#serviceQuickValueLabel[statusTone="ok"],
+QWidget#WelcomePage QLabel#directoryQuickValueLabel[statusTone="ok"],
+QWidget#WelcomePage QLabel#frameworkQuickToneLabel[statusTone="ok"],
+QWidget#WelcomePage QLabel#serviceQuickToneLabel[statusTone="ok"],
+QWidget#WelcomePage QLabel#directoryQuickToneLabel[statusTone="ok"] {
+    color: ${SUCCESS};
+}
+
+QWidget#WelcomePage QLabel#frameworkQuickValueLabel[statusTone="warning"],
+QWidget#WelcomePage QLabel#serviceQuickValueLabel[statusTone="warning"],
+QWidget#WelcomePage QLabel#directoryQuickValueLabel[statusTone="warning"],
+QWidget#WelcomePage QLabel#frameworkQuickToneLabel[statusTone="warning"],
+QWidget#WelcomePage QLabel#serviceQuickToneLabel[statusTone="warning"],
+QWidget#WelcomePage QLabel#directoryQuickToneLabel[statusTone="warning"] {
+    color: ${WARNING};
+}
+
+QWidget#WelcomePage QLabel#frameworkQuickValueLabel[statusTone="danger"],
+QWidget#WelcomePage QLabel#serviceQuickValueLabel[statusTone="danger"],
+QWidget#WelcomePage QLabel#directoryQuickValueLabel[statusTone="danger"],
+QWidget#WelcomePage QLabel#frameworkQuickToneLabel[statusTone="danger"],
+QWidget#WelcomePage QLabel#serviceQuickToneLabel[statusTone="danger"],
+QWidget#WelcomePage QLabel#directoryQuickToneLabel[statusTone="danger"] {
+    color: ${DANGER};
+}
+
+QWidget#WelcomePage QLabel#runtimeDecisionBadge,
+QWidget#WelcomePage QLabel#frameworkQuickToneLabel,
+QWidget#WelcomePage QLabel#serviceQuickToneLabel,
+QWidget#WelcomePage QLabel#directoryQuickToneLabel,
+QWidget#WelcomePage QLabel#pluginFrameworkStateLabel,
+QWidget#WelcomePage QLabel#serviceStatusStateLabel,
+QWidget#WelcomePage QLabel#dataDirectoryStateLabel {
+    background-color: transparent;
+    border: 1px solid transparent;
+}
+
+QWidget#WelcomePage QLabel#runtimeDecisionBadge {
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+QWidget#WelcomePage QLabel#runtimeDecisionBadge[statusTone="ok"],
+QWidget#WelcomePage QLabel#frameworkQuickToneLabel[statusTone="ok"],
+QWidget#WelcomePage QLabel#serviceQuickToneLabel[statusTone="ok"],
+QWidget#WelcomePage QLabel#directoryQuickToneLabel[statusTone="ok"],
+QWidget#WelcomePage QLabel#pluginFrameworkStateLabel[statusTone="ok"],
+QWidget#WelcomePage QLabel#serviceStatusStateLabel[statusTone="ok"],
+QWidget#WelcomePage QLabel#dataDirectoryStateLabel[statusTone="ok"] {
+    background-color: ${STATUS_OK_BG};
+    border-color: ${STATUS_OK_BORDER};
+    color: ${SUCCESS};
+}
+
+QWidget#WelcomePage QLabel#runtimeDecisionBadge[statusTone="warning"],
+QWidget#WelcomePage QLabel#frameworkQuickToneLabel[statusTone="warning"],
+QWidget#WelcomePage QLabel#serviceQuickToneLabel[statusTone="warning"],
+QWidget#WelcomePage QLabel#directoryQuickToneLabel[statusTone="warning"],
+QWidget#WelcomePage QLabel#pluginFrameworkStateLabel[statusTone="warning"],
+QWidget#WelcomePage QLabel#serviceStatusStateLabel[statusTone="warning"],
+QWidget#WelcomePage QLabel#dataDirectoryStateLabel[statusTone="warning"] {
+    background-color: ${STATUS_WARNING_BG};
+    border-color: ${STATUS_WARNING_BORDER};
+    color: ${WARNING};
+}
+
+QWidget#WelcomePage QLabel#runtimeDecisionBadge[statusTone="danger"],
+QWidget#WelcomePage QLabel#frameworkQuickToneLabel[statusTone="danger"],
+QWidget#WelcomePage QLabel#serviceQuickToneLabel[statusTone="danger"],
+QWidget#WelcomePage QLabel#directoryQuickToneLabel[statusTone="danger"],
+QWidget#WelcomePage QLabel#pluginFrameworkStateLabel[statusTone="danger"],
+QWidget#WelcomePage QLabel#serviceStatusStateLabel[statusTone="danger"],
+QWidget#WelcomePage QLabel#dataDirectoryStateLabel[statusTone="danger"] {
+    background-color: ${STATUS_DANGER_BG};
+    border-color: ${STATUS_DANGER_BORDER};
+    color: ${DANGER};
+}
+
+QWidget#WelcomePage QFrame#pluginFrameworkCard,
+QWidget#WelcomePage QFrame#serviceStatusCard,
+QWidget#WelcomePage QFrame#dataDirectoryCard {
+    background-color: rgba(8, 18, 30, 0.60);
+    border: 1px solid rgba(124, 160, 191, 0.10);
+    border-radius: 16px;
+}
+
+QWidget#WelcomePage QFrame#pluginFrameworkCard:hover,
+QWidget#WelcomePage QFrame#serviceStatusCard:hover,
+QWidget#WelcomePage QFrame#dataDirectoryCard:hover {
+    border-color: rgba(124, 160, 191, 0.18);
+    background-color: rgba(9, 19, 31, 0.74);
+}
+
+QWidget#WelcomePage QFrame#pluginFrameworkCard[statusTone="ok"],
+QWidget#WelcomePage QFrame#serviceStatusCard[statusTone="ok"],
+QWidget#WelcomePage QFrame#dataDirectoryCard[statusTone="ok"] {
+    border-color: ${STATUS_OK_BORDER};
+}
+
+QWidget#WelcomePage QFrame#pluginFrameworkCard[statusTone="warning"],
+QWidget#WelcomePage QFrame#serviceStatusCard[statusTone="warning"],
+QWidget#WelcomePage QFrame#dataDirectoryCard[statusTone="warning"] {
+    border-color: ${STATUS_WARNING_BORDER};
+}
+
+QWidget#WelcomePage QFrame#pluginFrameworkCard[statusTone="danger"],
+QWidget#WelcomePage QFrame#serviceStatusCard[statusTone="danger"],
+QWidget#WelcomePage QFrame#dataDirectoryCard[statusTone="danger"] {
+    border-color: ${STATUS_DANGER_BORDER};
+}
+
+QWidget#WelcomePage QLabel#pluginFrameworkTitleLabel,
+QWidget#WelcomePage QLabel#serviceStatusTitleLabel,
+QWidget#WelcomePage QLabel#dataDirectoryTitleLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 15px;
+    font-weight: 700;
+}
+
+QWidget#WelcomePage QLabel#pluginFrameworkSummaryLabel,
+QWidget#WelcomePage QLabel#serviceStatusSummaryLabel,
+QWidget#WelcomePage QLabel#dataDirectorySummaryLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 12px;
+    font-weight: 600;
+}
+
+QWidget#WelcomePage QLabel#pluginFrameworkDetailLabel,
+QWidget#WelcomePage QLabel#serviceStatusDetailLabel,
+QWidget#WelcomePage QLabel#dataDirectoryDetailLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 11px;
+}
+
+QWidget#WelcomePage QLabel#pluginFrameworkStateLabel,
+QWidget#WelcomePage QLabel#serviceStatusStateLabel,
+QWidget#WelcomePage QLabel#dataDirectoryStateLabel {
+    min-height: 26px;
+    padding: 0 10px;
+    border-radius: 13px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+QWidget#WelcomePage QPushButton#enterButton {
+    min-height: 58px;
+    min-width: 244px;
+    padding: 0 30px;
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 #43cade,
+        stop: 1 #67deeb
+    );
+    border: 1px solid rgba(129, 236, 245, 0.94);
+    color: #07131f;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+QWidget#WelcomePage QPushButton#enterButton:hover {
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 #52d0e1,
+        stop: 1 #68deeb
+    );
+    border-color: #7ce7f1;
+    color: #07131f;
+}
+
+QWidget#WelcomePage QPushButton#exitButton {
+    min-height: 42px;
+    min-width: 132px;
+    max-width: 132px;
+    background-color: rgba(8, 18, 30, 0.24);
+    border: 1px solid rgba(124, 160, 191, 0.18);
+    color: ${TEXT_SECONDARY};
+}
+
+QWidget#ModuleSelectionPage QFrame#moduleStatusBar,
+QWidget#ModuleSelectionPage QFrame#moduleHeroFrame,
+QWidget#DashboardPage QFrame#dashboardHeaderFrame,
+QWidget#DashboardPage QFrame#overviewStripFrame,
+QWidget#DashboardPage QFrame#navigationCtaFrame {
+    background-color: rgba(8, 18, 30, 0.88);
+    border: 1px solid rgba(124, 160, 191, 0.16);
+    border-radius: 16px;
+}
+
+QWidget#ModuleSelectionPage QFrame#moduleStatusBar {
+    background-color: rgba(7, 16, 27, 0.66);
+    border-color: rgba(124, 160, 191, 0.08);
+}
+
+QWidget#ModuleSelectionPage QFrame#moduleHeroFrame {
+    background: qradialgradient(
+        cx: 0.12, cy: 0.2, radius: 1.15,
+        fx: 0.12, fy: 0.2,
+        stop: 0 rgba(56, 138, 185, 0.20),
+        stop: 0.32 rgba(19, 50, 71, 0.16),
+        stop: 1 rgba(7, 16, 27, 0.95)
+    );
+    border-color: rgba(91, 182, 255, 0.14);
+}
+
+QWidget#ModuleSelectionPage QLabel#moduleEyebrowLabel,
+QWidget#DashboardPage QLabel#dashboardEyebrowLabel {
+    color: ${ACCENT_SECONDARY};
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+QWidget#ModuleSelectionPage QLabel#identityCaptionLabel,
+QWidget#ModuleSelectionPage QLabel#timeCaptionLabel,
+QWidget#ModuleSelectionPage QLabel#systemCaptionLabel,
+QWidget#DashboardPage QLabel#patientListSubtitleLabel,
+QWidget#DashboardPage QLabel#dashboardSubtitleLabel,
+QWidget#ModuleSelectionPage QLabel#subtitleLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 13px;
+}
+
+QWidget#ModuleSelectionPage QLabel#userInfoLabel,
+QWidget#ModuleSelectionPage QLabel#timeValueLabel,
+QWidget#ModuleSelectionPage QLabel#systemValueLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 16px;
+    font-weight: 700;
+}
+
+QWidget#ModuleSelectionPage QLabel#systemValueLabel {
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 14px;
+    background-color: transparent;
+    border: 1px solid transparent;
+}
+
+QWidget#ModuleSelectionPage QLabel#systemValueLabel[statusTone="ok"] {
+    color: ${SUCCESS};
+    background-color: ${STATUS_OK_BG};
+    border-color: ${STATUS_OK_BORDER};
+}
+
+QWidget#ModuleSelectionPage QLabel#systemValueLabel[statusTone="warning"] {
+    color: ${WARNING};
+    background-color: ${STATUS_WARNING_BG};
+    border-color: ${STATUS_WARNING_BORDER};
+}
+
+QWidget#ModuleSelectionPage QLabel#systemValueLabel[statusTone="danger"] {
+    color: ${DANGER};
+    background-color: ${STATUS_DANGER_BG};
+    border-color: ${STATUS_DANGER_BORDER};
+}
+
+QWidget#ModuleSelectionPage QFrame#ankleSurgeryCard,
+QWidget#ModuleSelectionPage QFrame#systemSettingsCard {
+    min-height: 292px;
+    border-radius: 20px;
+}
+
+QWidget#ModuleSelectionPage QFrame#ankleSurgeryCard {
+    min-height: 300px;
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 1,
+        stop: 0 rgba(20, 54, 78, 0.97),
+        stop: 0.56 rgba(10, 24, 39, 0.97),
+        stop: 1 rgba(8, 18, 30, 0.98)
+    );
+    border: 1px solid rgba(91, 182, 255, 0.28);
+}
+
+QWidget#ModuleSelectionPage QFrame#systemSettingsCard {
+    background-color: rgba(8, 18, 30, 0.74);
+    border: 1px solid rgba(124, 160, 191, 0.12);
+}
+
+QWidget#ModuleSelectionPage QFrame#ankleSurgeryCard:hover {
+    border-color: rgba(91, 182, 255, 0.38);
+}
+
+QWidget#ModuleSelectionPage QFrame#systemSettingsCard:hover {
+    border-color: rgba(124, 160, 191, 0.18);
+    background-color: rgba(10, 21, 33, 0.82);
+}
+
+QWidget#ModuleSelectionPage QLabel#ankleSurgeryIcon,
+QWidget#ModuleSelectionPage QLabel#systemSettingsIcon {
+    min-width: 88px;
+    max-width: 88px;
+    min-height: 28px;
+    max-height: 28px;
+    padding: 0 12px;
+    border-radius: 14px;
+    background-color: rgba(7, 16, 27, 0.72);
+    border: 1px solid rgba(124, 160, 191, 0.16);
+    color: ${ACCENT_SECONDARY};
+    font-size: 15px;
+    font-weight: 700;
+}
+
+QWidget#ModuleSelectionPage QLabel#ankleSurgeryTitle {
+    color: ${TEXT_PRIMARY};
+    font-size: 34px;
+    font-weight: 700;
+}
+
+QWidget#ModuleSelectionPage QLabel#systemSettingsTitle {
+    color: ${TEXT_PRIMARY};
+    font-size: 30px;
+    font-weight: 700;
+}
+
+QWidget#ModuleSelectionPage QLabel#ankleSurgeryDesc,
+QWidget#ModuleSelectionPage QLabel#systemSettingsDesc {
+    font-size: 15px;
+    line-height: 1.34em;
+}
+
+QWidget#ModuleSelectionPage QLabel#ankleSurgeryHintLabel,
+QWidget#ModuleSelectionPage QLabel#systemSettingsHintLabel,
+QWidget#DashboardPage QLabel#navigationCtaHintLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 13px;
+    line-height: 1.28em;
+}
+
+QWidget#ModuleSelectionPage QLabel#ankleSurgeryDesc {
+    color: ${TEXT_PRIMARY};
+}
+
+QWidget#ModuleSelectionPage QLabel#systemSettingsDesc {
+    color: ${TEXT_SECONDARY};
+}
+
+QWidget#ModuleSelectionPage QLabel#ankleSurgeryStateTag,
+QWidget#ModuleSelectionPage QLabel#systemSettingsStateTag {
+    min-height: 28px;
+    max-height: 28px;
+    padding: 0 12px;
+    border-radius: 14px;
+    border: 1px solid transparent;
+    background-color: transparent;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+QWidget#ModuleSelectionPage QLabel#ankleSurgeryStateTag[statusTone="ok"],
+QWidget#ModuleSelectionPage QLabel#systemSettingsStateTag[statusTone="ok"] {
+    color: ${SUCCESS};
+    background-color: ${STATUS_OK_BG};
+    border-color: ${STATUS_OK_BORDER};
+}
+
+QWidget#ModuleSelectionPage QLabel#ankleSurgeryStateTag[statusTone="warning"],
+QWidget#ModuleSelectionPage QLabel#systemSettingsStateTag[statusTone="warning"] {
+    color: ${WARNING};
+    background-color: ${STATUS_WARNING_BG};
+    border-color: ${STATUS_WARNING_BORDER};
+}
+
+QWidget#ModuleSelectionPage QLabel#ankleSurgeryStateTag[statusTone="danger"],
+QWidget#ModuleSelectionPage QLabel#systemSettingsStateTag[statusTone="danger"] {
+    color: ${DANGER};
+    background-color: ${STATUS_DANGER_BG};
+    border-color: ${STATUS_DANGER_BORDER};
+}
+
+QWidget#ModuleSelectionPage QPushButton#ankleSurgeryButton {
+    min-height: 50px;
+    border-radius: 18px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+QWidget#DashboardPage QPushButton#enterNavigationButton {
+    min-height: 46px;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+QWidget#ModuleSelectionPage QPushButton#systemSettingsButton {
+    min-height: 46px;
+    border-radius: 16px;
+    font-size: 14px;
+    font-weight: 700;
+    background-color: rgba(8, 18, 30, 0.38);
+    border: 1px solid rgba(124, 160, 191, 0.16);
+    color: ${TEXT_PRIMARY};
+}
+
+QWidget#ModuleSelectionPage QPushButton#systemSettingsButton:hover {
+    background-color: rgba(11, 22, 35, 0.56);
+    border-color: rgba(124, 160, 191, 0.24);
+}
+
+QWidget#DashboardPage QFrame#overviewPatientCard,
+QWidget#DashboardPage QFrame#overviewDiagnosisCard,
+QWidget#DashboardPage QFrame#overviewDoctorCard,
+QWidget#DashboardPage QFrame#overviewDicomCard,
+QWidget#DashboardPage QFrame#basicInfoSectionFrame,
+QWidget#DashboardPage QFrame#doctorInfoSectionFrame,
+QWidget#DashboardPage QFrame#dicomSectionFrame {
+    background-color: rgba(8, 18, 30, 0.82);
+    border: 1px solid rgba(124, 160, 191, 0.10);
+    border-radius: 16px;
+}
+
+QWidget#DashboardPage QFrame#overviewStripFrame {
+    background-color: rgba(7, 16, 27, 0.28);
+    border-color: rgba(124, 160, 191, 0.07);
+}
+
+QWidget#DashboardPage QFrame#patientListFrame {
+    background-color: rgba(8, 18, 30, 0.86);
+    border-color: rgba(124, 160, 191, 0.12);
+}
+
+QWidget#DashboardPage QFrame#patientDetailFrame {
+    background-color: rgba(7, 16, 27, 0.72);
+    border-color: rgba(124, 160, 191, 0.10);
+}
+
+QWidget#DashboardPage QWidget#detailScrollContent,
+QWidget#DashboardPage QWidget#dicomScrollContent {
+    background-color: transparent;
+}
+
+QWidget#DashboardPage QFrame#overviewPatientCard {
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 1,
+        stop: 0 rgba(16, 45, 67, 0.94),
+        stop: 1 rgba(8, 18, 30, 0.92)
+    );
+    border-color: rgba(91, 182, 255, 0.22);
+}
+
+QWidget#DashboardPage QLabel#overviewPatientTitleLabel,
+QWidget#DashboardPage QLabel#overviewDiagnosisTitleLabel,
+QWidget#DashboardPage QLabel#overviewDoctorTitleLabel,
+QWidget#DashboardPage QLabel#overviewDicomTitleLabel,
+QWidget#DashboardPage QLabel#patientListSubtitleLabel,
+QWidget#DashboardPage QLabel#idLabelTitle,
+QWidget#DashboardPage QLabel#genderLabelTitle,
+QWidget#DashboardPage QLabel#ageLabelTitle,
+QWidget#DashboardPage QLabel#phoneLabelTitle,
+QWidget#DashboardPage QLabel#diagnosisLabelTitle,
+QWidget#DashboardPage QLabel#doctorNameLabelTitle,
+QWidget#DashboardPage QLabel#departmentLabelTitle {
+    color: ${TEXT_MUTED};
+    font-size: 12px;
+    font-weight: 600;
+}
+
+QWidget#DashboardPage QLabel#overviewPatientValueLabel,
+QWidget#DashboardPage QLabel#overviewDiagnosisValueLabel,
+QWidget#DashboardPage QLabel#overviewDoctorValueLabel,
+QWidget#DashboardPage QLabel#overviewDicomValueLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 16px;
+    font-weight: 700;
+}
+
+QWidget#DashboardPage QLabel#overviewPatientValueLabel {
+    font-size: 19px;
+}
+
+QWidget#DashboardPage QLabel#overviewDicomValueLabel[statusTone="ok"] {
+    color: ${SUCCESS};
+}
+
+QWidget#DashboardPage QLabel#overviewDicomValueLabel[statusTone="warning"] {
+    color: ${WARNING};
+}
+
+QWidget#DashboardPage QLabel#patientNameLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 28px;
+    font-weight: 700;
+}
+
+QWidget#DashboardPage QLabel#basicInfoLabel,
+QWidget#DashboardPage QLabel#doctorInfoLabel,
+QWidget#DashboardPage QLabel#dicomInfoLabel,
+QWidget#DashboardPage QLabel#patientListTitle {
+    color: ${TEXT_PRIMARY};
+    font-size: 16px;
+    font-weight: 700;
+}
+
+QWidget#DashboardPage QFrame#navigationCtaFrame[statusTone="ok"] {
+    border-color: ${STATUS_OK_BORDER};
+    background-color: rgba(7, 20, 27, 0.90);
+}
+
+QWidget#DashboardPage QFrame#navigationCtaFrame[statusTone="warning"] {
+    border-color: ${STATUS_WARNING_BORDER};
+    background-color: rgba(28, 23, 15, 0.86);
+}
+
+QWidget#DashboardPage QFrame#navigationCtaFrame[statusTone="danger"] {
+    border-color: ${STATUS_DANGER_BORDER};
+    background-color: rgba(36, 16, 20, 0.86);
+}
+
+QWidget#DashboardPage QLabel#navigationCtaTitleLabel {
+    min-height: 0;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    color: ${TEXT_PRIMARY};
+    font-size: 22px;
+    font-weight: 700;
+}
+
+QWidget#DashboardPage QLabel#navigationCtaTitleLabel[statusTone="ok"] {
+    color: ${TEXT_PRIMARY};
+}
+
+QWidget#DashboardPage QLabel#navigationCtaTitleLabel[statusTone="warning"] {
+    color: ${TEXT_PRIMARY};
+}
+
+QWidget#DashboardPage QLabel#navigationCtaTitleLabel[statusTone="danger"] {
+    color: ${TEXT_PRIMARY};
+}
+
+QWidget#DashboardPage QLabel#dicomMetaLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 11px;
+    font-weight: 600;
+}
+
+QWidget#ManagementPage QFrame#managementHeaderFrame,
+QWidget#ManagementPage QFrame#managementContentFrame,
+QWidget#ManagementPage QFrame#entityContextFrame,
+QWidget#ManagementPage QFrame#managementFlowFrame,
+QWidget#ManagementPage QFrame#doctorOverviewCard,
+QWidget#ManagementPage QFrame#patientOverviewCard,
+QWidget#ManagementPage QFrame#surgeryOverviewCard {
+    background-color: rgba(8, 18, 30, 0.88);
+    border: 1px solid rgba(124, 160, 191, 0.16);
+    border-radius: 18px;
+}
+
+QWidget#ManagementPage QFrame#managementHeaderFrame {
+    background-color: rgba(8, 18, 30, 0.78);
+}
+
+QWidget#ManagementPage QFrame#managementContentFrame {
+    background-color: rgba(7, 16, 27, 0.50);
+    border-color: rgba(124, 160, 191, 0.10);
+}
+
+QWidget#ManagementPage QFrame#entityContextFrame {
+    background-color: rgba(8, 18, 30, 0.62);
+    border-color: rgba(124, 160, 191, 0.12);
+    border-radius: 18px;
+}
+
+QWidget#ManagementPage QFrame#doctorOverviewCard,
+QWidget#ManagementPage QFrame#patientOverviewCard,
+QWidget#ManagementPage QFrame#surgeryOverviewCard {
+    background-color: rgba(9, 19, 31, 0.70);
+    border-color: rgba(124, 160, 191, 0.12);
+    border-radius: 18px;
+}
+
+QWidget#ManagementPage QLabel#managementEyebrowLabel,
+QWidget#ManagementPage QLabel#doctorOverviewEyebrowLabel,
+QWidget#ManagementPage QLabel#patientOverviewEyebrowLabel,
+QWidget#ManagementPage QLabel#surgeryOverviewEyebrowLabel,
+QWidget#ManagementPage QLabel#currentEntityCaptionLabel {
+    color: ${ACCENT_SECONDARY};
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+QWidget#ManagementPage QLabel#doctorOverviewValueLabel,
+QWidget#ManagementPage QLabel#patientOverviewValueLabel,
+QWidget#ManagementPage QLabel#surgeryOverviewValueLabel,
+QWidget#ManagementPage QLabel#managementFlowTitleLabel,
+QWidget#ManagementPage QLabel#currentEntityValueLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 20px;
+    font-weight: 700;
+}
+
+QWidget#ManagementPage QLabel#doctorOverviewHintLabel,
+QWidget#ManagementPage QLabel#patientOverviewHintLabel,
+QWidget#ManagementPage QLabel#surgeryOverviewHintLabel,
+QWidget#ManagementPage QLabel#currentEntitySummaryLabel,
+QWidget#ManagementPage QLabel#currentEntityHintLabel,
+QWidget#ManagementPage QLabel#managementFlowHintLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 13px;
+    line-height: 1.44em;
+}
+
+QWidget#ManagementPage QLabel#doctorOverviewStateLabel,
+QWidget#ManagementPage QLabel#patientOverviewStateLabel,
+QWidget#ManagementPage QLabel#surgeryOverviewStateLabel,
+QWidget#ManagementPage QLabel#currentEntityValueLabel {
+    min-height: 26px;
+    padding: 0 10px;
+    border-radius: 13px;
+    border: 1px solid transparent;
+    background-color: transparent;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+QWidget#ManagementPage QLabel#doctorOverviewStateLabel[statusTone="ok"],
+QWidget#ManagementPage QLabel#patientOverviewStateLabel[statusTone="ok"],
+QWidget#ManagementPage QLabel#surgeryOverviewStateLabel[statusTone="ok"],
+QWidget#ManagementPage QLabel#currentEntityValueLabel[statusTone="ok"] {
+    color: ${SUCCESS};
+    background-color: ${STATUS_OK_BG};
+    border-color: ${STATUS_OK_BORDER};
+}
+
+QWidget#ManagementPage QLabel#doctorOverviewStateLabel[statusTone="warning"],
+QWidget#ManagementPage QLabel#patientOverviewStateLabel[statusTone="warning"],
+QWidget#ManagementPage QLabel#surgeryOverviewStateLabel[statusTone="warning"],
+QWidget#ManagementPage QLabel#currentEntityValueLabel[statusTone="warning"] {
+    color: ${WARNING};
+    background-color: ${STATUS_WARNING_BG};
+    border-color: ${STATUS_WARNING_BORDER};
+}
+
+QWidget#ManagementPage QFrame#doctorOverviewCard[statusTone="ok"],
+QWidget#ManagementPage QFrame#patientOverviewCard[statusTone="ok"],
+QWidget#ManagementPage QFrame#surgeryOverviewCard[statusTone="ok"],
+QWidget#ManagementPage QFrame#managementFlowFrame[statusTone="ok"] {
+    border-color: ${STATUS_OK_BORDER};
+}
+
+QWidget#ManagementPage QFrame#doctorOverviewCard[statusTone="warning"],
+QWidget#ManagementPage QFrame#patientOverviewCard[statusTone="warning"],
+QWidget#ManagementPage QFrame#surgeryOverviewCard[statusTone="warning"],
+QWidget#ManagementPage QFrame#managementFlowFrame[statusTone="warning"] {
+    border-color: ${STATUS_WARNING_BORDER};
+}
+
+QWidget#ManagementPage QTabWidget::pane {
+    border: 1px solid rgba(124, 160, 191, 0.16);
+    border-radius: 16px;
+    background-color: rgba(7, 16, 27, 0.72);
+    top: -1px;
+}
+
+QWidget#ManagementPage QTabBar::tab {
+    min-width: 108px;
+    min-height: 40px;
+    margin-right: 6px;
+    padding: 0 16px;
+    border-radius: 12px 12px 0 0;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: ${TEXT_SECONDARY};
+    font-size: 14px;
+    font-weight: 600;
+}
+
+QWidget#ManagementPage QTabBar::tab:selected {
+    background-color: rgba(91, 182, 255, 0.14);
+    border: 1px solid rgba(91, 182, 255, 0.26);
+    color: ${TEXT_PRIMARY};
+}
+
+QWidget#ManagementPage QTableWidget {
+    background-color: transparent;
+    border: none;
+    gridline-color: rgba(255, 255, 255, 0.06);
+    alternate-background-color: rgba(255, 255, 255, 0.015);
+    color: ${TEXT_PRIMARY};
+    font-size: 14px;
+}
+
+QWidget#ManagementPage QTableWidget::item {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+QWidget#ManagementPage QTableWidget::item:selected {
+    background-color: rgba(91, 182, 255, 0.16);
+}
+
+QWidget#ManagementPage QHeaderView::section {
+    background-color: rgba(9, 19, 31, 0.94);
+    color: ${TEXT_MUTED};
+    padding: 10px 14px;
+    border: none;
+    border-bottom: 1px solid rgba(124, 160, 191, 0.10);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+QWidget#ManagementPage QLineEdit#doctorSearchEdit,
+QWidget#ManagementPage QLineEdit#patientSearchEdit,
+QWidget#ManagementPage QLineEdit#surgerySearchEdit {
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: 12px;
+    background-color: ${SURFACE_PANEL};
+    border: 1px solid ${BORDER_SOFT};
+    color: ${TEXT_PRIMARY};
+    selection-background-color: ${ACCENT_SECONDARY};
+}
+
+QWidget#ManagementPage QPushButton#enterDashboardButton,
+QWidget#ManagementPage QPushButton#enterDashboardButtonSecondary {
+    min-height: 46px;
+    min-width: 196px;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+QWidget#ManagementPage QLineEdit#doctorSearchEdit:focus,
+QWidget#ManagementPage QLineEdit#patientSearchEdit:focus,
+QWidget#ManagementPage QLineEdit#surgerySearchEdit:focus {
+    border-color: ${ACCENT_SECONDARY};
+}
+
+QWidget#SystemSettingsPage QFrame#systemSettingsHeaderFrame {
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 1,
+        stop: 0 rgba(10, 25, 40, 0.96),
+        stop: 1 rgba(8, 18, 30, 0.88)
+    );
+    border: 1px solid rgba(124, 160, 191, 0.18);
+    border-radius: 22px;
+}
+
+QWidget#SystemSettingsPage QScrollArea#scrollArea,
+QWidget#SystemSettingsPage QWidget#systemSettingsScrollViewport,
+QWidget#SystemSettingsPage QWidget#scrollAreaContents,
+QWidget#SystemSettingsPage QFrame#systemHealthOverviewFrame {
+    background: transparent;
+    border: none;
+}
+
+QWidget#SystemSettingsPage QFrame#frameworkStatusCard,
+QWidget#SystemSettingsPage QFrame#serviceStatusCard,
+QWidget#SystemSettingsPage QFrame#pathStatusCard {
+    background-color: rgba(10, 22, 35, 0.92);
+    border: 1px solid rgba(124, 160, 191, 0.18);
+    border-radius: 20px;
+}
+
+QWidget#SystemSettingsPage QFrame#generalSettingsCard,
+QWidget#SystemSettingsPage QFrame#deviceSettingsCard,
+QWidget#SystemSettingsPage QFrame#pathSettingsCard {
+    background-color: rgba(8, 18, 30, 0.58);
+    border: 1px solid rgba(124, 160, 191, 0.08);
+    border-radius: 18px;
+}
+
+QWidget#SystemSettingsPage QFrame#systemRecommendationFrame {
+    background-color: rgba(10, 22, 35, 0.78);
+    border: 1px solid rgba(124, 160, 191, 0.16);
+    border-radius: 18px;
+}
+
+QWidget#SystemSettingsPage QFrame#frameworkStatusCard[statusTone="ok"],
+QWidget#SystemSettingsPage QFrame#serviceStatusCard[statusTone="ok"],
+QWidget#SystemSettingsPage QFrame#pathStatusCard[statusTone="ok"] {
+    border-color: ${STATUS_OK_BORDER};
+}
+
+QWidget#SystemSettingsPage QFrame#frameworkStatusCard[statusTone="warning"],
+QWidget#SystemSettingsPage QFrame#serviceStatusCard[statusTone="warning"],
+QWidget#SystemSettingsPage QFrame#pathStatusCard[statusTone="warning"] {
+    border-color: ${STATUS_WARNING_BORDER};
+}
+
+QWidget#SystemSettingsPage QFrame#frameworkStatusCard[statusTone="danger"],
+QWidget#SystemSettingsPage QFrame#serviceStatusCard[statusTone="danger"],
+QWidget#SystemSettingsPage QFrame#pathStatusCard[statusTone="danger"] {
+    border-color: ${STATUS_DANGER_BORDER};
+}
+
+QWidget#SystemSettingsPage QFrame#systemRecommendationFrame[statusTone="ok"] {
+    background-color: rgba(10, 28, 24, 0.88);
+    border-color: ${STATUS_OK_BORDER};
+}
+
+QWidget#SystemSettingsPage QFrame#systemRecommendationFrame[statusTone="warning"] {
+    background-color: rgba(36, 29, 15, 0.88);
+    border-color: ${STATUS_WARNING_BORDER};
+}
+
+QWidget#SystemSettingsPage QFrame#systemRecommendationFrame[statusTone="danger"] {
+    background-color: rgba(39, 18, 22, 0.88);
+    border-color: ${STATUS_DANGER_BORDER};
+}
+
+QWidget#SystemSettingsPage QLabel#systemSettingsEyebrowLabel {
+    color: ${ACCENT_SECONDARY};
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+QWidget#SystemSettingsPage QLabel#frameworkStatusTitleLabel,
+QWidget#SystemSettingsPage QLabel#serviceStatusTitleLabel,
+QWidget#SystemSettingsPage QLabel#pathStatusTitleLabel {
+    color: ${TEXT_MUTED};
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+QWidget#SystemSettingsPage QLabel#titleLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 34px;
+    font-weight: 700;
+}
+
+QWidget#SystemSettingsPage QLabel#subtitleLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 15px;
+}
+
+QWidget#SystemSettingsPage QLabel#frameworkStatusBadgeLabel,
+QWidget#SystemSettingsPage QLabel#serviceStatusBadgeLabel,
+QWidget#SystemSettingsPage QLabel#pathStatusBadgeLabel {
+    min-height: 30px;
+    max-height: 30px;
+    padding: 0 12px;
+    border-radius: 15px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 700;
+    background-color: transparent;
+}
+
+QWidget#SystemSettingsPage QLabel#systemRecommendationBadge {
+    min-width: 112px;
+    max-width: 112px;
+    min-height: 36px;
+    max-height: 36px;
+    padding: 0 12px;
+    border-radius: 18px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 700;
+    background-color: transparent;
+}
+
+QWidget#SystemSettingsPage QLabel#frameworkStatusBadgeLabel[statusTone="ok"],
+QWidget#SystemSettingsPage QLabel#serviceStatusBadgeLabel[statusTone="ok"],
+QWidget#SystemSettingsPage QLabel#pathStatusBadgeLabel[statusTone="ok"],
+QWidget#SystemSettingsPage QLabel#systemRecommendationBadge[statusTone="ok"] {
+    background-color: ${STATUS_OK_BG};
+    border-color: ${STATUS_OK_BORDER};
+    color: ${SUCCESS};
+}
+
+QWidget#SystemSettingsPage QLabel#frameworkStatusBadgeLabel[statusTone="warning"],
+QWidget#SystemSettingsPage QLabel#serviceStatusBadgeLabel[statusTone="warning"],
+QWidget#SystemSettingsPage QLabel#pathStatusBadgeLabel[statusTone="warning"],
+QWidget#SystemSettingsPage QLabel#systemRecommendationBadge[statusTone="warning"] {
+    background-color: ${STATUS_WARNING_BG};
+    border-color: ${STATUS_WARNING_BORDER};
+    color: ${WARNING};
+}
+
+QWidget#SystemSettingsPage QLabel#frameworkStatusBadgeLabel[statusTone="danger"],
+QWidget#SystemSettingsPage QLabel#serviceStatusBadgeLabel[statusTone="danger"],
+QWidget#SystemSettingsPage QLabel#pathStatusBadgeLabel[statusTone="danger"],
+QWidget#SystemSettingsPage QLabel#systemRecommendationBadge[statusTone="danger"] {
+    background-color: ${STATUS_DANGER_BG};
+    border-color: ${STATUS_DANGER_BORDER};
+    color: ${DANGER};
+}
+
+QWidget#SystemSettingsPage QLabel#frameworkStatusSummaryLabel,
+QWidget#SystemSettingsPage QLabel#serviceStatusSummaryLabel,
+QWidget#SystemSettingsPage QLabel#pathStatusSummaryLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 22px;
+    font-weight: 700;
+}
+
+QWidget#SystemSettingsPage QLabel#generalSettingsTitleLabel,
+QWidget#SystemSettingsPage QLabel#deviceSettingsTitleLabel,
+QWidget#SystemSettingsPage QLabel#pathSettingsTitleLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 19px;
+    font-weight: 700;
+}
+
+QWidget#SystemSettingsPage QLabel#generalSettingsDescLabel,
+QWidget#SystemSettingsPage QLabel#deviceSettingsDescLabel,
+QWidget#SystemSettingsPage QLabel#pathSettingsDescLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 13px;
+}
+
+QWidget#SystemSettingsPage QLabel#frameworkStatusDetailLabel,
+QWidget#SystemSettingsPage QLabel#serviceStatusDetailLabel,
+QWidget#SystemSettingsPage QLabel#pathStatusDetailLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 13px;
+    line-height: 1.4em;
+}
+
+QWidget#SystemSettingsPage QLabel#systemRecommendationLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 16px;
+    font-weight: 600;
+}
+
+QWidget#SystemSettingsPage QLabel#languageLabel,
+QWidget#SystemSettingsPage QLabel#themeLabel,
+QWidget#SystemSettingsPage QLabel#autoSaveLabel,
+QWidget#SystemSettingsPage QLabel#trackerPortLabel,
+QWidget#SystemSettingsPage QLabel#baudRateLabel,
+QWidget#SystemSettingsPage QLabel#dataPathLabel,
+QWidget#SystemSettingsPage QLabel#dicomPathLabel {
+    color: ${TEXT_MUTED};
+    font-size: 14px;
+    font-weight: 600;
+}
+
+QWidget#SystemSettingsPage QLineEdit,
+QWidget#SystemSettingsPage QComboBox {
+    min-height: 46px;
+    padding: 0 14px;
+    border-radius: 12px;
+    background-color: rgba(7, 16, 27, 0.82);
+    border: 1px solid ${BORDER_SOFT};
+    color: ${TEXT_PRIMARY};
+}
+
+QWidget#SystemSettingsPage QLineEdit:focus,
+QWidget#SystemSettingsPage QComboBox:focus {
+    border-color: ${ACCENT_SECONDARY};
+}
+
+QWidget#SystemSettingsPage QCheckBox {
+    color: ${TEXT_PRIMARY};
+    font-size: 14px;
+}
+
+QWidget#SystemSettingsPage QPushButton#browseDataPathButton,
+QWidget#SystemSettingsPage QPushButton#browseDicomPathButton {
+    min-height: 42px;
+    min-width: 104px;
+    padding: 0 14px;
+    border-radius: 12px;
+    background-color: rgba(8, 18, 30, 0.30);
+    border: 1px solid rgba(124, 160, 191, 0.14);
+    color: ${TEXT_SECONDARY};
+}
+
+QWidget#SystemSettingsPage QPushButton#browseDataPathButton:hover,
+QWidget#SystemSettingsPage QPushButton#browseDicomPathButton:hover {
+    background-color: rgba(11, 22, 35, 0.56);
+    border-color: rgba(124, 160, 191, 0.24);
+    color: ${TEXT_PRIMARY};
+}

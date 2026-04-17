@@ -1,0 +1,10 @@
+Plugin-SymbolicName: OpticalRegistration
+Bundle-ActivationPolicy: lazy
+Plugin-Category: Medical
+Plugin-ContactAddress: https://github.com/medicalpro
+Plugin-Description: Optical registration plugin for medical image to tracker coordinate system registration using Atracsys tracking
+Plugin-Name: Optical Registration Plugin
+Plugin-Vendor: Medical Solutions
+Plugin-Version: 1.0.0
+Require-Plugin: OpticalTracking
+

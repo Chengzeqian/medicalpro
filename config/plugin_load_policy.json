@@ -1,0 +1,72 @@
+{
+  "plugins": [
+    {
+      "name": "UserManagement",
+      "loadPolicy": "immediate",
+      "isCritical": true,
+      "dependencies": []
+    },
+    {
+      "name": "BoneSegmentation",
+      "loadPolicy": "onDemand",
+      "isCritical": false,
+      "dependencies": [],
+      "description": "AI-powered bone segmentation using TotalSegmentator"
+    },
+    {
+      "name": "DicomViewer",
+      "loadPolicy": "deferred",
+      "isCritical": false,
+      "dependencies": []
+    },
+    {
+      "name": "InstrumentManagement",
+      "loadPolicy": "onDemand",
+      "isCritical": false,
+      "dependencies": []
+    },
+    {
+      "name": "FourViewDisplay",
+      "loadPolicy": "deferred",
+      "isCritical": false,
+      "dependencies": []
+    },
+    {
+      "name": "OpticalTracking",
+      "loadPolicy": "onDemand",
+      "isCritical": false,
+      "dependencies": []
+    },
+    {
+      "name": "Registration2D3D",
+      "loadPolicy": "onDemand",
+      "isCritical": false,
+      "dependencies": [
+        "DicomViewer",
+        "FourViewDisplay"
+      ]
+    },
+    {
+      "name": "PointRegistration",
+      "loadPolicy": "deferred",
+      "isCritical": false,
+      "dependencies": [],
+      "description": "Point-based registration service for CT-physical space alignment"
+    },
+    {
+      "name": "OpticalRegistration",
+      "loadPolicy": "onDemand",
+      "isCritical": false,
+      "dependencies": [
+        "OpticalTracking"
+      ]
+    },
+    {
+      "name": "RegistrationCore",
+      "loadPolicy": "deferred",
+      "isCritical": false,
+      "dependencies": [],
+      "description": "Core registration algorithms including Landmark and ICP registration"
+    }
+  ]
+}

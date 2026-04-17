@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/FourViewDisplay/META-INF">
+        <file>MANIFEST.MF</file>
+    </qresource>
+</RCC>
+

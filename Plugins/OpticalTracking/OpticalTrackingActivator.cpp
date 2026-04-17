@@ -2,6 +2,8 @@
 #include "OpticalTrackingServiceImpl.h"
 #include "OpticalTrackingService.h"
 #include <QDebug>
+#include <QPointer>
+#include <QTimer>
 
 #ifdef CTK_PLUGIN_FRAMEWORK
 #include <ctkDictionary.h>
@@ -22,47 +24,56 @@ OpticalTrackingActivator::~OpticalTrackingActivator()
 void OpticalTrackingActivator::start(ctkPluginContext* context)
 {
     logMessage("OpticalTracking plugin starting...");
-    
-    try {
-        // 创建追踪服务实现实例
-        m_serviceImpl.reset(new OpticalTrackingServiceImpl(context));
-        
-        // 启动服务
-        m_serviceImpl->startService();
-        
-        // 向CTK服务注册表注册服务
-        ctkDictionary props;
-        props.insert("service.description", "Optical Tracking Service for Atracsys fusionTrack 500");
-        props.insert("service.vendor", "Medical Pro");
-        props.insert("service.version", "1.0");
-        props.insert("name", "OpticalTracking");
-        props.insert(ctkPluginConstants::SERVICE_RANKING, 1);
-        
-        m_serviceRegistration = context->registerService<OpticalTrackingService>(
-            m_serviceImpl.data(), props);
-        
-        if (m_serviceRegistration) {
-            logMessage("TrackingService registered successfully");
-        } else {
-            logMessage("Failed to register TrackingService");
-        }
-        
-        logMessage("OpticalTracking plugin started successfully");
-        
-        // 测试服务功能
-        QString serviceName = m_serviceImpl->getServiceName();
-        QString serviceVersion = m_serviceImpl->getServiceVersion();
-        logMessage(QString("Service initialized: %1 v%2").arg(serviceName).arg(serviceVersion));
-        
-    } catch (const std::exception& e) {
-        QString error = QString("Failed to start OpticalTracking plugin: %1").arg(e.what());
-        logMessage(error);
-        throw;
-    } catch (...) {
-        QString error = "Unknown error occurred while starting OpticalTracking plugin";
-        logMessage(error);
-        throw;
+
+    if (!context) {
+        logMessage("Plugin context is null, cannot start");
+        return;
     }
+
+    ctkPluginContext* safeContext = context;
+
+    QTimer::singleShot(0, this, [this, safeContext]() {
+        if (!safeContext) {
+            logMessage("Plugin context unavailable, skipping initialization");
+            return;
+        }
+
+        try {
+            m_serviceImpl.reset(new OpticalTrackingServiceImpl(safeContext));
+            m_serviceImpl->startService();
+
+            ctkDictionary props;
+            props.insert("service.description", "Optical Tracking Service for Atracsys fusionTrack 500");
+            props.insert("service.vendor", "Medical Pro");
+            props.insert("service.version", "1.0");
+            props.insert("name", "OpticalTracking");
+            props.insert(ctkPluginConstants::SERVICE_RANKING, 1);
+
+            m_serviceRegistration = safeContext->registerService<OpticalTrackingService>(
+                m_serviceImpl.data(), props);
+
+            if (m_serviceRegistration) {
+                logMessage("TrackingService registered successfully");
+            } else {
+                logMessage("Failed to register TrackingService");
+            }
+
+            logMessage("OpticalTracking plugin started successfully");
+
+            const QString serviceName = m_serviceImpl->getServiceName();
+            const QString serviceVersion = m_serviceImpl->getServiceVersion();
+            logMessage(QString("Service initialized: %1 v%2").arg(serviceName).arg(serviceVersion));
+
+        } catch (const std::exception& e) {
+            const QString error = QString("Failed to start OpticalTracking plugin: %1").arg(e.what());
+            logMessage(error);
+            m_serviceImpl.reset();
+        } catch (...) {
+            const QString error = "Unknown error occurred while starting OpticalTracking plugin";
+            logMessage(error);
+            m_serviceImpl.reset();
+        }
+    });
 }
 
 void OpticalTrackingActivator::stop(ctkPluginContext* context)

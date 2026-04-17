@@ -1,0 +1,8 @@
+Plugin-SymbolicName: BoneSegmentation
+Bundle-ActivationPolicy: lazy
+Plugin-Category: Medical
+Plugin-ContactAddress: https://github.com/medicalpro
+Plugin-Description: Bone segmentation plugin using TotalSegmentator AI for automatic bone extraction from medical images
+Plugin-Name: Bone Segmentation Plugin
+Plugin-Vendor: Medical Solutions
+Plugin-Version: 1.0.0

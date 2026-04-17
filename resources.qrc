@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resoucce/widget_bg.jpg</file>
+        <file>resoucce/widget_top.png</file>
+        <file>resoucce/widget_bottom.png</file>
+        <file>resoucce/logo.png</file>
+        <file>resoucce/label_ankle.png</file>
+        <file>resoucce/pushButton_property.png</file>
+        <file>UI/styles/three_pages_theme.qss</file>
+    </qresource>
+</RCC>

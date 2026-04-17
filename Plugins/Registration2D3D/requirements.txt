@@ -1,0 +1,34 @@
+# Registration2D3D Python依赖
+# 2D-3D医学图像配准所需的Python包
+
+# 核心依赖
+numpy>=1.19.0          # 数值计算和矩阵运算
+cma>=3.0.0             # CMA-ES协方差矩阵自适应演化策略优化算法
+matplotlib>=3.3.0      # 可视化和验证图像生成
+SimpleITK>=2.0.0       # 医学图像读取和处理（CT、X射线）
+itk>=5.0.0             # ITK医学图像处理工具包（重要！用于DRR生成）
+opencv-python>=4.5.0   # OpenCV图像处理库
+
+# GPU加速（根据CUDA版本选择）
+# CUDA 11.x (推荐)
+torch>=1.7.0+cu110     # PyTorch GPU版本 - CUDA 11.0
+torchvision>=0.8.0+cu110
+
+# 如果使用CUDA 10.2，请改用：
+# torch>=1.7.0+cu102
+# torchvision>=0.8.0+cu102
+
+# 如果只用CPU（不推荐，配准会很慢），请改用：
+# torch>=1.7.0
+# torchvision>=0.8.0
+
+# 可选依赖（推荐安装）
+scipy>=1.5.0           # 科学计算库
+Pillow>=8.0.0          # 图像处理库
+vtk>=9.0.0             # VTK可视化工具包（可选）
+
+# 注意事项：
+# 1. PyTorch需要根据您的CUDA版本选择对应的安装源
+# 2. GPU加速是必需的，否则DRR生成会非常慢
+# 3. 确保已安装NVIDIA驱动和CUDA Toolkit
+

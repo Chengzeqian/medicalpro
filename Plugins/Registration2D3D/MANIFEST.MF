@@ -1,0 +1,13 @@
+Plugin-SymbolicName: Registration2D3D
+Plugin-ActivationPolicy: eager
+Plugin-Category: Medical
+Plugin-ContactAddress: support@medicalpro.com
+Plugin-Copyright: Copyright (c) 2024 MedicalPro. All rights reserved.
+Plugin-Description: 2D3D医学图像配准插件，提供双视角(AP+LAT)配准、GPU加速DRR生成、CMA-ES优化算法
+Plugin-DocURL: https://docs.medicalpro.com/plugins/registration-2d3d
+Plugin-Icon: 
+Plugin-Name: 2D3D配准
+Plugin-Vendor: MedicalPro
+Plugin-Version: 1.0.0
+Service-Component: OSGI-INF/org.medicalpro.Registration2D3D.xml
+

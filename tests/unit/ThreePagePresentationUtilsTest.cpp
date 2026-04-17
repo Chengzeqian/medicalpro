@@ -2,6 +2,16 @@
 
 #include "UI/NewPages/ThreePagePresentationUtils.h"
 
+namespace ThreePagePresentationUtils
+{
+QString buildManagementOverviewValue(const QString& entityName, int count);
+QString buildManagementOverviewHint(const QString& entityName, int count);
+QString buildManagementEntryHint(bool readyToEnterDashboard);
+QString buildSystemSettingsPathSummary(bool dataReadable, bool dicomReadable);
+QString buildSystemSettingsRecommendation(bool frameworkReady, int readyServices, int totalServices, bool dataReadable, bool dicomReadable);
+QString buildSystemSettingsRecommendationTone(bool frameworkReady, int readyServices, int totalServices, bool dataReadable, bool dicomReadable);
+}
+
 class ThreePagePresentationUtilsTest : public QObject
 {
     Q_OBJECT
@@ -27,7 +37,24 @@ private slots:
     void buildWelcomeDecisionTone_reportsBlocked();
     void buildModuleStatusSummary_reportsReady();
     void buildModuleStatusSummary_reportsPending();
+    void buildModuleAccessHint_reportsReady();
+    void buildModuleAccessHint_reportsMissingServices();
     void buildDashboardDicomSummary_reportsCount();
+    void buildDashboardNavigationHint_reportsBlocked();
+    void buildDashboardNavigationHint_reportsWarning();
+    void buildDashboardNavigationHint_reportsReady();
+    void buildDashboardNavigationTone_reportsBlocked();
+    void buildDashboardNavigationTone_reportsWarning();
+    void buildDashboardNavigationTone_reportsReady();
+    void buildManagementOverviewValue_reportsCount();
+    void buildManagementOverviewHint_reportsPatients();
+    void buildManagementEntryHint_reportsReady();
+    void buildManagementEntryHint_reportsPending();
+    void buildSystemSettingsPathSummary_reportsReady();
+    void buildSystemSettingsPathSummary_reportsDicomBlocked();
+    void buildSystemSettingsRecommendation_reportsReady();
+    void buildSystemSettingsRecommendation_reportsWarning();
+    void buildSystemSettingsRecommendationTone_reportsBlocked();
     void formatModuleTimestamp_reportsReadableText();
 };
 
@@ -171,11 +198,134 @@ void ThreePagePresentationUtilsTest::buildModuleStatusSummary_reportsPending()
         QStringLiteral("部分依赖待确认"));
 }
 
+void ThreePagePresentationUtilsTest::buildModuleAccessHint_reportsReady()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildModuleAccessHint(true, {}),
+        QStringLiteral("关键服务已通过检查，可进入数据管理主链。"));
+}
+
+void ThreePagePresentationUtilsTest::buildModuleAccessHint_reportsMissingServices()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildModuleAccessHint(false, { QStringLiteral("DicomViewerService"), QStringLiteral("FourViewDisplayService") }),
+        QStringLiteral("待确认服务：DicomViewerService / FourViewDisplayService，建议先检查后再进入数据管理主链。"));
+}
+
 void ThreePagePresentationUtilsTest::buildDashboardDicomSummary_reportsCount()
 {
     QCOMPARE(
         ThreePagePresentationUtils::buildDashboardDicomSummary(5),
         QStringLiteral("当前病例包含 5 组 DICOM 检查。"));
+}
+
+void ThreePagePresentationUtilsTest::buildDashboardNavigationHint_reportsBlocked()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildDashboardNavigationHint(false, 0),
+        QStringLiteral("请先在左侧选择病例，再进入导航流程。"));
+}
+
+void ThreePagePresentationUtilsTest::buildDashboardNavigationHint_reportsWarning()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildDashboardNavigationHint(true, 0),
+        QStringLiteral("已选病例暂无 DICOM 检查，可先核对资料后继续。"));
+}
+
+void ThreePagePresentationUtilsTest::buildDashboardNavigationHint_reportsReady()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildDashboardNavigationHint(true, 3),
+        QStringLiteral("病例与影像已就绪，可进入导航流程。"));
+}
+
+void ThreePagePresentationUtilsTest::buildDashboardNavigationTone_reportsBlocked()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildDashboardNavigationTone(false, 0),
+        QStringLiteral("danger"));
+}
+
+void ThreePagePresentationUtilsTest::buildDashboardNavigationTone_reportsWarning()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildDashboardNavigationTone(true, 0),
+        QStringLiteral("warning"));
+}
+
+void ThreePagePresentationUtilsTest::buildDashboardNavigationTone_reportsReady()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildDashboardNavigationTone(true, 2),
+        QStringLiteral("ok"));
+}
+
+void ThreePagePresentationUtilsTest::buildManagementOverviewValue_reportsCount()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildManagementOverviewValue(
+            QStringLiteral("医生数据"),
+            3),
+        QStringLiteral("3 位医生"));
+}
+
+void ThreePagePresentationUtilsTest::buildManagementOverviewHint_reportsPatients()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildManagementOverviewHint(
+            QStringLiteral("患者数据"),
+            0),
+        QStringLiteral("当前可切换到患者视图继续查看、检索和维护病例基础资料。"));
+}
+
+void ThreePagePresentationUtilsTest::buildManagementEntryHint_reportsReady()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildManagementEntryHint(true),
+        QStringLiteral("基础数据已确认，可进入病例工作台继续病例与影像流程。"));
+}
+
+void ThreePagePresentationUtilsTest::buildManagementEntryHint_reportsPending()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildManagementEntryHint(false),
+        QStringLiteral("建议先确认当前管理对象，再进入病例工作台。"));
+}
+
+void ThreePagePresentationUtilsTest::buildSystemSettingsPathSummary_reportsReady()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildSystemSettingsPathSummary(true, true),
+        QStringLiteral("data 与 DICOM 目录均可访问。"));
+}
+
+void ThreePagePresentationUtilsTest::buildSystemSettingsPathSummary_reportsDicomBlocked()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildSystemSettingsPathSummary(true, false),
+        QStringLiteral("data 目录可访问，但 DICOM 目录仍需检查。"));
+}
+
+void ThreePagePresentationUtilsTest::buildSystemSettingsRecommendation_reportsReady()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildSystemSettingsRecommendation(true, 3, 3, true, true),
+        QStringLiteral("当前环境可继续使用，如需微调参数可直接保存。"));
+}
+
+void ThreePagePresentationUtilsTest::buildSystemSettingsRecommendation_reportsWarning()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildSystemSettingsRecommendation(true, 2, 3, true, false),
+        QStringLiteral("建议先检查关键服务与路径状态，再继续主流程。"));
+}
+
+void ThreePagePresentationUtilsTest::buildSystemSettingsRecommendationTone_reportsBlocked()
+{
+    QCOMPARE(
+        ThreePagePresentationUtils::buildSystemSettingsRecommendationTone(false, 0, 3, false, false),
+        QStringLiteral("danger"));
 }
 
 void ThreePagePresentationUtilsTest::formatModuleTimestamp_reportsReadableText()
@@ -189,3 +339,5 @@ void ThreePagePresentationUtilsTest::formatModuleTimestamp_reportsReadableText()
 QTEST_APPLESS_MAIN(ThreePagePresentationUtilsTest)
 
 #include "ThreePagePresentationUtilsTest.moc"
+
+

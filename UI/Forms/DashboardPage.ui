@@ -1,0 +1,895 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DashboardPage</class>
+ <widget class="QWidget" name="DashboardPage">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1280</width>
+    <height>860</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>病例工作台</string>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <property name="spacing">
+    <number>14</number>
+   </property>
+   <property name="leftMargin">
+    <number>24</number>
+   </property>
+   <property name="topMargin">
+    <number>18</number>
+   </property>
+   <property name="rightMargin">
+    <number>24</number>
+   </property>
+   <property name="bottomMargin">
+    <number>18</number>
+   </property>
+   <item>
+    <widget class="QFrame" name="dashboardHeaderFrame">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>118</height>
+      </size>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <layout class="QHBoxLayout" name="dashboardHeaderLayout">
+      <property name="spacing">
+       <number>12</number>
+      </property>
+      <property name="leftMargin">
+       <number>16</number>
+      </property>
+      <property name="topMargin">
+       <number>12</number>
+      </property>
+      <property name="rightMargin">
+       <number>16</number>
+      </property>
+      <property name="bottomMargin">
+       <number>12</number>
+      </property>
+      <item>
+       <widget class="QFrame" name="dashboardHeaderTextFrame">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <layout class="QVBoxLayout" name="dashboardHeaderTextLayout">
+         <property name="spacing">
+          <number>6</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="dashboardEyebrowLabel">
+           <property name="text">
+            <string>CASE WORKBENCH</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="titleLabel">
+           <property name="text">
+            <string>病例工作台</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="dashboardSubtitleLabel">
+           <property name="text">
+            <string>先建立病例全局认知，再查看细节、影像与导航入口状态。</string>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <spacer name="headerSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="backButton">
+        <property name="minimumSize">
+         <size>
+          <width>136</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="text">
+         <string>返回数据管理</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="refreshButton">
+        <property name="minimumSize">
+         <size>
+          <width>108</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="text">
+         <string>刷新列表</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="logoutButton">
+        <property name="minimumSize">
+         <size>
+          <width>124</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="text">
+         <string>返回欢迎页</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="overviewStripFrame">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>112</height>
+      </size>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <layout class="QHBoxLayout" name="overviewStripLayout">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <property name="leftMargin">
+        <number>10</number>
+      </property>
+      <property name="topMargin">
+        <number>10</number>
+      </property>
+      <property name="rightMargin">
+        <number>10</number>
+      </property>
+      <property name="bottomMargin">
+        <number>10</number>
+      </property>
+      <item>
+       <widget class="QFrame" name="overviewPatientCard">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <layout class="QVBoxLayout" name="overviewPatientLayout">
+         <property name="spacing">
+           <number>4</number>
+         </property>
+          <property name="leftMargin">
+            <number>10</number>
+          </property>
+          <property name="topMargin">
+            <number>10</number>
+          </property>
+          <property name="rightMargin">
+            <number>10</number>
+          </property>
+          <property name="bottomMargin">
+            <number>10</number>
+          </property>
+         <item>
+          <widget class="QLabel" name="overviewPatientTitleLabel">
+           <property name="text">
+            <string>当前病例</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="overviewPatientValueLabel">
+           <property name="text">
+            <string>未选择病例</string>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="overviewDiagnosisCard">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <layout class="QVBoxLayout" name="overviewDiagnosisLayout">
+         <property name="spacing">
+           <number>4</number>
+         </property>
+          <property name="leftMargin">
+            <number>10</number>
+          </property>
+          <property name="topMargin">
+            <number>10</number>
+          </property>
+          <property name="rightMargin">
+            <number>10</number>
+          </property>
+          <property name="bottomMargin">
+            <number>10</number>
+          </property>
+         <item>
+          <widget class="QLabel" name="overviewDiagnosisTitleLabel">
+           <property name="text">
+            <string>诊断摘要</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="overviewDiagnosisValueLabel">
+           <property name="text">
+            <string>等待病例</string>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="overviewDoctorCard">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <layout class="QVBoxLayout" name="overviewDoctorLayout">
+         <property name="spacing">
+           <number>4</number>
+         </property>
+          <property name="leftMargin">
+            <number>10</number>
+          </property>
+          <property name="topMargin">
+            <number>10</number>
+          </property>
+          <property name="rightMargin">
+            <number>10</number>
+          </property>
+          <property name="bottomMargin">
+            <number>10</number>
+          </property>
+         <item>
+          <widget class="QLabel" name="overviewDoctorTitleLabel">
+           <property name="text">
+            <string>责任医生</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="overviewDoctorValueLabel">
+           <property name="text">
+            <string>待选择</string>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="overviewDicomCard">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <layout class="QVBoxLayout" name="overviewDicomLayout">
+         <property name="spacing">
+           <number>4</number>
+         </property>
+         <property name="leftMargin">
+           <number>12</number>
+         </property>
+         <property name="topMargin">
+           <number>12</number>
+         </property>
+         <property name="rightMargin">
+           <number>12</number>
+         </property>
+         <property name="bottomMargin">
+           <number>12</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="overviewDicomTitleLabel">
+           <property name="text">
+            <string>DICOM 状态</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="overviewDicomValueLabel">
+           <property name="text">
+            <string>暂无影像</string>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QSplitter" name="mainSplitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <widget class="QFrame" name="patientListFrame">
+      <property name="minimumSize">
+       <size>
+         <width>280</width>
+         <height>0</height>
+        </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+         <width>360</width>
+         <height>16777215</height>
+        </size>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <layout class="QVBoxLayout" name="patientListLayout">
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <property name="leftMargin">
+        <number>14</number>
+       </property>
+       <property name="topMargin">
+        <number>14</number>
+       </property>
+       <property name="rightMargin">
+        <number>14</number>
+       </property>
+       <property name="bottomMargin">
+        <number>14</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="patientListTitle">
+         <property name="text">
+          <string>病例列表</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="patientListSubtitleLabel">
+         <property name="text">
+          <string>在左侧选择病例，右侧工作台会自动切换到对应详情。</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="patientSearchEdit">
+         <property name="placeholderText">
+          <string>搜索患者姓名或编号</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QListWidget" name="patientListWidget"/>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QFrame" name="patientDetailFrame">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <layout class="QVBoxLayout" name="patientDetailLayout">
+       <property name="spacing">
+        <number>12</number>
+       </property>
+          <property name="leftMargin">
+         <number>14</number>
+          </property>
+          <property name="topMargin">
+         <number>14</number>
+          </property>
+          <property name="rightMargin">
+         <number>14</number>
+          </property>
+          <property name="bottomMargin">
+         <number>14</number>
+          </property>
+       <item>
+        <layout class="QHBoxLayout" name="patientHeaderLayout">
+         <property name="spacing">
+          <number>12</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="patientNameLabel">
+           <property name="text">
+            <string>请选择患者</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="patientHeaderSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QScrollArea" name="detailScrollArea">
+         <property name="frameShape">
+          <enum>QFrame::NoFrame</enum>
+         </property>
+         <property name="widgetResizable">
+          <bool>true</bool>
+         </property>
+         <widget class="QWidget" name="detailScrollContent">
+          <layout class="QVBoxLayout" name="detailContentLayout">
+           <property name="spacing">
+            <number>14</number>
+           </property>
+           <property name="leftMargin">
+            <number>4</number>
+           </property>
+           <property name="topMargin">
+            <number>4</number>
+           </property>
+           <property name="rightMargin">
+            <number>4</number>
+           </property>
+           <property name="bottomMargin">
+            <number>4</number>
+           </property>
+           <item>
+            <widget class="QFrame" name="basicInfoSectionFrame">
+             <property name="frameShape">
+              <enum>QFrame::StyledPanel</enum>
+             </property>
+             <layout class="QVBoxLayout" name="basicInfoSectionLayout">
+               <property name="spacing">
+                 <number>8</number>
+               </property>
+               <property name="leftMargin">
+                 <number>12</number>
+               </property>
+               <property name="topMargin">
+                 <number>12</number>
+               </property>
+               <property name="rightMargin">
+                 <number>12</number>
+               </property>
+               <property name="bottomMargin">
+                 <number>12</number>
+               </property>
+              <item>
+               <widget class="QLabel" name="basicInfoLabel">
+                <property name="text">
+                 <string>基本信息</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QGridLayout" name="basicInfoGrid">
+                <property name="horizontalSpacing">
+                  <number>20</number>
+                </property>
+                <property name="verticalSpacing">
+                  <number>10</number>
+                </property>
+                <item row="0" column="0">
+                 <widget class="QLabel" name="idLabelTitle">
+                  <property name="text">
+                   <string>编号</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QLabel" name="idLabel">
+                  <property name="text">
+                   <string>-</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="2">
+                 <widget class="QLabel" name="genderLabelTitle">
+                  <property name="text">
+                   <string>性别</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="3">
+                 <widget class="QLabel" name="genderLabel">
+                  <property name="text">
+                   <string>-</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QLabel" name="ageLabelTitle">
+                  <property name="text">
+                   <string>年龄</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QLabel" name="ageLabel">
+                  <property name="text">
+                   <string>-</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="2">
+                 <widget class="QLabel" name="phoneLabelTitle">
+                  <property name="text">
+                   <string>电话</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="3">
+                 <widget class="QLabel" name="phoneLabel">
+                  <property name="text">
+                   <string>-</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="0">
+                 <widget class="QLabel" name="diagnosisLabelTitle">
+                  <property name="text">
+                   <string>诊断</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="1" colspan="3">
+                 <widget class="QLabel" name="diagnosisLabel">
+                  <property name="text">
+                   <string>-</string>
+                  </property>
+                  <property name="wordWrap">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QFrame" name="doctorInfoSectionFrame">
+             <property name="frameShape">
+              <enum>QFrame::StyledPanel</enum>
+             </property>
+             <layout class="QVBoxLayout" name="doctorInfoSectionLayout">
+               <property name="spacing">
+                 <number>8</number>
+               </property>
+               <property name="leftMargin">
+                 <number>12</number>
+               </property>
+               <property name="topMargin">
+                 <number>12</number>
+               </property>
+               <property name="rightMargin">
+                 <number>12</number>
+               </property>
+               <property name="bottomMargin">
+                 <number>12</number>
+               </property>
+              <item>
+               <widget class="QLabel" name="doctorInfoLabel">
+                <property name="text">
+                 <string>责任医生</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QGridLayout" name="doctorInfoGrid">
+                <property name="horizontalSpacing">
+                  <number>20</number>
+                </property>
+                <property name="verticalSpacing">
+                  <number>10</number>
+                </property>
+                <item row="0" column="0">
+                 <widget class="QLabel" name="doctorNameLabelTitle">
+                  <property name="text">
+                   <string>医生</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QLabel" name="doctorNameLabel">
+                  <property name="text">
+                   <string>-</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="2">
+                 <widget class="QLabel" name="departmentLabelTitle">
+                  <property name="text">
+                   <string>科室</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="3">
+                 <widget class="QLabel" name="departmentLabel">
+                  <property name="text">
+                   <string>-</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QFrame" name="dicomSectionFrame">
+             <property name="frameShape">
+              <enum>QFrame::StyledPanel</enum>
+             </property>
+             <layout class="QVBoxLayout" name="dicomSectionLayout">
+               <property name="spacing">
+                 <number>8</number>
+               </property>
+               <property name="leftMargin">
+                 <number>12</number>
+               </property>
+               <property name="topMargin">
+                 <number>12</number>
+               </property>
+               <property name="rightMargin">
+                 <number>12</number>
+               </property>
+               <property name="bottomMargin">
+                 <number>12</number>
+               </property>
+              <item>
+               <widget class="QLabel" name="dicomInfoLabel">
+                <property name="text">
+                 <string>DICOM 影像</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QScrollArea" name="dicomScrollArea">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>156</height>
+                 </size>
+                </property>
+                <property name="frameShape">
+                 <enum>QFrame::NoFrame</enum>
+                </property>
+                <property name="horizontalScrollBarPolicy">
+                 <enum>Qt::ScrollBarAlwaysOff</enum>
+                </property>
+                <property name="widgetResizable">
+                 <bool>true</bool>
+                </property>
+                <widget class="QWidget" name="dicomScrollContent">
+                 <layout class="QHBoxLayout" name="dicomContentLayout">
+                  <property name="spacing">
+                   <number>14</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLabel" name="noDicomLabel">
+                    <property name="text">
+                     <string>暂无 DICOM 影像</string>
+                    </property>
+                    <property name="alignment">
+                     <set>Qt::AlignCenter</set>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="navigationCtaFrame">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>104</height>
+          </size>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <layout class="QHBoxLayout" name="navigationCtaLayout">
+           <property name="spacing">
+             <number>10</number>
+           </property>
+           <property name="leftMargin">
+             <number>14</number>
+           </property>
+           <property name="topMargin">
+             <number>12</number>
+           </property>
+           <property name="rightMargin">
+             <number>14</number>
+           </property>
+           <property name="bottomMargin">
+             <number>12</number>
+           </property>
+          <item>
+           <widget class="QFrame" name="navigationCtaTextFrame">
+            <property name="frameShape">
+             <enum>QFrame::NoFrame</enum>
+            </property>
+            <layout class="QVBoxLayout" name="navigationCtaTextLayout">
+             <property name="spacing">
+               <number>4</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="navigationCtaTitleLabel">
+               <property name="text">
+                <string>等待选择病例</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="navigationCtaHintLabel">
+               <property name="text">
+                <string>请先在左侧选择病例，再进入导航流程。</string>
+               </property>
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <spacer name="navigationCtaSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="enterNavigationButton">
+             <property name="minimumSize">
+              <size>
+                <width>184</width>
+                <height>46</height>
+               </size>
+              </property>
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="text">
+             <string>进入导航系统</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
