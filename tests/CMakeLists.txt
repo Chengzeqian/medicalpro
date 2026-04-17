@@ -16,3 +16,13 @@ if(TARGET medicalpro AND TARGET UserManagement AND TARGET DicomViewer AND TARGET
             -P ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_runtime_artifacts.cmake
     )
 endif()
+
+if(TARGET medicalpro)
+    add_test(
+        NAME platform_descriptor_runtime_layout_test
+        COMMAND ${CMAKE_COMMAND}
+            -Druntime_dir=$<TARGET_FILE_DIR:medicalpro>
+            -Drequire_platform_descriptors=ON
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_runtime_artifacts.cmake
+    )
+endif()

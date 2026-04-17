@@ -19,6 +19,26 @@
 # 初始化全局属性（配置阶段仅执行一次）
 set_property(GLOBAL PROPERTY MEDICALPRO_AUTO_COPY_PLUGINS "")
 set_property(GLOBAL PROPERTY MEDICALPRO_AUTO_COPY_CONFIGURED FALSE)
+set_property(GLOBAL PROPERTY MEDICALPRO_PLATFORM_DESCRIPTOR_FILES "")
+set_property(GLOBAL PROPERTY MEDICALPRO_PLATFORM_DESCRIPTOR_RUNTIME_CONFIGURED FALSE)
+
+function(register_platform_descriptor PLUGIN_NAME DESCRIPTOR_SOURCE)
+    if(NOT EXISTS "${DESCRIPTOR_SOURCE}")
+        return()
+    endif()
+
+    get_property(_descriptor_files GLOBAL PROPERTY MEDICALPRO_PLATFORM_DESCRIPTOR_FILES)
+    set(_descriptor_entry "${PLUGIN_NAME}|${DESCRIPTOR_SOURCE}")
+
+    if(_descriptor_files STREQUAL "")
+        set(_descriptor_files "${_descriptor_entry}")
+    else()
+        list(APPEND _descriptor_files "${_descriptor_entry}")
+        list(REMOVE_DUPLICATES _descriptor_files)
+    endif()
+
+    set_property(GLOBAL PROPERTY MEDICALPRO_PLATFORM_DESCRIPTOR_FILES "${_descriptor_files}")
+endfunction()
 
 # ============================================================================
 # add_medical_plugin - 创建标准化的医疗系统插件
@@ -84,6 +104,19 @@ function(add_medical_plugin PLUGIN_NAME)
         ${PLUGIN_HEADERS}
         ${PLUGIN_RESOURCES}
     )
+
+    set(_descriptor_source "${CMAKE_CURRENT_SOURCE_DIR}/platform/plugin.json")
+    register_platform_descriptor(${PLUGIN_NAME} "${_descriptor_source}")
+    if(EXISTS "${_descriptor_source}")
+        add_custom_command(TARGET ${PLUGIN_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/$<CONFIG>/plugins/descriptors"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_descriptor_source}"
+                "${CMAKE_BINARY_DIR}/$<CONFIG>/plugins/descriptors/${PLUGIN_NAME}.json"
+            COMMENT "Copying ${PLUGIN_NAME} platform descriptor to output directory"
+            VERBATIM
+        )
+    endif()
     
     # ========================================================================
     # 配置插件输出目录
@@ -228,6 +261,41 @@ function(configure_plugin_runtime_copy TARGET_NAME)
     endforeach()
 
     set_property(GLOBAL PROPERTY MEDICALPRO_AUTO_COPY_CONFIGURED TRUE)
+endfunction()
+
+function(configure_platform_descriptor_runtime_copy TARGET_NAME)
+    if(NOT TARGET ${TARGET_NAME})
+        message(WARNING "Target '${TARGET_NAME}' not found when configuring platform descriptor runtime copy")
+        return()
+    endif()
+
+    get_property(_configured GLOBAL PROPERTY MEDICALPRO_PLATFORM_DESCRIPTOR_RUNTIME_CONFIGURED)
+    if(_configured)
+        return()
+    endif()
+
+    get_property(_descriptor_files GLOBAL PROPERTY MEDICALPRO_PLATFORM_DESCRIPTOR_FILES)
+    if(_descriptor_files STREQUAL "")
+        set_property(GLOBAL PROPERTY MEDICALPRO_PLATFORM_DESCRIPTOR_RUNTIME_CONFIGURED TRUE)
+        return()
+    endif()
+
+    foreach(_descriptor_entry ${_descriptor_files})
+        string(REPLACE "|" ";" _descriptor_parts "${_descriptor_entry}")
+        list(GET _descriptor_parts 0 _plugin_name)
+        list(GET _descriptor_parts 1 _descriptor_source)
+
+        add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${TARGET_NAME}>/plugins/descriptors"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_descriptor_source}"
+                "$<TARGET_FILE_DIR:${TARGET_NAME}>/plugins/descriptors/${_plugin_name}.json"
+            COMMENT "Copying ${_plugin_name} platform descriptor to ${TARGET_NAME} runtime directory"
+            VERBATIM
+        )
+    endforeach()
+
+    set_property(GLOBAL PROPERTY MEDICALPRO_PLATFORM_DESCRIPTOR_RUNTIME_CONFIGURED TRUE)
 endfunction()
 
 # ============================================================================

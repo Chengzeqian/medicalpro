@@ -512,6 +512,13 @@ if(CTK_FOUND)
     message(STATUS "Plugin runtime handled by individual plugin configurations")
 endif()
 
+register_platform_descriptor(UserManagement "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/UserManagement/platform/plugin.json")
+register_platform_descriptor(DicomViewer "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/DicomViewer/platform/plugin.json")
+register_platform_descriptor(FourViewDisplay "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/FourViewDisplay/platform/plugin.json")
+register_platform_descriptor(RegistrationCore "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/RegistrationCore/platform/plugin.json")
+register_platform_descriptor(OpticalTracking "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/OpticalTracking/platform/plugin.json")
+configure_platform_descriptor_runtime_copy(medicalpro)
+
 # ============================================================================
 # VTK Linking for Main App (PRIVATE - Requirement 1.3)
 # ============================================================================

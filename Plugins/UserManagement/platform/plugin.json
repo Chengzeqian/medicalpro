@@ -1,0 +1,28 @@
+{
+  "id": "org.medicalpro.user_management",
+  "version": "1.0.0",
+  "display_name": "UserManagement",
+  "domain": "identity",
+  "enabled": true,
+  "runtime": {
+    "ctk_symbolic_name": "UserManagement",
+    "startup_policy": "eager",
+    "bootstrap_level": "core",
+    "entry_capability": "identity.core"
+  },
+  "provides": {
+    "services": ["identity.user_query", "identity.session"],
+    "capabilities": ["identity.core"]
+  },
+  "requires": {
+    "services": [],
+    "capabilities": [],
+    "plugins": []
+  },
+  "optional": {
+    "services": [],
+    "capabilities": [],
+    "plugins": []
+  },
+  "health_checks": ["service_registered", "database_accessible"]
+}

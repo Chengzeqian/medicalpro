@@ -106,7 +106,7 @@
 - Create: `docs/superpowers/tracking/repo-hygiene-baseline.md`
 - Modify: `docs/current_status_and_project_overview.md`
 
-- [ ] **Step 1: 先盘点当前仓库真实状态，输出可执行分类清单**
+- [x] **Step 1: 先盘点当前仓库真实状态，输出可执行分类清单**
 
 Run:
 
@@ -126,7 +126,7 @@ Expected:
 - 明确看到 Git 基线与真实源码严重脱节
 - 能把目录初步分成 4 类：核心源码、历史残留、环境依赖、本地缓存
 
-- [ ] **Step 2: 写仓库整理基线文档，固定“保留 / 忽略 / 归档 / 待确认”边界**
+- [x] **Step 2: 写仓库整理基线文档，固定“保留 / 忽略 / 归档 / 待确认”边界**
 
 ```md
 <!-- docs/superpowers/tracking/repo-hygiene-baseline.md -->
@@ -177,7 +177,7 @@ Expected:
 - deleted legacy top-level tutorial markdown files
 ```
 
-- [ ] **Step 3: 修正忽略规则，先把本地环境噪音从 Git 视野里移走**
+- [x] **Step 3: 修正忽略规则，先把本地环境噪音从 Git 视野里移走**
 
 ```gitignore
 # Local worktrees and local tooling
@@ -198,7 +198,7 @@ Expected:
 /ThirdParty.zip
 ```
 
-- [ ] **Step 4: 回写项目状态文档，声明“先治理仓库基线，再进入平台治理开发”**
+- [x] **Step 4: 回写项目状态文档，声明“先治理仓库基线，再进入平台治理开发”**
 
 ```md
 <!-- docs/current_status_and_project_overview.md -->
@@ -209,7 +209,7 @@ Expected:
 - 基线记录：`docs/superpowers/tracking/repo-hygiene-baseline.md`
 ```
 
-- [ ] **Step 5: 验证清理结果，并只提交仓库治理基线**
+- [x] **Step 5: 验证清理结果，并只提交仓库治理基线**
 
 Run:
 
@@ -223,7 +223,7 @@ Expected:
 - 剩余未跟踪项主要是需要纳入版本管理的源码与文档
 - 不会再让 `.worktrees`、`.superpowers`、`Python39`、`ICPtry` 这类本地目录淹没真实开发状态
 
-- [ ] **Step 6: 提交仓库基线治理**
+- [x] **Step 6: 提交仓库基线治理**
 
 ```powershell
 git add .gitignore docs/current_status_and_project_overview.md docs/superpowers/tracking/repo-hygiene-baseline.md
@@ -234,6 +234,10 @@ git commit -m "chore: establish repository hygiene baseline"
 
 ### Task 1: 建立平台 descriptor 解析和基础契约
 
+> 2026-04-17 执行备注
+> - 当前机器上的 CTK 安装缺失 `org_commontk_log4qt.lib`，Task 1 与 Task 2 先使用 `build_x64_noctk` 做验证。
+> - 为了让无 CTK 验证链路可执行，已补齐 `resoucce/` 资源并修复 `UI/NewPages/CMakeLists.txt`、`main.cpp` 中阻断无 CTK 构建的历史问题。
+
 **Files:**
 - Modify: `CMakeLists.txt`
 - Modify: `tests/unit/CMakeLists.txt`
@@ -243,7 +247,7 @@ git commit -m "chore: establish repository hygiene baseline"
 - Create: `Framework/Platform/Kernel/PlatformDescriptorLoader.cpp`
 - Create: `tests/unit/PlatformDescriptorLoaderTest.cpp`
 
-- [ ] **Step 1: 先写 descriptor loader 的失败测试**
+- [x] **Step 1: 先写 descriptor loader 的失败测试**
 
 ```cpp
 // tests/unit/PlatformDescriptorLoaderTest.cpp
@@ -334,7 +338,7 @@ QTEST_APPLESS_MAIN(PlatformDescriptorLoaderTest)
 #include "PlatformDescriptorLoaderTest.moc"
 ```
 
-- [ ] **Step 2: 把测试目标挂进现有测试体系，然后确认它先失败**
+- [x] **Step 2: 把测试目标挂进现有测试体系，然后确认它先失败**
 
 ```cmake
 # tests/unit/CMakeLists.txt
@@ -368,7 +372,7 @@ cmake --build build_x64 --config Release --target platform_descriptor_loader_tes
 Expected:
 - 编译失败，报 `PlatformDescriptorLoader.h` 或相关平台类型未定义
 
-- [ ] **Step 3: 实现平台基础类型和 descriptor loader 的最小版本**
+- [x] **Step 3: 实现平台基础类型和 descriptor loader 的最小版本**
 
 ```cpp
 // Framework/Platform/Contracts/PlatformRuntimeTypes.h
@@ -535,7 +539,7 @@ list(APPEND FRAMEWORK_SOURCES
 )
 ```
 
-- [ ] **Step 4: 运行测试，确认 loader 和类型已经打通**
+- [x] **Step 4: 运行测试，确认 loader 和类型已经打通**
 
 Run:
 
@@ -548,7 +552,7 @@ Expected:
 - `platform_descriptor_loader_test` 构建通过
 - 2 个测试断言通过
 
-- [ ] **Step 5: 提交这一轮平台描述基础**
+- [x] **Step 5: 提交这一轮平台描述基础**
 
 ```powershell
 git add CMakeLists.txt tests/unit/CMakeLists.txt tests/unit/PlatformDescriptorLoaderTest.cpp Framework/Platform/Contracts/PlatformRuntimeTypes.h Framework/Platform/Contracts/PlatformPluginDescriptor.h Framework/Platform/Kernel/PlatformDescriptorLoader.h Framework/Platform/Kernel/PlatformDescriptorLoader.cpp
@@ -569,7 +573,7 @@ git commit -m "feat: add platform descriptor loader foundation"
 - Create: `Plugins/RegistrationCore/platform/plugin.json`
 - Create: `Plugins/OpticalTracking/platform/plugin.json`
 
-- [ ] **Step 1: 先让运行时测试明确检查 descriptor，目前应当失败**
+- [x] **Step 1: 先让运行时测试明确检查 descriptor，目前应当失败**
 
 ```cmake
 # tests/CMakeLists.txt
@@ -609,7 +613,7 @@ Expected:
 - `platform_descriptor_runtime_layout_test` 失败
 - 错误输出里出现缺失的 `plugins/descriptors/*.json`
 
-- [ ] **Step 2: 为 5 个核心插件写出平台描述文件**
+- [x] **Step 2: 为 5 个核心插件写出平台描述文件**
 
 ```json
 // Plugins/UserManagement/platform/plugin.json
@@ -739,7 +743,7 @@ Expected:
 }
 ```
 
-- [ ] **Step 3: 修改插件宏，把 descriptor 复制到运行时 `plugins/descriptors`**
+- [x] **Step 3: 修改插件宏，把 descriptor 复制到运行时 `plugins/descriptors`**
 
 ```cmake
 # cmake/PluginMacros.cmake
@@ -767,7 +771,7 @@ function(copy_plugin_to_exe_dir PLUGIN_NAME)
 endfunction()
 ```
 
-- [ ] **Step 4: 重跑主程序构建和运行时布局测试**
+- [x] **Step 4: 重跑主程序构建和运行时布局测试**
 
 Run:
 
@@ -780,7 +784,7 @@ Expected:
 - 原有 `runtime_artifact_layout_test` 继续通过
 - 新的 `platform_descriptor_runtime_layout_test` 通过
 
-- [ ] **Step 5: 提交核心插件 descriptor 和部署链**
+- [x] **Step 5: 提交核心插件 descriptor 和部署链**
 
 ```powershell
 git add cmake/PluginMacros.cmake tests/CMakeLists.txt tests/runtime/verify_runtime_artifacts.cmake Plugins/UserManagement/platform/plugin.json Plugins/DicomViewer/platform/plugin.json Plugins/FourViewDisplay/platform/plugin.json Plugins/RegistrationCore/platform/plugin.json Plugins/OpticalTracking/platform/plugin.json

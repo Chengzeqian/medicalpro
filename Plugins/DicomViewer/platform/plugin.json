@@ -1,0 +1,28 @@
+{
+  "id": "org.medicalpro.dicom_viewer",
+  "version": "1.0.0",
+  "display_name": "DicomViewer",
+  "domain": "imaging",
+  "enabled": true,
+  "runtime": {
+    "ctk_symbolic_name": "DicomViewer",
+    "startup_policy": "eager",
+    "bootstrap_level": "core",
+    "entry_capability": "imaging.data"
+  },
+  "provides": {
+    "services": ["imaging.study_query", "imaging.study_reader"],
+    "capabilities": ["imaging.data"]
+  },
+  "requires": {
+    "services": [],
+    "capabilities": [],
+    "plugins": []
+  },
+  "optional": {
+    "services": [],
+    "capabilities": [],
+    "plugins": []
+  },
+  "health_checks": ["service_registered", "data_path_accessible"]
+}

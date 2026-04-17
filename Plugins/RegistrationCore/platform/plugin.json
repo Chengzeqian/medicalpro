@@ -1,0 +1,28 @@
+{
+  "id": "org.medicalpro.registration_core",
+  "version": "1.0.0",
+  "display_name": "RegistrationCore",
+  "domain": "navigation",
+  "enabled": true,
+  "runtime": {
+    "ctk_symbolic_name": "RegistrationCore",
+    "startup_policy": "on_demand",
+    "bootstrap_level": "deferred",
+    "entry_capability": "navigation.registration"
+  },
+  "provides": {
+    "services": ["navigation.registration"],
+    "capabilities": ["navigation.registration"]
+  },
+  "requires": {
+    "services": [],
+    "capabilities": ["imaging.data"],
+    "plugins": []
+  },
+  "optional": {
+    "services": [],
+    "capabilities": [],
+    "plugins": []
+  },
+  "health_checks": ["service_registered", "core_binary_accessible"]
+}

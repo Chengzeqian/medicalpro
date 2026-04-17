@@ -1,0 +1,28 @@
+{
+  "id": "org.medicalpro.four_view_display",
+  "version": "1.0.0",
+  "display_name": "FourViewDisplay",
+  "domain": "imaging",
+  "enabled": true,
+  "runtime": {
+    "ctk_symbolic_name": "FourViewDisplay",
+    "startup_policy": "eager",
+    "bootstrap_level": "core",
+    "entry_capability": "imaging.viewport"
+  },
+  "provides": {
+    "services": ["imaging.viewport", "imaging.viewport_state"],
+    "capabilities": ["imaging.viewport"]
+  },
+  "requires": {
+    "services": [],
+    "capabilities": ["imaging.data"],
+    "plugins": []
+  },
+  "optional": {
+    "services": [],
+    "capabilities": [],
+    "plugins": []
+  },
+  "health_checks": ["service_registered", "render_backend_accessible"]
+}
