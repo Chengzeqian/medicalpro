@@ -137,3 +137,24 @@ add_test(
     NAME platform_descriptor_loader_test
     COMMAND platform_descriptor_loader_test
 )
+
+add_executable(platform_dependency_graph_test
+    PlatformDependencyGraphTest.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Platform/Kernel/PlatformDependencyGraph.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Platform/Kernel/PlatformStateStore.cpp
+)
+
+target_include_directories(platform_dependency_graph_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_dependency_graph_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_dependency_graph_test
+    COMMAND platform_dependency_graph_test
+)

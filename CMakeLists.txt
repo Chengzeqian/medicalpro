@@ -267,8 +267,13 @@ set(FRAMEWORK_SOURCES
     Framework/Logger.h
     Framework/Platform/Contracts/PlatformRuntimeTypes.h
     Framework/Platform/Contracts/PlatformPluginDescriptor.h
+    Framework/Platform/Contracts/PlatformSnapshots.h
     Framework/Platform/Kernel/PlatformDescriptorLoader.h
     Framework/Platform/Kernel/PlatformDescriptorLoader.cpp
+    Framework/Platform/Kernel/PlatformDependencyGraph.h
+    Framework/Platform/Kernel/PlatformDependencyGraph.cpp
+    Framework/Platform/Kernel/PlatformStateStore.h
+    Framework/Platform/Kernel/PlatformStateStore.cpp
 )
 
 # CTK澧炲己缁勪欢婧愭枃浠讹紙鏉′欢缂栬瘧锛?

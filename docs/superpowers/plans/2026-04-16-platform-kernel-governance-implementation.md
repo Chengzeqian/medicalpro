@@ -805,7 +805,7 @@ git commit -m "feat: add core plugin platform descriptors"
 - Modify: `tests/unit/CMakeLists.txt`
 - Create: `tests/unit/PlatformDependencyGraphTest.cpp`
 
-- [ ] **Step 1: 先写依赖图失败用例，锁定 core 启动顺序和 on_demand 依赖边界**
+- [x] **Step 1: 先写依赖图失败用例，锁定 core 启动顺序和 on_demand 依赖边界**
 
 ```cpp
 // tests/unit/PlatformDependencyGraphTest.cpp
@@ -906,7 +906,7 @@ QTEST_APPLESS_MAIN(PlatformDependencyGraphTest)
 #include "PlatformDependencyGraphTest.moc"
 ```
 
-- [ ] **Step 2: 把测试目标挂进单测体系，先确认依赖图类尚未实现而失败**
+- [x] **Step 2: 把测试目标挂进单测体系，先确认依赖图类尚未实现而失败**
 
 ```cmake
 # tests/unit/CMakeLists.txt
@@ -941,7 +941,7 @@ cmake --build build_x64 --config Release --target platform_dependency_graph_test
 Expected:
 - 编译失败，提示 `PlatformDependencyGraph`、`PlatformStateStore` 或 `PlatformSnapshots` 未定义
 
-- [ ] **Step 3: 实现快照模型、依赖图校验和 capability 状态存储**
+- [x] **Step 3: 实现快照模型、依赖图校验和 capability 状态存储**
 
 ```cpp
 // Framework/Platform/Contracts/PlatformSnapshots.h
@@ -1155,7 +1155,7 @@ list(APPEND FRAMEWORK_SOURCES
 )
 ```
 
-- [ ] **Step 4: 运行依赖图测试，确认 core 顺序和 capability 锁定逻辑都生效**
+- [x] **Step 4: 运行依赖图测试，确认 core 顺序和 capability 锁定逻辑都生效**
 
 Run:
 
@@ -1168,7 +1168,7 @@ Expected:
 - `platform_dependency_graph_test` 构建通过
 - 2 个断言全部通过
 
-- [ ] **Step 5: 提交平台依赖图与状态存储基础**
+- [x] **Step 5: 提交平台依赖图与状态存储基础**
 
 ```powershell
 git add CMakeLists.txt tests/unit/CMakeLists.txt tests/unit/PlatformDependencyGraphTest.cpp Framework/Platform/Contracts/PlatformSnapshots.h Framework/Platform/Kernel/PlatformDependencyGraph.h Framework/Platform/Kernel/PlatformDependencyGraph.cpp Framework/Platform/Kernel/PlatformStateStore.h Framework/Platform/Kernel/PlatformStateStore.cpp
