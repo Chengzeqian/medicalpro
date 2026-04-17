@@ -86,3 +86,19 @@ CMakeLists.txt.user*
 
 # Local worktrees
 /.worktrees/
+
+# Local tooling
+/.superpowers/
+/.kiro/
+/.vscode/
+
+# Local build outputs
+/build/
+/build_x64/
+/segmentation_outputs/
+
+# Local SDKs, experiments, archives
+/Python39/
+/ICPtry/
+/Regi/
+/ThirdParty.zip

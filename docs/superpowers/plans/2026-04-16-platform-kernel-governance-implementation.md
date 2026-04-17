@@ -99,6 +99,139 @@
 
 ---
 
+### Task 0: 仓库基线治理与版本边界收口
+
+**Files:**
+- Modify: `.gitignore`
+- Create: `docs/superpowers/tracking/repo-hygiene-baseline.md`
+- Modify: `docs/current_status_and_project_overview.md`
+
+- [ ] **Step 1: 先盘点当前仓库真实状态，输出可执行分类清单**
+
+Run:
+
+```powershell
+$tracked = git ls-files | Measure-Object | Select-Object -ExpandProperty Count
+$untracked = git ls-files --others --exclude-standard | Measure-Object | Select-Object -ExpandProperty Count
+$deleted = git ls-files --deleted | Measure-Object | Select-Object -ExpandProperty Count
+Write-Output "tracked=$tracked"
+Write-Output "untracked=$untracked"
+Write-Output "deleted=$deleted"
+
+git ls-files --others --exclude-standard | ForEach-Object { ($_ -split '[\\/]')[0] } | Group-Object | Sort-Object Count -Descending | Select-Object -First 20 Count,Name
+git ls-files --deleted | ForEach-Object { ($_ -split '[\\/]')[0] } | Group-Object | Sort-Object Count -Descending | Select-Object Count,Name
+```
+
+Expected:
+- 明确看到 Git 基线与真实源码严重脱节
+- 能把目录初步分成 4 类：核心源码、历史残留、环境依赖、本地缓存
+
+- [ ] **Step 2: 写仓库整理基线文档，固定“保留 / 忽略 / 归档 / 待确认”边界**
+
+```md
+<!-- docs/superpowers/tracking/repo-hygiene-baseline.md -->
+# Repo Hygiene Baseline
+
+## Baseline Snapshot
+
+- tracked files: 114
+- untracked files: 75598
+- deleted tracked files: 91
+
+## Keep And Normalize
+
+- `Framework/`
+- `Plugins/`
+- `UI/`
+- `tests/`
+- `cmake/`
+- `config/`
+- `docs/`
+- `data/`
+- `resources.qrc`
+- `main.cpp`
+- `CMakeLists.txt`
+- `CMakePresets.json`
+
+## Ignore As Local Or Generated
+
+- `.worktrees/`
+- `.superpowers/`
+- `.kiro/`
+- `.vscode/`
+- `build/`
+- `build_x64/`
+- `Python39/`
+- `ICPtry/`
+- `Regi/`
+- `segmentation_outputs/`
+- `ThirdParty.zip`
+
+## Review As Legacy Removal Candidates
+
+- deleted legacy plugin trees under `Plugins/ImageInteraction/`
+- deleted legacy plugin trees under `Plugins/MedicalImageCore/`
+- deleted legacy plugin trees under `Plugins/MedicalProcessing/`
+- deleted legacy plugin trees under `Plugins/MedicalViewer/`
+- deleted legacy plugin trees under `Plugins/PatientManagement/`
+- deleted legacy top-level tutorial markdown files
+```
+
+- [ ] **Step 3: 修正忽略规则，先把本地环境噪音从 Git 视野里移走**
+
+```gitignore
+# Local worktrees and local tooling
+/.worktrees/
+/.superpowers/
+/.kiro/
+/.vscode/
+
+# Local builds and caches
+/build/
+/build_x64/
+/segmentation_outputs/
+
+# Local SDK / experiments / archives
+/Python39/
+/ICPtry/
+/Regi/
+/ThirdParty.zip
+```
+
+- [ ] **Step 4: 回写项目状态文档，声明“先治理仓库基线，再进入平台治理开发”**
+
+```md
+<!-- docs/current_status_and_project_overview.md -->
+## Repository Hygiene Status
+
+- 当前仓库 Git 基线与真实源码目录严重脱节，已先进入仓库基线治理阶段
+- 整理目标：先固定版本边界、忽略规则和遗留目录，再进入平台治理开发
+- 基线记录：`docs/superpowers/tracking/repo-hygiene-baseline.md`
+```
+
+- [ ] **Step 5: 验证清理结果，并只提交仓库治理基线**
+
+Run:
+
+```powershell
+git status --short
+git ls-files --others --exclude-standard | ForEach-Object { ($_ -split '[\\/]')[0] } | Group-Object | Sort-Object Count -Descending | Select-Object -First 20 Count,Name
+```
+
+Expected:
+- 未跟踪文件数量显著下降
+- 剩余未跟踪项主要是需要纳入版本管理的源码与文档
+- 不会再让 `.worktrees`、`.superpowers`、`Python39`、`ICPtry` 这类本地目录淹没真实开发状态
+
+- [ ] **Step 6: 提交仓库基线治理**
+
+```powershell
+git add .gitignore docs/current_status_and_project_overview.md docs/superpowers/tracking/repo-hygiene-baseline.md
+git commit -m "chore: establish repository hygiene baseline"
+```
+
+---
+
 ### Task 1: 建立平台 descriptor 解析和基础契约
 
 **Files:**
