@@ -117,3 +117,23 @@ add_test(
     NAME welcome_page_runtime_refresh_test
     COMMAND welcome_page_runtime_refresh_test
 )
+
+add_executable(platform_descriptor_loader_test
+    PlatformDescriptorLoaderTest.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Platform/Kernel/PlatformDescriptorLoader.cpp
+)
+
+target_include_directories(platform_descriptor_loader_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_descriptor_loader_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_descriptor_loader_test
+    COMMAND platform_descriptor_loader_test
+)

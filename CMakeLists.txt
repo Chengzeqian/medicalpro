@@ -265,6 +265,10 @@ set(FRAMEWORK_SOURCES
     Framework/Registration/RegistrationTypes.h
     Framework/Registration/RegistrationService.h
     Framework/Logger.h
+    Framework/Platform/Contracts/PlatformRuntimeTypes.h
+    Framework/Platform/Contracts/PlatformPluginDescriptor.h
+    Framework/Platform/Kernel/PlatformDescriptorLoader.h
+    Framework/Platform/Kernel/PlatformDescriptorLoader.cpp
 )
 
 # CTK澧炲己缁勪欢婧愭枃浠讹紙鏉′欢缂栬瘧锛?
