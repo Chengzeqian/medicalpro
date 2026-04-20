@@ -1,10 +1,10 @@
 # Startup Performance and Plugin Lifecycle Diagnostics Design
 
-## Scope Note (2026-04-19)
+## Scope Note (2026-04-20 Update)
 
 - This document remains the target design for the startup performance and plugin lifecycle diagnostics slice.
-- The currently accepted baseline in this worktree is the lifecycle-event-based diagnostics foundation plus the implementation-plan subset that is already wired through `PlatformDiagnosticsService` and `PlatformDiagnosticsPage`.
-- The full page field matrix, expanded tables, and broader presentation rules defined below should be treated as follow-up delivery scope unless they are explicitly called out as implemented by a later rollout note.
+- The 2026-04-19 `subset baseline` note is now historical rollout context.
+- After the 2026-04-20 follow-up implementation, the full page field matrix and presentation rules defined in Section 9 should be treated as implemented in this worktree unless a later rollout note says otherwise.
 
 ## Implementation Links
 

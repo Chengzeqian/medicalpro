@@ -1,11 +1,27 @@
 ## Platform Kernel Governance
 
+### 2026-04-20 Startup Diagnostics Page Matrix Follow-up Acceptance
+
+- The diagnostics page now renders the full summary matrix, full plugin lifecycle matrix, full timeline matrix, and full problem matrix defined by the 2026-04-17 diagnostics design.
+- `warmup tail` now shows `skipped_by_mode` outside `orchestrate_core`.
+- The slowest plugin row and blocking point emphasis are now part of the landed page contract in this worktree.
+- Executed command (build):
+  - `cmake --build build_x64_noctk --config Release --target medicalpro platform_diagnostics_page_test platform_diagnostics_service_test platform_ui_bridge_test ui_ctk_decoupling_acceptance_test`
+- Executed command (ctest):
+  - `ctest --test-dir build_x64_noctk -C Release -R "platform_diagnostics_page_test|platform_diagnostics_service_test|platform_ui_bridge_test|ui_ctk_decoupling_acceptance_test" --output-on-failure`
+- Executed command (CTK direct-call scan):
+  - `rg -n "CTKManager::instance\(|getService<" UI\NewPages UI\MainInterfaceWidget.cpp`
+- Expected outcomes alignment and actual results:
+  - `medicalpro` build target: PASS (build command exit code 0).
+  - Startup diagnostics follow-up suite: `4/4 PASS` (ctest reports 100% tests passed, 0 failed out of 4).
+  - CTK direct-call scan: no output (`rg` returned no matches).
+
 ### 2026-04-17 Startup Diagnostics Rollout Acceptance
 
 - Task 5 governance write-back is completed for design spec, governance matrix, decision log, and current status tracking.
-- The accepted baseline in this worktree is the lifecycle-event-based diagnostics foundation plus the implementation-plan subset that is already wired through the current diagnostics page: top summary, lifecycle timeline, problem list, and plugin lifecycle table.
-- `docs/superpowers/specs/2026-04-17-startup-performance-and-plugin-lifecycle-diagnostics-design.md` remains the broader target design. Its full page field matrix should not be read as "already accepted and fully implemented" by this Task 5 rollout.
-- This section is a 2026-04-17 supplement for Task 5 startup diagnostics acceptance evidence and should be read as scope boundary clarification, not as a claim that every design-spec field has landed.
+- The accepted baseline at that time was the lifecycle-event-based diagnostics foundation plus the implementation-plan subset that was already wired through the diagnostics page.
+- After the 2026-04-20 follow-up acceptance above, the previous `subset` wording should be read as historical rollout context rather than the current worktree limitation.
+- This section remains a 2026-04-17 supplement for Task 5 startup diagnostics acceptance evidence, not the latest landed-scope statement.
 - Executed command (build):
   - `cmake --build build_x64_noctk --config Release --target medicalpro platform_startup_trace_recorder_test platform_plugin_lifecycle_aggregator_test platform_startup_coordinator_test platform_diagnostics_service_test platform_diagnostics_page_test platform_ui_bridge_test ui_ctk_decoupling_acceptance_test`
 - Executed command (ctest):

@@ -15,56 +15,47 @@
   </property>
   <layout class="QVBoxLayout" name="mainLayout">
    <property name="spacing">
-    <number>20</number>
+    <number>16</number>
    </property>
    <property name="leftMargin">
-    <number>40</number>
-   </property>
-   <property name="topMargin">
     <number>32</number>
    </property>
+   <property name="topMargin">
+    <number>24</number>
+   </property>
    <property name="rightMargin">
-    <number>40</number>
+    <number>32</number>
    </property>
    <property name="bottomMargin">
     <number>24</number>
    </property>
    <item>
     <widget class="QFrame" name="headerFrame">
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>148</height>
-      </size>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
-     <property name="frameShadow">
-      <enum>QFrame::Raised</enum>
-     </property>
      <layout class="QHBoxLayout" name="headerLayout">
       <property name="spacing">
-       <number>22</number>
+       <number>16</number>
       </property>
       <property name="leftMargin">
-       <number>28</number>
+       <number>20</number>
       </property>
       <property name="topMargin">
-       <number>24</number>
+       <number>16</number>
       </property>
       <property name="rightMargin">
-       <number>28</number>
+       <number>20</number>
       </property>
       <property name="bottomMargin">
-       <number>24</number>
+       <number>16</number>
       </property>
       <item>
        <widget class="QPushButton" name="backButton">
         <property name="minimumSize">
          <size>
-          <width>156</width>
-          <height>46</height>
+          <width>160</width>
+          <height>40</height>
          </size>
         </property>
         <property name="cursor">
@@ -76,55 +67,35 @@
        </widget>
       </item>
       <item>
-       <widget class="QWidget" name="titleContainer">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-          <horstretch>1</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
+       <layout class="QVBoxLayout" name="titleLayout">
+        <property name="spacing">
+         <number>6</number>
         </property>
-        <layout class="QVBoxLayout" name="titleLayout">
-         <property name="spacing">
-          <number>8</number>
-         </property>
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="QLabel" name="eyebrowLabel">
-           <property name="text">
-            <string/>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="titleLabel">
-           <property name="text">
-            <string/>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="subtitleLabel">
-           <property name="wordWrap">
-            <bool>true</bool>
-           </property>
-           <property name="text">
-            <string/>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
+        <item>
+         <widget class="QLabel" name="eyebrowLabel">
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="titleLabel">
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="subtitleLabel">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
        <widget class="QFrame" name="runtimeModeFrame">
@@ -133,27 +104,15 @@
         </property>
         <layout class="QVBoxLayout" name="runtimeModeLayout">
          <property name="spacing">
-          <number>6</number>
-         </property>
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
+          <number>4</number>
          </property>
          <item>
           <widget class="QLabel" name="runtimeModeCaptionLabel">
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
            <property name="text">
             <string/>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -162,14 +121,14 @@
            <property name="minimumSize">
             <size>
              <width>180</width>
-             <height>52</height>
+             <height>40</height>
             </size>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
            </property>
            <property name="text">
             <string>observe_only</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -186,22 +145,22 @@
      </property>
      <layout class="QGridLayout" name="overviewLayout">
       <property name="horizontalSpacing">
-       <number>18</number>
+       <number>12</number>
       </property>
       <property name="verticalSpacing">
-       <number>10</number>
+       <number>8</number>
       </property>
       <property name="leftMargin">
-       <number>24</number>
+       <number>16</number>
       </property>
       <property name="topMargin">
-       <number>20</number>
+       <number>16</number>
       </property>
       <property name="rightMargin">
-       <number>24</number>
+       <number>16</number>
       </property>
       <property name="bottomMargin">
-       <number>20</number>
+       <number>16</number>
       </property>
       <item row="0" column="0">
        <widget class="QLabel" name="frameworkReadyCaptionLabel">
@@ -213,24 +172,122 @@
       <item row="0" column="1">
        <widget class="QLabel" name="frameworkReadyValueLabel">
         <property name="text">
-         <string>未就绪</string>
+         <string>no</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QLabel" name="platformReadyCaptionLabel">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QLabel" name="platformReadyValueLabel">
+        <property name="text">
+         <string>no</string>
         </property>
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QLabel" name="recoveryHintsCaptionLabel">
+       <widget class="QLabel" name="startupReadyPathCaptionLabel">
         <property name="text">
          <string/>
         </property>
        </widget>
       </item>
       <item row="1" column="1">
+       <widget class="QLabel" name="startupReadyPathValueLabel">
+        <property name="text">
+         <string>0 ms</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QLabel" name="warmupTailCaptionLabel">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QLabel" name="warmupTailValueLabel">
+        <property name="text">
+         <string>0 ms</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="blockingPointCaptionLabel">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLabel" name="blockingPointValueLabel">
+        <property name="text">
+         <string>none</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QLabel" name="failurePointCaptionLabel">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="3">
+       <widget class="QLabel" name="failurePointValueLabel">
+        <property name="text">
+         <string>none</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="fullObservedStartupCaptionLabel">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QLabel" name="fullObservedStartupValueLabel">
+        <property name="text">
+         <string>0 ms</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2">
+       <widget class="QLabel" name="slowestPluginCaptionLabel">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="3">
+       <widget class="QLabel" name="slowestPluginValueLabel">
+        <property name="text">
+         <string>none</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="recoveryHintsCaptionLabel">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1" colspan="3">
        <widget class="QLabel" name="recoveryHintsValueLabel">
+        <property name="text">
+         <string>none</string>
+        </property>
         <property name="wordWrap">
          <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>暂无</string>
         </property>
        </widget>
       </item>
@@ -244,20 +301,18 @@
      </property>
      <layout class="QVBoxLayout" name="tablesLayout">
       <property name="spacing">
-       <number>16</number>
+       <number>12</number>
       </property>
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
+      <item>
+       <widget class="QLabel" name="problemTableTitleLabel">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QTableWidget" name="problemTableWidget"/>
+      </item>
       <item>
        <widget class="QLabel" name="pluginTableTitleLabel">
         <property name="text">

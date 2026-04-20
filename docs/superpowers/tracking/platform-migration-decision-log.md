@@ -29,3 +29,9 @@
 - Decision: accept the startup-performance and plugin-lifecycle diagnostics foundation plus the current implementation-plan subset as the Task 5 baseline for this worktree.
 - Rationale: the accepted scope is the lifecycle-event-based diagnostics foundation, `StartupTrace` timeline semantics, the `ready-path` / `warmup-tail` split, and the currently implemented diagnostics page `summary + problems + timeline + plugin lifecycle` subset. The full field matrix in `docs/superpowers/specs/2026-04-17-startup-performance-and-plugin-lifecycle-diagnostics-design.md` is still a forward target, not the already-landed Task 5 contract.
 - Impact: follow-up work should treat the current rollout as a stable subset baseline, and any expansion toward the full 2026-04-17 diagnostics page matrix must be tracked as a later implementation slice instead of being implied as already accepted.
+
+## 2026-04-20
+
+- Decision: accept the full diagnostics page matrix as landed on top of the previously accepted lifecycle-event-based diagnostics foundation.
+- Rationale: the page now surfaces all required summary, plugin lifecycle, timeline, and problem-list fields from the 2026-04-17 diagnostics design without reintroducing UI direct-CTK access.
+- Impact: the previous `implementation-plan subset only` wording is now historical rollout context instead of the current functional limitation in this worktree.
