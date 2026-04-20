@@ -3,6 +3,7 @@
 #include "Framework/Platform/Diagnostics/PlatformDiagnosticsService.h"
 #include "Framework/Platform/Kernel/PlatformStateStore.h"
 
+#include <algorithm>
 #include <atomic>
 #include <thread>
 
@@ -65,6 +66,7 @@ private slots:
     void buildSnapshot_detects_ctk_platform_state_mismatch();
     void buildSnapshot_does_not_report_mismatch_when_platform_state_is_ready();
     void buildSnapshot_deduplicates_and_sorts_problems_after_mismatch_append();
+    void buildSnapshot_reports_managed_scope_and_excluded_plugins();
     void stateStore_supports_cross_thread_read_write();
 };
 
@@ -329,6 +331,31 @@ void PlatformDiagnosticsServiceTest::buildSnapshot_deduplicates_and_sorts_proble
     QCOMPARE(mismatchCount, 1);
     QVERIFY(!snapshot.problems.isEmpty());
     QCOMPARE(snapshot.problems.constFirst().reasonCode, QStringLiteral("plugin_start_failed"));
+}
+
+void PlatformDiagnosticsServiceTest::buildSnapshot_reports_managed_scope_and_excluded_plugins()
+{
+    PlatformStateStore store;
+    store.replaceDescriptors({
+        makeDescriptor(QStringLiteral("org.medicalpro.user_management"), QStringLiteral("UserManagement")),
+        makeDescriptor(
+            QStringLiteral("org.medicalpro.registration_core"),
+            QStringLiteral("RegistrationCore"),
+            PlatformBootstrapLevel::Deferred,
+            PlatformStartupPolicy::OnDemand)
+    });
+    store.setManagedPluginIds(QStringList{QStringLiteral("org.medicalpro.user_management")});
+    store.setRuntimeMode(PlatformRuntimeMode::FacadeMode);
+    store.setPluginState(QStringLiteral("org.medicalpro.user_management"), PlatformPluginState::Ready);
+
+    PlatformDiagnosticsService service(&store);
+    const auto snapshot = service.buildSnapshot({});
+
+    QCOMPARE(snapshot.managedPluginIds, (QStringList{QStringLiteral("org.medicalpro.user_management")}));
+    QCOMPARE(snapshot.excludedPluginIds, (QStringList{QStringLiteral("org.medicalpro.registration_core")}));
+    QVERIFY(std::any_of(snapshot.problems.begin(), snapshot.problems.end(), [](const PlatformDiagnosticProblem& problem) {
+        return problem.reasonCode == QStringLiteral("excluded_from_managed_startup");
+    }));
 }
 
 void PlatformDiagnosticsServiceTest::stateStore_supports_cross_thread_read_write()

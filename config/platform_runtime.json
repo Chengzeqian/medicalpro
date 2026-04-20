@@ -1,5 +1,5 @@
 {
-  "runtime_mode": "observe_only",
+  "runtime_mode": "facade_mode",
   "descriptor_directory": "plugins/descriptors",
   "core_plugin_ids": [
     "org.medicalpro.user_management",

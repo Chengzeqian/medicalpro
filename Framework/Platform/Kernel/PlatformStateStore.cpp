@@ -30,6 +30,27 @@ void PlatformStateStore::setRuntimeMode(PlatformRuntimeMode runtimeMode)
     m_runtimeMode = runtimeMode;
 }
 
+void PlatformStateStore::setManagedPluginIds(const QStringList& pluginIds)
+{
+    QWriteLocker locker(&m_lock);
+    m_managedPluginIds.clear();
+
+    for (const auto& pluginId : pluginIds) {
+        const auto normalizedPluginId = pluginId.trimmed();
+        if (normalizedPluginId.isEmpty()) continue;
+        if (m_managedPluginIds.contains(normalizedPluginId)) continue;
+        m_managedPluginIds.append(normalizedPluginId);
+    }
+
+    refreshSnapshots();
+}
+
+QStringList PlatformStateStore::managedPluginIds() const
+{
+    QReadLocker locker(&m_lock);
+    return m_managedPluginIds;
+}
+
 void PlatformStateStore::setPluginState(const QString& pluginId, PlatformPluginState state)
 {
     QWriteLocker locker(&m_lock);
@@ -62,6 +83,8 @@ PlatformCapabilitySnapshot PlatformStateStore::capabilitySnapshot() const
     snapshot.runtimeMode = m_runtimeMode;
 
     for (const auto& pluginId : m_descriptorOrder) {
+        if (!isManagedPlugin(pluginId)) continue;
+
         const auto descriptor = m_descriptors.value(pluginId);
         const auto pluginSnapshot = m_snapshots.value(pluginId);
         const bool ready = pluginSnapshot.state == PlatformPluginState::Ready;
@@ -94,9 +117,16 @@ QVector<PlatformPluginRuntimeSnapshot> PlatformStateStore::pluginSnapshots() con
     return snapshots;
 }
 
+bool PlatformStateStore::isManagedPlugin(const QString& pluginId) const
+{
+    return m_managedPluginIds.isEmpty() || m_managedPluginIds.contains(pluginId);
+}
+
 bool PlatformStateStore::isCapabilityUnlocked(const QString& capability) const
 {
     for (const auto& pluginId : m_descriptorOrder) {
+        if (!isManagedPlugin(pluginId)) continue;
+
         const auto descriptor = m_descriptors.value(pluginId);
         if (!descriptor.provides.capabilities.contains(capability)) continue;
         if (isPluginReady(pluginId)) return true;

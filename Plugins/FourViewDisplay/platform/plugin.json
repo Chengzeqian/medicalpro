@@ -10,6 +10,14 @@
     "bootstrap_level": "core",
     "entry_capability": "imaging.viewport"
   },
+  "diagnostics": {
+    "required_services": ["imaging.viewport", "imaging.viewport_state"],
+    "service_ready_timeout_ms": 8000,
+    "warmup_tasks": [],
+    "warmup_timeout_ms": 0,
+    "warmup_impacts_ready": false,
+    "degrade_on": []
+  },
   "provides": {
     "services": ["imaging.viewport", "imaging.viewport_state"],
     "capabilities": ["imaging.viewport"]

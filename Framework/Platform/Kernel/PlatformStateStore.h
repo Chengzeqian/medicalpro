@@ -14,12 +14,15 @@ class FRAMEWORK_EXPORT PlatformStateStore
 public:
     void replaceDescriptors(const QVector<PlatformPluginDescriptor>& descriptors);
     void setRuntimeMode(PlatformRuntimeMode runtimeMode);
+    void setManagedPluginIds(const QStringList& pluginIds);
+    QStringList managedPluginIds() const;
     void setPluginState(const QString& pluginId, PlatformPluginState state);
     QVector<PlatformPluginDescriptor> descriptors() const;
     PlatformCapabilitySnapshot capabilitySnapshot() const;
     QVector<PlatformPluginRuntimeSnapshot> pluginSnapshots() const;
 
 private:
+    bool isManagedPlugin(const QString& pluginId) const;
     bool isCapabilityUnlocked(const QString& capability) const;
     bool isPluginReady(const QString& pluginId) const;
     void refreshSnapshots();
@@ -27,6 +30,7 @@ private:
 
     PlatformRuntimeMode m_runtimeMode = PlatformRuntimeMode::ObserveOnly;
     QStringList m_descriptorOrder;
+    QStringList m_managedPluginIds;
     QHash<QString, PlatformPluginDescriptor> m_descriptors;
     QHash<QString, PlatformPluginRuntimeSnapshot> m_snapshots;
     mutable QReadWriteLock m_lock;

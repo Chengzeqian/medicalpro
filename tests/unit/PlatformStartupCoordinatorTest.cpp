@@ -6,6 +6,7 @@
 #include <QTemporaryDir>
 
 #include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
+#include "Framework/Platform/Kernel/PlatformManagedPluginPlan.h"
 #include "Framework/Platform/Kernel/PlatformRuntimeConfig.h"
 #include "Framework/Platform/Kernel/PlatformStartupCoordinator.h"
 
@@ -28,6 +29,8 @@ private slots:
     void facade_mode_direct_deferred_start_reports_skip_without_failure();
     void orchestrate_core_mixed_governance_deferred_does_not_fail_for_unmanaged_ctk_plugin();
     void orchestrate_core_records_deferred_start_path();
+    void installManagedPlugins_installs_only_planned_entries();
+    void waitForServiceReady_returns_timeout_with_missing_dependencies();
 };
 
 void PlatformStartupCoordinatorTest::loadFromFile_reads_runtime_mode_and_core_plugin_ids()
@@ -454,6 +457,65 @@ void PlatformStartupCoordinatorTest::orchestrate_core_records_deferred_start_pat
     QCOMPARE(trace.constFirst().reasonCode, QStringLiteral("deferred"));
     QCOMPARE(trace.constFirst().detail, QStringLiteral("Deferred plugin start completed"));
     QVERIFY(!trace.constFirst().blockingStartup);
+}
+
+void PlatformStartupCoordinatorTest::installManagedPlugins_installs_only_planned_entries()
+{
+    QStringList installedBundles;
+    PlatformStartupCoordinator coordinator(PlatformRuntimeMode::FacadeMode, {});
+
+    PlatformManagedPluginPlan plan;
+    PlatformManagedPluginPlanEntry user;
+    user.pluginId = QStringLiteral("org.medicalpro.user_management");
+    user.ctkSymbolicName = QStringLiteral("UserManagement");
+    user.bundleFilePath = QStringLiteral("C:/runtime/plugins/UserManagement.dll");
+
+    PlatformManagedPluginPlanEntry dicom;
+    dicom.pluginId = QStringLiteral("org.medicalpro.dicom_viewer");
+    dicom.ctkSymbolicName = QStringLiteral("DicomViewer");
+    dicom.bundleFilePath = QStringLiteral("C:/runtime/plugins/DicomViewer.dll");
+
+    plan.installEntries = {user, dicom};
+
+    QVERIFY(coordinator.installManagedPlugins(plan, [&installedBundles](const PlatformManagedPluginPlanEntry& entry) {
+        installedBundles.append(entry.bundleFilePath);
+        return true;
+    }));
+
+    QCOMPARE(installedBundles, (QStringList{
+        QStringLiteral("C:/runtime/plugins/UserManagement.dll"),
+        QStringLiteral("C:/runtime/plugins/DicomViewer.dll")
+    }));
+}
+
+void PlatformStartupCoordinatorTest::waitForServiceReady_returns_timeout_with_missing_dependencies()
+{
+    PlatformLifecycleTraceRecorder recorder;
+    recorder.beginSession(PlatformRuntimeMode::FacadeMode);
+
+    PlatformStartupCoordinator coordinator(
+        PlatformRuntimeMode::FacadeMode,
+        [](const QString&) { return true; },
+        {},
+        &recorder);
+
+    PlatformManagedPluginPlanEntry entry;
+    entry.pluginId = QStringLiteral("org.medicalpro.four_view_display");
+    entry.ctkSymbolicName = QStringLiteral("FourViewDisplay");
+    entry.requiredServices = QStringList{QStringLiteral("imaging.viewport")};
+    entry.serviceReadyTimeoutMs = 100;
+
+    const auto outcome = coordinator.waitForServiceReady(
+        entry,
+        {
+            [](const QStringList&) { return QStringList{QStringLiteral("imaging.viewport")}; },
+            [](const QString&) { return QStringList{}; },
+            [](const QString&) { return QStringList{}; }
+        },
+        10);
+
+    QVERIFY(!outcome.success);
+    QCOMPARE(outcome.reasonCode, QStringLiteral("service_ready_timeout"));
 }
 
 QTEST_APPLESS_MAIN(PlatformStartupCoordinatorTest)

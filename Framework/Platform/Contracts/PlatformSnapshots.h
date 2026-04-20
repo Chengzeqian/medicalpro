@@ -146,6 +146,8 @@ struct PlatformDiagnosticSnapshot
     QVector<PlatformStartupTraceEntry> startupTrace;
     QVector<PlatformDiagnosticProblem> problems;
     QStringList recoveryHints;
+    QStringList managedPluginIds;
+    QStringList excludedPluginIds;
 
     // Compatibility bridge for existing callers until diagnostics page fully migrates.
     bool frameworkReady = false;

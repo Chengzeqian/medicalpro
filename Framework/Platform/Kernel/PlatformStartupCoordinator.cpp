@@ -2,6 +2,9 @@
 
 #include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
 
+#include <QElapsedTimer>
+#include <QThread>
+
 #include <utility>
 
 namespace
@@ -125,6 +128,49 @@ bool PlatformStartupCoordinator::shouldWarmupServices() const
     return m_runtimeMode == PlatformRuntimeMode::OrchestrateCore;
 }
 
+bool PlatformStartupCoordinator::installManagedPlugins(
+    const PlatformManagedPluginPlan& plan,
+    const InstallManagedPluginFn& installManagedPluginFn)
+{
+    if (!shouldInstallPlugins()) return true;
+
+    for (const auto& entry : plan.installEntries) {
+        if (m_recorder) {
+            m_recorder->recordPluginStepStarted(
+                entry.pluginId,
+                entry.ctkSymbolicName,
+                PlatformLifecycleStep::Install,
+                false);
+        }
+
+        const bool installed = installManagedPluginFn && installManagedPluginFn(entry);
+        if (!installed) {
+            if (m_recorder) {
+                m_recorder->recordPluginStepFinished(
+                    entry.pluginId,
+                    entry.ctkSymbolicName,
+                    PlatformLifecycleStep::Install,
+                    PlatformLifecycleResult::Failed,
+                    QStringLiteral("install_failed"),
+                    QStringLiteral("Managed bundle install failed"));
+            }
+            return false;
+        }
+
+        if (m_recorder) {
+            m_recorder->recordPluginStepFinished(
+                entry.pluginId,
+                entry.ctkSymbolicName,
+                PlatformLifecycleStep::Install,
+                PlatformLifecycleResult::Succeeded,
+                QStringLiteral("install_succeeded"),
+                QStringLiteral("Managed bundle install succeeded"));
+        }
+    }
+
+    return true;
+}
+
 bool PlatformStartupCoordinator::startCorePlugin(const QString& pluginId)
 {
     const auto outcome = startPluginForPath(resolvePlatformPluginTarget(pluginId), PluginStartPath::Core);
@@ -154,6 +200,39 @@ bool PlatformStartupCoordinator::ensureReady(const QString& pluginId)
 {
     const auto outcome = startPluginForPath(resolvePlatformPluginTarget(pluginId), PluginStartPath::OnDemand);
     return outcome == StartOutcome::Started || outcome == StartOutcome::AlreadyStarted;
+}
+
+PlatformServiceReadyOutcome PlatformStartupCoordinator::waitForServiceReady(
+    const PlatformManagedPluginPlanEntry& entry,
+    const PlatformServiceReadyProbeSet& probes,
+    int pollIntervalMs) const
+{
+    PlatformServiceReadyOutcome outcome;
+    QElapsedTimer timer;
+    timer.start();
+
+    while (timer.elapsed() < entry.serviceReadyTimeoutMs) {
+        outcome.missingServices = probes.missingServicesFn ? probes.missingServicesFn(entry.requiredServices) : QStringList{};
+        outcome.missingPlugins = probes.missingPluginsFn ? probes.missingPluginsFn(entry.pluginId) : QStringList{};
+        outcome.missingCapabilities = probes.missingCapabilitiesFn ? probes.missingCapabilitiesFn(entry.pluginId) : QStringList{};
+
+        if (outcome.missingServices.isEmpty()
+            && outcome.missingPlugins.isEmpty()
+            && outcome.missingCapabilities.isEmpty()) {
+            outcome.finalState = PlatformPluginState::Ready;
+            outcome.reasonCode = QStringLiteral("service_ready");
+            outcome.detail = QStringLiteral("Required services and dependencies are ready");
+            return outcome;
+        }
+
+        QThread::msleep(pollIntervalMs);
+    }
+
+    outcome.success = false;
+    outcome.finalState = PlatformPluginState::Failed;
+    outcome.reasonCode = QStringLiteral("service_ready_timeout");
+    outcome.detail = QStringLiteral("Timed out while waiting for managed plugin service readiness");
+    return outcome;
 }
 
 PlatformStartupCoordinator::ResolvedPluginTarget PlatformStartupCoordinator::resolvePlatformPluginTarget(

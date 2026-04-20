@@ -5,21 +5,18 @@
 #include "Framework/ConsoleLogBridge.h"
 #include "Framework/Platform/Kernel/PlatformDescriptorLoader.h"
 #include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
+#include "Framework/Platform/Kernel/PlatformManagedPluginPlan.h"
 #include "Framework/Platform/Kernel/PlatformRuntimeConfig.h"
 #include "Framework/Platform/Kernel/PlatformStartupCoordinator.h"
+#include "Framework/Platform/Kernel/PlatformWarmupCoordinator.h"
 #include "Framework/StartupOrchestrator.h"
 #include "Framework/VTKGlobalInitializer.h"
 #include "Framework/VTKWidgetPool.h"
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include "Plugins/Registration2D3D/Registration2D3DService.h"
-#include "Plugins/FourViewDisplay/FourViewDisplayService.h"
-#endif
 
 #include <QApplication>
 #include <QEvent>
 #include <QDebug>
 #include <QDir>
-#include <QElapsedTimer>
 #include <QFile>
 #include <QFont>
 #include <QHash>
@@ -28,9 +25,7 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QPointer>
-#include <QSemaphore>
 #include <QSet>
-#include <QThread>
 #include <QTimer>
 #include <QTranslator>
 #include <atomic>
@@ -362,25 +357,6 @@ struct StartupRuntimeContext
         return missing;
     }
 
-    int serviceReadyTimeoutMs(const QString& pluginId) const
-    {
-        const auto descriptor = descriptorsByPluginId.value(pluginId);
-        return descriptor.diagnostics.serviceReadyTimeoutMs > 0
-            ? descriptor.diagnostics.serviceReadyTimeoutMs
-            : 3000;
-    }
-
-    QVector<PluginIdentity> warmupPluginTargets() const
-    {
-        QVector<PluginIdentity> targets;
-        for (auto it = descriptorsByPluginId.constBegin(); it != descriptorsByPluginId.constEnd(); ++it) {
-            const auto& descriptor = it.value();
-            if (descriptor.diagnostics.warmupTasks.isEmpty()) continue;
-            targets.append(resolveByPlatformPluginId(it.key()));
-        }
-        return targets;
-    }
-
     void appendUniqueList(QStringList& target, const QStringList& values) const
     {
         for (const auto& value : values) {
@@ -390,8 +366,10 @@ struct StartupRuntimeContext
     }
 
     PlatformRuntimeConfig runtimeConfig;
+    PlatformManagedPluginPlan managedPlan;
     PlatformLifecycleTraceRecorder lifecycleRecorder;
     PlatformStartupCoordinator startupCoordinator;
+    std::unique_ptr<PlatformWarmupCoordinator> warmupCoordinator;
     PlatformStateStore* stateStore = nullptr;
     QHash<QString, PlatformPluginDescriptor> descriptorsByPluginId;
     QHash<QString, QString> pluginIdByCtkSymbolicName;
@@ -401,19 +379,6 @@ struct StartupRuntimeContext
     QVector<QMetaObject::Connection> startupRecorderBridgeConnections;
     std::atomic_bool startupRecorderBridgeEnabled{true};
     std::atomic_bool shutdownRequested{false};
-};
-
-struct ServiceWarmupSyncState
-{
-    void releaseOnce()
-    {
-        if (!completionReleased.exchange(true)) {
-            completionSemaphore.release();
-        }
-    }
-
-    QSemaphore completionSemaphore;
-    std::atomic_bool completionReleased{false};
 };
 
 } // namespace
@@ -527,7 +492,6 @@ int main(int argc, char* argv[])
                     .toStdString());
         }
 
-        QStringList coreCtkPluginNames;
         QHash<QString, QString> platformPluginIdToCtkSymbolicName;
         platformPluginIdToCtkSymbolicName.reserve(descriptors.size());
         for (const auto& descriptor : descriptors) {
@@ -536,18 +500,23 @@ int main(int argc, char* argv[])
             platformPluginIdToCtkSymbolicName.insert(descriptor.id, ctkSymbolicName);
         }
 
-        if (runtimeConfig.runtimeMode != PlatformRuntimeMode::ObserveOnly) {
-            coreCtkPluginNames = runtimeConfig.resolveCoreCtkPluginNames(descriptorDirectoryPath, &runtimeConfigError);
-            if (!runtimeConfigError.isEmpty()) {
-                throw std::runtime_error(
-                    QStringLiteral("Failed to resolve core CTK plugin names: %1").arg(runtimeConfigError).toStdString());
-            }
+        const QString pluginsPath =
+            QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("plugins"));
+        QString managedPlanError;
+        const auto managedPlan = PlatformManagedPluginPlanBuilder::build(
+            runtimeConfig,
+            descriptors,
+            pluginsPath,
+            &managedPlanError);
+        if (!managedPlanError.isEmpty()) {
+            throw std::runtime_error(
+                QStringLiteral("Failed to build managed startup plan: %1").arg(managedPlanError).toStdString());
         }
 
         qDebug() << "[main] Platform runtime mode:" << runtimeModeToString(runtimeConfig.runtimeMode);
         qDebug() << "[main] Platform descriptor directory:" << runtimeConfig.descriptorDirectory;
         qDebug() << "[main] Platform core plugin ids:" << runtimeConfig.corePluginIds;
-        qDebug() << "[main] Platform core CTK plugin names:" << coreCtkPluginNames;
+        qDebug() << "[main] Managed startup plugin ids:" << managedPlan.managedPluginIds;
         auto orchestrator = StartupOrchestrator::instance();
         orchestrator->setRuntimeMode(runtimeConfig.runtimeMode);
 
@@ -569,6 +538,7 @@ int main(int argc, char* argv[])
         QPointer<MainInterfaceWidget> mainInterface = new MainInterfaceWidget(nullptr);
         mainInterface->platformStateStore()->replaceDescriptors(descriptors);
         mainInterface->platformStateStore()->setRuntimeMode(runtimeConfig.runtimeMode);
+        mainInterface->platformStateStore()->setManagedPluginIds(managedPlan.managedPluginIds);
         qDebug() << "[main] Creating main interface window...";
         mainInterface->setAttribute(Qt::WA_DeleteOnClose, true);
         mainInterface->show();
@@ -588,6 +558,8 @@ int main(int argc, char* argv[])
             ctkManager,
             platformPluginIdToCtkSymbolicName,
             descriptors);
+        startupContext->managedPlan = managedPlan;
+        startupContext->warmupCoordinator = std::make_unique<PlatformWarmupCoordinator>(&startupContext->lifecycleRecorder);
         startupContext->stateStore = mainInterface->platformStateStore();
         orchestrator->setLifecycleRecorder(&startupContext->lifecycleRecorder);
         QObject::connect(&app, &QCoreApplication::aboutToQuit, &app, [startupContext]() {
@@ -686,6 +658,7 @@ int main(int argc, char* argv[])
             [startupContext, normalizedIdentity](const QString& pluginName, const QString& pluginPath) {
                 if (!startupContext->startupRecorderBridgeEnabled.load()) return;
                 const auto identity = normalizedIdentity(pluginName, pluginPath);
+                if (startupContext->managedPlan.managedPluginIds.contains(identity.pluginId)) return;
                 {
                     QMutexLocker locker(&startupContext->bridgeMutex);
                     startupContext->pendingInstallByPath.insert(pluginPath, identity);
@@ -703,6 +676,7 @@ int main(int argc, char* argv[])
             [startupContext, normalizedIdentity](const QString& pluginName, const QString& pluginPath) {
                 if (!startupContext->startupRecorderBridgeEnabled.load()) return;
                 auto identity = normalizedIdentity(pluginName, pluginPath);
+                if (startupContext->managedPlan.managedPluginIds.contains(identity.pluginId)) return;
                 {
                     QMutexLocker locker(&startupContext->bridgeMutex);
                     if (startupContext->pendingInstallByPath.contains(pluginPath)) {
@@ -724,6 +698,7 @@ int main(int argc, char* argv[])
             [startupContext, normalizedIdentity](const QString& pluginName, const QString& pluginPath, const QString& reason) {
                 if (!startupContext->startupRecorderBridgeEnabled.load()) return;
                 auto identity = normalizedIdentity(pluginName, pluginPath);
+                if (startupContext->managedPlan.managedPluginIds.contains(identity.pluginId)) return;
                 {
                     QMutexLocker locker(&startupContext->bridgeMutex);
                     if (startupContext->pendingInstallByPath.contains(pluginPath)) {
@@ -833,21 +808,14 @@ int main(int argc, char* argv[])
                     QStringLiteral("Plugin installation skipped in observe_only mode"));
             }
 
-            qDebug() << "[StartupOrchestrator] Running plugin installation...";
-
-            // Load plugin policy configuration before installing bundles
-            QString configPath = QCoreApplication::applicationDirPath() + "/config/plugin_load_policy.json";
-            if (QFile::exists(configPath)) {
-                qDebug() << "[StartupOrchestrator] Loading plugin policy configuration:" << configPath;
-                ctkManager->loadPluginPolicy(configPath);
-            } else {
-                qWarning() << "[StartupOrchestrator] Plugin policy configuration file not found:" << configPath;
-            }
-
-            QString pluginsPath = QCoreApplication::applicationDirPath() + "/plugins";
-            int installedCount = ctkManager->installPluginsFromDirectory(pluginsPath);
-            qDebug() << "[StartupOrchestrator] Installed plugin count:" << installedCount;
-            return true; // Installation failures should not block app startup
+            qDebug() << "[StartupOrchestrator] Running managed plugin installation...";
+            const bool installed = startupContext->startupCoordinator.installManagedPlugins(
+                startupContext->managedPlan,
+                [ctkManager](const PlatformManagedPluginPlanEntry& entry) {
+                    return ctkManager->installPlugin(entry.bundleFilePath, false, nullptr);
+                });
+            qDebug() << "[StartupOrchestrator] Managed plugin installation completed";
+            return installed;
         });
 
         orchestrator->registerPhaseHandler(
@@ -859,79 +827,53 @@ int main(int argc, char* argv[])
                         QStringLiteral("Core plugin activation skipped in observe_only mode"));
                 }
 
-                if (startupContext->runtimeConfig.corePluginIds.isEmpty()) {
-                    qDebug() << "[StartupOrchestrator] No core CTK plugins configured for startup";
+                if (startupContext->managedPlan.installEntries.isEmpty()) {
+                    qDebug() << "[StartupOrchestrator] No managed core plugins configured for startup";
                     return true;
                 }
 
                 qDebug() << "[StartupOrchestrator] Starting critical plugin activation (synchronous)...";
 
-                for (const QString& pluginId : startupContext->runtimeConfig.corePluginIds) {
-                    qDebug() << "[StartupOrchestrator] Starting core plugin from platform config:" << pluginId;
-                    if (!startupContext->startupCoordinator.startCorePlugin(pluginId)) {
-                        qCritical() << "[StartupOrchestrator] Critical plugin start failed:" << pluginId;
+                for (const auto& entry : startupContext->managedPlan.installEntries) {
+                    qDebug() << "[StartupOrchestrator] Starting managed core plugin:" << entry.pluginId;
+                    if (!startupContext->startupCoordinator.startCorePlugin(entry.pluginId)) {
+                        applyPluginState(startupContext->resolveByPlatformPluginId(entry.pluginId), PlatformPluginState::Failed);
+                        qCritical() << "[StartupOrchestrator] Critical plugin start failed:" << entry.pluginId;
                         return false;
                     }
 
-                    const auto identity = startupContext->resolveByPlatformPluginId(pluginId);
+                    const auto identity = startupContext->resolveByPlatformPluginId(entry.pluginId);
+                    const auto outcome = startupContext->startupCoordinator.waitForServiceReady(
+                        entry,
+                        {
+                            [ctkManager](const QStringList& requiredServices) {
+                                return ctkManager->getMissingServices(requiredServices);
+                            },
+                            [startupContext, ctkManager](const QString& pluginId) {
+                                return startupContext->missingRequiredPlugins(pluginId, ctkManager);
+                            },
+                            [startupContext, ctkManager](const QString& pluginId) {
+                                return startupContext->missingRequiredCapabilities(pluginId, ctkManager);
+                            }
+                        });
+
+                    applyPluginState(identity, outcome.finalState);
                     startupContext->lifecycleRecorder.recordPluginStepStarted(
                         identity.pluginId,
                         identity.ctkSymbolicName,
                         PlatformLifecycleStep::ServiceReady,
                         true);
-
-                    const auto timeoutMs = startupContext->serviceReadyTimeoutMs(pluginId);
-                    QElapsedTimer serviceReadyTimer;
-                    serviceReadyTimer.start();
-
-                    QStringList missingServices;
-                    QStringList missingPlugins;
-                    QStringList missingCapabilities;
-                    while (true) {
-                        missingServices = ctkManager->getMissingServices(startupContext->requiredServices(pluginId));
-                        missingPlugins = startupContext->missingRequiredPlugins(pluginId, ctkManager);
-                        missingCapabilities = startupContext->missingRequiredCapabilities(pluginId, ctkManager);
-
-                        if (missingServices.isEmpty() && missingPlugins.isEmpty() && missingCapabilities.isEmpty()) {
-                            applyPluginState(identity, PlatformPluginState::Ready);
-                            startupContext->lifecycleRecorder.recordPluginStepFinished(
-                                identity.pluginId,
-                                identity.ctkSymbolicName,
-                                PlatformLifecycleStep::ServiceReady,
-                                PlatformLifecycleResult::Succeeded,
-                                QStringLiteral("service_ready"),
-                                QStringLiteral("Required services and dependencies are ready"));
-                            break;
-                        }
-
-                        if (serviceReadyTimer.elapsed() >= timeoutMs) {
-                            applyPluginState(identity, PlatformPluginState::Failed);
-                            QStringList details;
-                            if (!missingServices.isEmpty()) {
-                                details.append(
-                                    QStringLiteral("missing_services=%1").arg(missingServices.join(QStringLiteral(","))));
-                            }
-                            if (!missingPlugins.isEmpty()) {
-                                details.append(
-                                    QStringLiteral("missing_plugins=%1").arg(missingPlugins.join(QStringLiteral(","))));
-                            }
-                            if (!missingCapabilities.isEmpty()) {
-                                details.append(
-                                    QStringLiteral("missing_capabilities=%1")
-                                        .arg(missingCapabilities.join(QStringLiteral(","))));
-                            }
-                            startupContext->lifecycleRecorder.recordPluginStepFinished(
-                                identity.pluginId,
-                                identity.ctkSymbolicName,
-                                PlatformLifecycleStep::ServiceReady,
-                                PlatformLifecycleResult::Timeout,
-                                QStringLiteral("service_ready_timeout"),
-                                details.join(QStringLiteral("; ")));
-                            qCritical() << "[StartupOrchestrator] Service ready timeout:" << pluginId << details;
-                            return false;
-                        }
-
-                        QThread::msleep(50);
+                    startupContext->lifecycleRecorder.recordPluginStepFinished(
+                        identity.pluginId,
+                        identity.ctkSymbolicName,
+                        PlatformLifecycleStep::ServiceReady,
+                        outcome.success ? PlatformLifecycleResult::Succeeded : PlatformLifecycleResult::Timeout,
+                        outcome.reasonCode,
+                        outcome.detail);
+                    if (!outcome.success) {
+                        qCritical() << "[StartupOrchestrator] Service ready timeout:" << entry.pluginId
+                                    << outcome.missingServices << outcome.missingPlugins << outcome.missingCapabilities;
+                        return false;
                     }
                 }
 
@@ -959,42 +901,7 @@ int main(int argc, char* argv[])
             return success;
         });
 
-        // Register the service warmup handler
-        // This phase runs off the UI thread and dispatches UI-bound work back
-        orchestrator->registerPhaseHandler(StartupPhase::ServiceWarmup, [ctkManager, startupContext, applyPluginState](QApplication* app) -> StartupOrchestrator::PhaseExecutionResult {
-            const auto warmupIdentityBySymbolicName = [startupContext](const QString& ctkSymbolicName) {
-                auto identity = startupContext->resolveByCtkSymbolicName(ctkSymbolicName);
-                if (identity.ctkSymbolicName.isEmpty()) identity.ctkSymbolicName = ctkSymbolicName;
-                if (identity.pluginId.isEmpty()) {
-                    identity.pluginId = QStringLiteral("ctk:%1").arg(identity.ctkSymbolicName);
-                }
-                return identity;
-            };
-
-            const auto warmupTargets = QVector<StartupRuntimeContext::PluginIdentity>{
-                warmupIdentityBySymbolicName(QStringLiteral("Registration2D3D")),
-                warmupIdentityBySymbolicName(QStringLiteral("FourViewDisplay"))
-            };
-
-            if (!startupContext->startupCoordinator.shouldWarmupServices()) {
-                qDebug() << "[StartupOrchestrator] Skipping service warmup in current runtime mode";
-                for (const auto& identity : warmupTargets) {
-                    startupContext->lifecycleRecorder.recordPluginStepStarted(
-                        identity.pluginId,
-                        identity.ctkSymbolicName,
-                        PlatformLifecycleStep::Warmup,
-                        false);
-                    startupContext->lifecycleRecorder.recordPluginStepFinished(
-                        identity.pluginId,
-                        identity.ctkSymbolicName,
-                        PlatformLifecycleStep::Warmup,
-                        PlatformLifecycleResult::Skipped,
-                        QStringLiteral("skipped_by_mode"),
-                        QStringLiteral("Service warmup skipped in current runtime mode"));
-                }
-                return StartupOrchestrator::PhaseExecutionResult::skipped(
-                    QStringLiteral("Service warmup skipped in current runtime mode"));
-            }
+        orchestrator->registerPhaseHandler(StartupPhase::ServiceWarmup, [startupContext](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
             if (startupContext->shutdownRequested.load()) {
                 qDebug() << "[StartupOrchestrator] Aborting service warmup because shutdown was requested";
                 return StartupOrchestrator::PhaseExecutionResult::skipped(
@@ -1002,156 +909,34 @@ int main(int argc, char* argv[])
                     QStringLiteral("aborted_by_shutdown"));
             }
 
-            qDebug() << "[StartupOrchestrator] Running service warmup...";
+            const auto outcome = startupContext->warmupCoordinator->run(
+                startupContext->managedPlan,
+                startupContext->runtimeConfig.runtimeMode,
+                {});
 
-            // Use heap-owned sync state so queued work never touches destroyed stack objects.
-            auto syncState = std::make_shared<ServiceWarmupSyncState>();
-            auto warmupOutcome = std::make_shared<PlatformLifecycleResult>(PlatformLifecycleResult::Succeeded);
-
-            // Dispatch Python initialization onto the main thread
-            const bool invokeQueued = QMetaObject::invokeMethod(app, [ctkManager, startupContext, syncState, warmupOutcome, warmupTargets, applyPluginState]() {
-                if (startupContext->shutdownRequested.load()) {
-                    qDebug() << "[ServiceWarmup] Main-thread warmup skipped because shutdown was requested";
-                    syncState->releaseOnce();
-                    return;
-                }
-
-                qDebug() << "[ServiceWarmup] Initializing services on the main thread...";
-
-                // 1. Warm up the Registration2D3D Python environment
-                const auto& regIdentity = warmupTargets.at(0);
-                startupContext->lifecycleRecorder.recordPluginStepStarted(
-                    regIdentity.pluginId,
-                    regIdentity.ctkSymbolicName,
-                    PlatformLifecycleStep::Warmup,
-                    false);
-                auto reg2D3DService = ctkManager->getService<Registration2D3DService>();
-                if (reg2D3DService) {
-                    qDebug() << "[ServiceWarmup] Warming up Registration2D3D Python environment...";
-                    bool warmupSuccess = true;
-                    bool pythonDeferred = reg2D3DService->getConfiguration("pythonInitDeferred", false).toBool();
-                    if (pythonDeferred && !reg2D3DService->isPythonInitialized()) {
-                        QString pythonHome = reg2D3DService->getConfiguration("pythonHome", QString()).toString();
-                        QString scriptsPath = reg2D3DService->getConfiguration("scriptsPath", QString()).toString();
-                        if (!scriptsPath.isEmpty()) {
-                            const bool pythonInitSuccess = reg2D3DService->initializePythonEnvironment(pythonHome, scriptsPath);
-                            if (!pythonInitSuccess) {
-                                warmupSuccess = false;
-                                qWarning() << "[ServiceWarmup] Python environment initialization failed:"
-                                           << reg2D3DService->getLastError();
-                            }
-                        }
-                    }
-                    if (warmupSuccess) {
-                        startupContext->lifecycleRecorder.recordPluginStepFinished(
-                            regIdentity.pluginId,
-                            regIdentity.ctkSymbolicName,
-                            PlatformLifecycleStep::Warmup,
-                            PlatformLifecycleResult::Succeeded,
-                            QStringLiteral("warmup_ready"),
-                            QStringLiteral("Registration2D3D warmup completed"));
-                    } else {
-                        applyPluginState(regIdentity, PlatformPluginState::Degraded);
-                        *warmupOutcome = PlatformLifecycleResult::Degraded;
-                        startupContext->lifecycleRecorder.recordPluginStepFinished(
-                            regIdentity.pluginId,
-                            regIdentity.ctkSymbolicName,
-                            PlatformLifecycleStep::Warmup,
-                            PlatformLifecycleResult::Degraded,
-                            QStringLiteral("warmup_failed"),
-                            QStringLiteral("Registration2D3D Python environment warmup failed"));
-                    }
-                    qDebug() << "[ServiceWarmup] Registration2D3D Python environment warmup completed";
-                } else {
-                    startupContext->lifecycleRecorder.recordPluginStepFinished(
-                        regIdentity.pluginId,
-                        regIdentity.ctkSymbolicName,
-                        PlatformLifecycleStep::Warmup,
-                        PlatformLifecycleResult::Skipped,
-                        QStringLiteral("service_not_available"),
-                        QStringLiteral("Registration2D3D service not available for warmup"));
-                }
-
-                // 2. Warm up the FourViewDisplay service
-                const auto& fourViewIdentity = warmupTargets.at(1);
-                startupContext->lifecycleRecorder.recordPluginStepStarted(
-                    fourViewIdentity.pluginId,
-                    fourViewIdentity.ctkSymbolicName,
-                    PlatformLifecycleStep::Warmup,
-                    false);
-                auto fourViewService = ctkManager->getService<FourViewDisplayService>();
-                if (fourViewService) {
-                    qDebug() << "[ServiceWarmup] Warming up FourViewDisplay service...";
-                    startupContext->lifecycleRecorder.recordPluginStepFinished(
-                        fourViewIdentity.pluginId,
-                        fourViewIdentity.ctkSymbolicName,
-                        PlatformLifecycleStep::Warmup,
-                        PlatformLifecycleResult::Succeeded,
-                        QStringLiteral("warmup_ready"),
-                        QStringLiteral("FourViewDisplay warmup completed"));
-                    qDebug() << "[ServiceWarmup] FourViewDisplay service warmup completed";
-                } else {
-                    startupContext->lifecycleRecorder.recordPluginStepFinished(
-                        fourViewIdentity.pluginId,
-                        fourViewIdentity.ctkSymbolicName,
-                        PlatformLifecycleStep::Warmup,
-                        PlatformLifecycleResult::Skipped,
-                        QStringLiteral("service_not_available"),
-                        QStringLiteral("FourViewDisplay service not available for warmup"));
-                }
-
-                qDebug() << "[ServiceWarmup] Main-thread service initialization completed";
-                syncState->releaseOnce();
-            }, Qt::QueuedConnection);
-            if (!invokeQueued) {
-                if (startupContext->shutdownRequested.load()) {
-                    qDebug() << "[StartupOrchestrator] Skipping service warmup queue because shutdown was requested";
-                    return StartupOrchestrator::PhaseExecutionResult::skipped(
-                        QStringLiteral("Service warmup aborted because application shutdown was requested"),
-                        QStringLiteral("aborted_by_shutdown"));
-                }
-
-                qWarning() << "[ServiceWarmup] Failed to queue main-thread warmup work";
-                return false;
-            }
-
-            // Poll in short intervals so shutdown can stop the wait immediately.
-            QElapsedTimer waitTimer;
-            waitTimer.start();
-            while (!syncState->completionSemaphore.tryAcquire(1, 50)) {
-                if (startupContext->shutdownRequested.load()) {
-                    qDebug() << "[StartupOrchestrator] Aborting service warmup wait because shutdown was requested";
-                    syncState->releaseOnce();
-                    return StartupOrchestrator::PhaseExecutionResult::skipped(
-                        QStringLiteral("Service warmup aborted because application shutdown was requested"),
-                        QStringLiteral("aborted_by_shutdown"));
-                }
-                if (waitTimer.elapsed() >= 30000) {
-                    break;
-                }
-            }
-            if (waitTimer.elapsed() >= 30000 && !startupContext->shutdownRequested.load()) {
-                qWarning() << "[ServiceWarmup] Service warmup timed out";
-                return false;
-            }
-            if (startupContext->shutdownRequested.load()) {
-                qDebug() << "[StartupOrchestrator] Service warmup completed as shutdown abort";
-                return StartupOrchestrator::PhaseExecutionResult::skipped(
-                    QStringLiteral("Service warmup aborted because application shutdown was requested"),
-                    QStringLiteral("aborted_by_shutdown"));
-            }
-
-            qDebug() << "[StartupOrchestrator] Service warmup completed";
-            if (*warmupOutcome == PlatformLifecycleResult::Degraded) {
+            if (!outcome.success) {
                 return StartupOrchestrator::PhaseExecutionResult {
-                    true,
-                    PlatformLifecycleResult::Degraded,
-                    QStringLiteral("warmup_degraded"),
-                    QStringLiteral("Service warmup completed with degradation")
+                    false,
+                    outcome.result,
+                    outcome.reasonCode,
+                    outcome.detail
                 };
             }
 
-            return true;  // Warmup failures should not block app startup
+            if (outcome.result == PlatformLifecycleResult::Skipped) {
+                return StartupOrchestrator::PhaseExecutionResult::skipped(outcome.detail, outcome.reasonCode);
+            }
+
+            if (outcome.result == PlatformLifecycleResult::Degraded) {
+                return StartupOrchestrator::PhaseExecutionResult {
+                    true,
+                    outcome.result,
+                    outcome.reasonCode,
+                    outcome.detail
+                };
+            }
+
+            return true;
         });
 
 #else

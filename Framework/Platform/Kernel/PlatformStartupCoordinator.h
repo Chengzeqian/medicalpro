@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Framework/FrameworkExport.h"
+#include "Framework/Platform/Kernel/PlatformManagedPluginPlan.h"
 #include "Framework/Platform/Contracts/PlatformRuntimeTypes.h"
 
 #include <functional>
@@ -12,10 +13,29 @@
 
 class PlatformLifecycleTraceRecorder;
 
+struct PlatformServiceReadyProbeSet
+{
+    std::function<QStringList(const QStringList&)> missingServicesFn;
+    std::function<QStringList(const QString&)> missingPluginsFn;
+    std::function<QStringList(const QString&)> missingCapabilitiesFn;
+};
+
+struct PlatformServiceReadyOutcome
+{
+    bool success = true;
+    PlatformPluginState finalState = PlatformPluginState::Ready;
+    QString reasonCode;
+    QString detail;
+    QStringList missingServices;
+    QStringList missingPlugins;
+    QStringList missingCapabilities;
+};
+
 class FRAMEWORK_EXPORT PlatformStartupCoordinator
 {
 public:
     using StartPluginFn = std::function<bool(const QString&)>;
+    using InstallManagedPluginFn = std::function<bool(const PlatformManagedPluginPlanEntry&)>;
     enum class PluginStartPath
     {
         Core,
@@ -33,9 +53,16 @@ public:
     bool shouldStartCorePlugins() const;
     bool shouldStartDeferredPlugins() const;
     bool shouldWarmupServices() const;
+    bool installManagedPlugins(
+        const PlatformManagedPluginPlan& plan,
+        const InstallManagedPluginFn& installManagedPluginFn);
     bool startCorePlugin(const QString& pluginId);
     bool startDeferredPlugins(const QStringList& pluginIds, bool stopOnFailure = false);
     bool ensureReady(const QString& pluginId);
+    PlatformServiceReadyOutcome waitForServiceReady(
+        const PlatformManagedPluginPlanEntry& entry,
+        const PlatformServiceReadyProbeSet& probes,
+        int pollIntervalMs = 50) const;
     PlatformRuntimeMode runtimeMode() const;
 
 private:

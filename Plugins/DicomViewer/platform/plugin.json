@@ -10,6 +10,14 @@
     "bootstrap_level": "core",
     "entry_capability": "imaging.data"
   },
+  "diagnostics": {
+    "required_services": ["imaging.study_query", "imaging.study_reader"],
+    "service_ready_timeout_ms": 8000,
+    "warmup_tasks": [],
+    "warmup_timeout_ms": 0,
+    "warmup_impacts_ready": false,
+    "degrade_on": []
+  },
   "provides": {
     "services": ["imaging.study_query", "imaging.study_reader"],
     "capabilities": ["imaging.data"]

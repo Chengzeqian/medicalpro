@@ -141,6 +141,29 @@ set_tests_properties(platform_descriptor_loader_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_descriptor_loader_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
+add_executable(platform_managed_plugin_plan_test
+    PlatformManagedPluginPlanTest.cpp
+)
+
+target_include_directories(platform_managed_plugin_plan_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_managed_plugin_plan_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_managed_plugin_plan_test
+    COMMAND platform_managed_plugin_plan_test
+)
+
+set_tests_properties(platform_managed_plugin_plan_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_managed_plugin_plan_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
 add_executable(platform_startup_trace_recorder_test
     PlatformStartupTraceRecorderTest.cpp
 )
@@ -191,7 +214,6 @@ set_tests_properties(startup_orchestrator_lifecycle_test PROPERTIES
 add_executable(platform_dependency_graph_test
     PlatformDependencyGraphTest.cpp
     ${CMAKE_SOURCE_DIR}/Framework/Platform/Kernel/PlatformDependencyGraph.cpp
-    ${CMAKE_SOURCE_DIR}/Framework/Platform/Kernel/PlatformStateStore.cpp
 )
 
 target_include_directories(platform_dependency_graph_test PRIVATE
@@ -207,6 +229,10 @@ target_link_libraries(platform_dependency_graph_test PRIVATE
 add_test(
     NAME platform_dependency_graph_test
     COMMAND platform_dependency_graph_test
+)
+
+set_tests_properties(platform_dependency_graph_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_dependency_graph_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
 add_executable(platform_diagnostics_service_test
@@ -351,6 +377,29 @@ add_test(
 
 set_tests_properties(platform_startup_coordinator_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_startup_coordinator_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(platform_warmup_coordinator_test
+    PlatformWarmupCoordinatorTest.cpp
+)
+
+target_include_directories(platform_warmup_coordinator_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_warmup_coordinator_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_warmup_coordinator_test
+    COMMAND platform_warmup_coordinator_test
+)
+
+set_tests_properties(platform_warmup_coordinator_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_warmup_coordinator_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
 add_executable(core_pages_platform_providers_test

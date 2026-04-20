@@ -76,17 +76,39 @@ PlatformDiagnosticSnapshot PlatformDiagnosticsService::buildSnapshot(const Platf
     snapshot.frameworkReady = observation.frameworkReady;
 
     QVector<PlatformPluginDescriptor> descriptors;
+    QStringList managedPluginIds;
     if (m_stateStore) {
         descriptors = m_stateStore->descriptors();
+        managedPluginIds = m_stateStore->managedPluginIds();
         snapshot.plugins = m_stateStore->pluginSnapshots();
         snapshot.capabilitySnapshot = m_stateStore->capabilitySnapshot();
         snapshot.runtimeMode = snapshot.capabilitySnapshot.runtimeMode;
     }
 
+    if (managedPluginIds.isEmpty()) {
+        for (const auto& descriptor : descriptors) {
+            managedPluginIds.append(descriptor.id);
+        }
+    }
+
+    snapshot.managedPluginIds = managedPluginIds;
+    for (const auto& descriptor : descriptors) {
+        if (managedPluginIds.contains(descriptor.id)) continue;
+
+        snapshot.excludedPluginIds.append(descriptor.id);
+
+        PlatformDiagnosticProblem problem;
+        problem.severity = PlatformDiagnosticSeverity::Info;
+        problem.pluginId = descriptor.id;
+        problem.reasonCode = QStringLiteral("excluded_from_managed_startup");
+        problem.detail = QStringLiteral("Plugin is available in descriptors but excluded from the current managed startup scope");
+        snapshot.problems.append(problem);
+    }
+
     const auto aggregation = m_aggregator.aggregate(observation.lifecycleEvents, descriptors, observation);
     snapshot.summary = aggregation.summary;
     snapshot.pluginLifecycle = aggregation.pluginLifecycle;
-    snapshot.problems = aggregation.problems;
+    snapshot.problems += aggregation.problems;
     snapshot.recoveryHints = aggregation.recoveryHints;
 
     if (m_stateStore) {

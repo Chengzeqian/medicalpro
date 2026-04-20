@@ -272,10 +272,14 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Kernel/PlatformDescriptorLoader.cpp
     Framework/Platform/Kernel/PlatformDependencyGraph.h
     Framework/Platform/Kernel/PlatformDependencyGraph.cpp
+    Framework/Platform/Kernel/PlatformManagedPluginPlan.h
+    Framework/Platform/Kernel/PlatformManagedPluginPlan.cpp
     Framework/Platform/Kernel/PlatformRuntimeConfig.h
     Framework/Platform/Kernel/PlatformRuntimeConfig.cpp
     Framework/Platform/Kernel/PlatformStartupCoordinator.h
     Framework/Platform/Kernel/PlatformStartupCoordinator.cpp
+    Framework/Platform/Kernel/PlatformWarmupCoordinator.h
+    Framework/Platform/Kernel/PlatformWarmupCoordinator.cpp
     Framework/Platform/Kernel/PlatformStateStore.h
     Framework/Platform/Kernel/PlatformStateStore.cpp
     Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.h

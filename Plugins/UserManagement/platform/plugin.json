@@ -10,6 +10,14 @@
     "bootstrap_level": "core",
     "entry_capability": "identity.core"
   },
+  "diagnostics": {
+    "required_services": ["identity.user_query", "identity.session"],
+    "service_ready_timeout_ms": 5000,
+    "warmup_tasks": [],
+    "warmup_timeout_ms": 0,
+    "warmup_impacts_ready": false,
+    "degrade_on": []
+  },
   "provides": {
     "services": ["identity.user_query", "identity.session"],
     "capabilities": ["identity.core"]
