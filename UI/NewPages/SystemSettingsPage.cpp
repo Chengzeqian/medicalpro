@@ -7,13 +7,11 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QLabel>
+#include <QPushButton>
 #include <QSettings>
 #include <QSizePolicy>
 #include <QStyle>
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include "Framework/CTKManager.h"
-#endif
+#include <utility>
 
 namespace
 {
@@ -24,9 +22,10 @@ const QStringList kRequiredSystemSettingsServices = {
 };
 }
 
-SystemSettingsPageNew::SystemSettingsPageNew(QWidget* parent)
+SystemSettingsPageNew::SystemSettingsPageNew(QWidget* parent, RuntimeStatusProvider runtimeStatusProvider)
     : BasePage(parent)
     , ui(new Ui::SystemSettingsPage)
+    , m_runtimeStatusProvider(std::move(runtimeStatusProvider))
 {
     ui->setupUi(this);
     setObjectName("SystemSettingsPage");
@@ -36,6 +35,17 @@ SystemSettingsPageNew::SystemSettingsPageNew(QWidget* parent)
     ui->systemRecommendationLabel->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
 
     setupPageCopy();
+
+    auto* diagnosticsButton = new QPushButton(QStringLiteral("运行诊断"), ui->systemSettingsHeaderFrame);
+    diagnosticsButton->setObjectName(QStringLiteral("diagnosticsButton"));
+    diagnosticsButton->setCursor(Qt::PointingHandCursor);
+    diagnosticsButton->setMinimumSize(176, 52);
+    ui->headerLayout->insertWidget(2, diagnosticsButton);
+    connect(diagnosticsButton, &QPushButton::clicked, this, [this]() {
+        emit diagnosticsRequested();
+        emit navigateTo(toInt(PageIndex::Diagnostics));
+    });
+
     loadSettings();
     refreshRuntimeStatus();
 }
@@ -163,23 +173,14 @@ void SystemSettingsPageNew::saveSettings()
 
 SystemSettingsPageNew::RuntimeStatusSnapshot SystemSettingsPageNew::collectRuntimeStatus() const
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
-    auto* ctkManager = CTKManager::instance();
-    const bool frameworkReady = ctkManager && ctkManager->isCTKAvailable();
-    const int pluginCount = ctkManager ? ctkManager->getLoadedPlugins().size() : 0;
-    const QStringList missingServices = ctkManager
-        ? ctkManager->getMissingServices(kRequiredSystemSettingsServices)
-        : kRequiredSystemSettingsServices;
-#else
-    const bool frameworkReady = false;
-    const int pluginCount = 0;
-    const QStringList missingServices = kRequiredSystemSettingsServices;
-#endif
-
-    int readyServices = kRequiredSystemSettingsServices.size() - missingServices.size();
-    if (readyServices < 0) {
-        readyServices = 0;
+    RuntimeStatusSnapshot snapshot;
+    if (m_runtimeStatusProvider) {
+        snapshot = m_runtimeStatusProvider();
     }
+
+    if (snapshot.totalServices <= 0) snapshot.totalServices = kRequiredSystemSettingsServices.size();
+    if (snapshot.readyServices < 0) snapshot.readyServices = 0;
+    if (snapshot.readyServices > snapshot.totalServices) snapshot.readyServices = snapshot.totalServices;
 
     const QDir dataDir(ui->dataPathEdit->text());
     const QFileInfo dataInfo(dataDir.absolutePath());
@@ -189,14 +190,9 @@ SystemSettingsPageNew::RuntimeStatusSnapshot SystemSettingsPageNew::collectRunti
     const QFileInfo dicomInfo(dicomDir.absolutePath());
     const bool dicomReadable = dicomDir.exists() && dicomInfo.isReadable();
 
-    return {
-        frameworkReady,
-        pluginCount,
-        readyServices,
-        kRequiredSystemSettingsServices.size(),
-        dataReadable,
-        dicomReadable
-    };
+    snapshot.dataDirectoryReadable = dataReadable;
+    snapshot.dicomDirectoryReadable = dicomReadable;
+    return snapshot;
 }
 
 void SystemSettingsPageNew::refreshRuntimeStatus()

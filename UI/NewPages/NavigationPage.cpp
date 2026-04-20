@@ -1,6 +1,9 @@
 #include "NavigationPage.h"
 #include "ui_NavigationPage.h"
 
+#include "Framework/Platform/CtkBridge/NavigationPageServiceAccess.h"
+#include "Framework/Platform/LegacyAdapters/LegacyNavigationPageServiceAdapter.h"
+
 #include <QFileDialog>
 #include <QVBoxLayout>
 #include <QMouseEvent>
@@ -15,7 +18,6 @@
 
 #ifdef CTK_PLUGIN_FRAMEWORK
 #include "UI/Dialogs/InstrumentPreviewDialog.h"
-#include "Framework/CTKManager.h"
 #include "Plugins/InstrumentManagement/InstrumentManagementService.h"
 #include "Plugins/DicomViewer/DicomViewerService.h"
 #include "Plugins/FourViewDisplay/FourViewDisplayService.h"
@@ -29,9 +31,11 @@
 #include <vtkPolyData.h>
 #endif
 
-NavigationPageNew::NavigationPageNew(QWidget* parent)
+NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAccess* serviceAccess)
     : BasePage(parent)
     , ui(new Ui::NavigationPage)
+    , m_serviceAccess(serviceAccess)
+    , m_ownedServiceAdapter(nullptr)
     , m_patientId(-1)
     , m_trackerConnected(false)
     , m_navigationActive(false)
@@ -52,6 +56,11 @@ NavigationPageNew::NavigationPageNew(QWidget* parent)
 {
     ui->setupUi(this);
     setObjectName("NavigationPage");
+
+    if (!m_serviceAccess) {
+        m_ownedServiceAdapter = new LegacyNavigationPageServiceAdapter();
+        m_serviceAccess = new NavigationPageServiceAccess(m_ownedServiceAdapter, this);
+    }
 
     // 创建导航3D视图和运动模拟器
     m_navigation3DView = new Navigation3DViewWidget(this);
@@ -77,17 +86,13 @@ NavigationPageNew::NavigationPageNew(QWidget* parent)
 #endif
             });
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    if (auto* ctk = CTKManager::instance()) {
-        connect(ctk, &CTKManager::pluginLoaded, this, [this](const QString& pluginName) {
-            if (!pluginName.compare(QStringLiteral("PointRegistration"), Qt::CaseInsensitive)) {
-                if (ui && ui->tabWidget && ui->tabWidget->currentWidget() == ui->registrationTab) {
-                    setupRegistration();
-                }
+    if (m_serviceAccess) {
+        connect(m_serviceAccess, &NavigationPageServiceAccess::pointRegistrationPluginAvailable, this, [this]() {
+            if (ui && ui->tabWidget && ui->tabWidget->currentWidget() == ui->registrationTab) {
+                setupRegistration();
             }
         });
     }
-#endif
 
     // 设置跟踪器更新定时器（30fps）
     m_trackerTimer->setInterval(33);
@@ -113,6 +118,7 @@ NavigationPageNew::~NavigationPageNew()
     m_motionSimulator = nullptr;
 
     delete ui;
+    delete m_ownedServiceAdapter;
 }
 
 void NavigationPageNew::onActivated()
@@ -215,7 +221,7 @@ bool NavigationPageNew::eventFilter(QObject* obj, QEvent* event)
 void NavigationPageNew::onInstrumentCardClicked(int instrumentId)
 {
 #ifdef CTK_PLUGIN_FRAMEWORK
-    auto* instrumentService = CTKManager::instance()->getService<InstrumentManagementService>();
+    auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
     if (!instrumentService) {
         showWarning("预览", "器械服务不可用");
         return;
@@ -264,7 +270,7 @@ void NavigationPageNew::on_importInstrumentButton_clicked()
     }
 
 #ifdef CTK_PLUGIN_FRAMEWORK
-    auto* instrumentService = CTKManager::instance()->getService<InstrumentManagementService>();
+    auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
     if (instrumentService) {
         // The InstrumentManagementService API does not support direct file import here;
         // integrate a real importer when available.
@@ -288,7 +294,7 @@ void NavigationPageNew::on_refreshInstrumentButton_clicked()
 void NavigationPageNew::on_clearAllInstrumentButton_clicked()
 {
 #ifdef CTK_PLUGIN_FRAMEWORK
-    auto* instrumentService = CTKManager::instance()->getService<InstrumentManagementService>();
+    auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
     if (!instrumentService) {
         showWarning("清除", "器械服务不可用");
         return;
@@ -324,7 +330,7 @@ void NavigationPageNew::on_clearAllInstrumentButton_clicked()
 void NavigationPageNew::on_generateThumbnailButton_clicked()
 {
 #ifdef CTK_PLUGIN_FRAMEWORK
-    auto* instrumentService = CTKManager::instance()->getService<InstrumentManagementService>();
+    auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
     if (!instrumentService) {
         showWarning("生成缩略图", "器械服务不可用");
         return;
@@ -372,7 +378,7 @@ void NavigationPageNew::loadInstruments()
     }
 
 #ifdef CTK_PLUGIN_FRAMEWORK
-    auto* instrumentService = CTKManager::instance()->getService<InstrumentManagementService>();
+    auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
     if (instrumentService) {
         auto instruments = instrumentService->getAllInstruments();
         int col = 0, row = 0;
@@ -479,7 +485,7 @@ void NavigationPageNew::on_loadDicomButton_clicked()
     m_lastDicomDirPath = dirPath;
 
 #ifdef CTK_PLUGIN_FRAMEWORK
-    auto* dicomService = CTKManager::instance()->getService<DicomViewerService>();
+    auto* dicomService = m_serviceAccess ? m_serviceAccess->dicomViewerService() : nullptr;
     if (dicomService) {
         const int pid = m_patientId >= 0 ? m_patientId : 0;
         if (dicomService->importDicomDirectory(dirPath, pid)) {
@@ -498,7 +504,7 @@ void NavigationPageNew::on_autoSegmentButton_clicked()
 {
 #ifdef CTK_PLUGIN_FRAMEWORK
     // 获取分割服务（ServiceHelper 已处理 CTKManager 备用获取逻辑）
-    auto* segService = CTKManager::instance()->getService<SegmentationService>();
+    auto* segService = m_serviceAccess ? m_serviceAccess->segmentationService() : nullptr;
     if (!segService) {
         showError("自动分割", "分割服务不可用，请检查BoneSegmentation插件是否正确加载");
         return;
@@ -575,7 +581,7 @@ void NavigationPageNew::on_adjustProsthesisButton_clicked()
 void NavigationPageNew::on_exportSTLButton_clicked()
 {
 #ifdef CTK_PLUGIN_FRAMEWORK
-    auto* segService = CTKManager::instance()->getService<SegmentationService>();
+    auto* segService = m_serviceAccess ? m_serviceAccess->segmentationService() : nullptr;
     if (!segService) {
         showError("导出STL", "分割服务不可用");
         return;
@@ -976,7 +982,7 @@ void NavigationPageNew::setupVTKViews()
 void NavigationPageNew::embedFourViewWidget()
 {
 #ifdef CTK_PLUGIN_FRAMEWORK
-    m_fourViewService = CTKManager::instance()->getService<FourViewDisplayService>();
+    m_fourViewService = m_serviceAccess ? m_serviceAccess->fourViewDisplayService() : nullptr;
     if (!m_fourViewService) {
         qWarning() << "[NavigationPage] FourViewDisplayService not available";
         return;
@@ -1151,7 +1157,7 @@ void NavigationPageNew::onSegmentationCompleted(const QString& taskId, const QVa
 
 #ifdef CTK_PLUGIN_FRAMEWORK
     // 尝试导出并显示分割结果
-    auto* segService = CTKManager::instance()->getService<SegmentationService>();
+    auto* segService = m_serviceAccess ? m_serviceAccess->segmentationService() : nullptr;
     if (m_fourViewService && segService && !outputDir.isEmpty()) {
         const QString stlPath = QDir(outputDir).filePath("segmentation_mesh.stl");
         if (segService->exportSegmentation(taskId, stlPath, "stl")
@@ -1193,21 +1199,17 @@ bool NavigationPageNew::ensurePointRegistrationService(bool tryStartPlugin)
         return true;
     }
 
-    CTKManager* ctk = CTKManager::instance();
-    if (!ctk || !ctk->isCTKAvailable()) {
+    auto* serviceAccess = m_serviceAccess;
+    if (!serviceAccess || !serviceAccess->isPointRegistrationFrameworkReady()) {
         if (ui && ui->registrationViewPlaceholder) {
             ui->registrationViewPlaceholder->setText(QStringLiteral("CTK 框架未就绪，配准服务尚不可用"));
         }
         return false;
     }
 
-    if (tryStartPlugin && !ctk->isPluginStarted(QStringLiteral("PointRegistration"))) {
-        ctk->startPlugin(QStringLiteral("PointRegistration"));
-    }
-
-    m_pointRegistrationService = ctk->getService<PointRegistrationService>();
+    m_pointRegistrationService = serviceAccess->pointRegistrationService(tryStartPlugin);
     if (!m_pointRegistrationService) {
-        const QString state = ctk->getPluginState(QStringLiteral("PointRegistration"));
+        const QString state = serviceAccess->pointRegistrationPluginState();
         qWarning() << "[NavigationPage] PointRegistrationService not available (plugin state:" << state << ")";
         if (ui && ui->registrationViewPlaceholder) {
             ui->registrationViewPlaceholder->setText(

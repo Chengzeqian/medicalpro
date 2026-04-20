@@ -3,14 +3,14 @@
 
 #include "Framework/CTKManager.h"
 #include "Framework/ConsoleLogBridge.h"
-#include "Framework/PluginLoadPolicy.h"
+#include "Framework/Platform/Kernel/PlatformRuntimeConfig.h"
+#include "Framework/Platform/Kernel/PlatformStartupCoordinator.h"
 #include "Framework/StartupOrchestrator.h"
 #include "Framework/VTKGlobalInitializer.h"
 #include "Framework/VTKWidgetPool.h"
 #ifdef CTK_PLUGIN_FRAMEWORK
 #include "Plugins/Registration2D3D/Registration2D3DService.h"
 #include "Plugins/FourViewDisplay/FourViewDisplayService.h"
-#include "Plugins/UserManagement/UserManagementService.h"
 #endif
 
 #include <QApplication>
@@ -22,11 +22,11 @@
 #include <QLocale>
 #include <QMessageBox>
 #include <QSemaphore>
-#include <QThread>
 #include <QTimer>
 #include <QTranslator>
 #include <exception>
 #include <cstdio>
+#include <stdexcept>
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -79,8 +79,8 @@ private:
 
         QMessageBox::critical(
             nullptr,
-            QStringLiteral("运行异常"),
-            QStringLiteral("处理界面事件时发生异常，操作已安全终止。\n\n详情：%1")
+            QStringLiteral("Qt Event Exception"),
+            QStringLiteral("A Qt event handler threw an exception.\n\n%1")
                 .arg(detail));
 
         m_handlingException = false;
@@ -92,8 +92,8 @@ private:
 namespace
 {
 
-// 在应用启动早期配置第三方 DLL 搜索路径，避免插件在加载 VTK 相关模块时出现
-// "找不到指定的模块"（Win32 错误 126）。
+// Configure third-party DLL search paths early so VTK-dependent plugins do not fail with Win32 error 126.
+// This keeps optional modules loadable before the CTK framework starts.
 #ifdef _WIN32
 static bool isRedirectedStdHandle(DWORD stdHandleId)
 {
@@ -148,7 +148,7 @@ static void configureThirdPartyDllSearchPaths()
     QString appDir = QCoreApplication::applicationDirPath();
 
     // appDir: .../build/Desktop_.../Release
-    // 项目根目录: 上两级
+    // Project root directory: go up two levels
     QDir projectDir(appDir);
     projectDir.cdUp(); // Release -> build
     projectDir.cdUp(); // build   -> project root
@@ -170,14 +170,14 @@ static void configureThirdPartyDllSearchPaths()
         return;
     }
 
-    // 1) 扩展 PATH，兼容旧版 Windows 的搜索行为
+    // 1) Extend PATH for legacy Windows DLL search behavior
     const QString currentPath = qEnvironmentVariable("PATH");
     const QString newPath = validDirs.join(";") + ";" + currentPath;
     qputenv("PATH", newPath.toUtf8());
     qDebug() << "[main] PATH extended with third-party DLL directories:" << validDirs;
 
-    // 2) 可用时注册到 AddDllDirectory，兼容 Win8+ 在调用
-    //    SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS) 之后的行为
+    // 2) Also register AddDllDirectory on supported systems
+    //    so SetDefaultDllDirectories() keeps these folders visible
     HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
     if (!kernel32) {
         return;
@@ -188,7 +188,7 @@ static void configureThirdPartyDllSearchPaths()
         reinterpret_cast<AddDllDirectoryFunc>(GetProcAddress(kernel32, "AddDllDirectory"));
 
     if (!addDllDirectory) {
-        return; // 在老系统上静默退化为仅使用 PATH
+        return; // Fall back silently to PATH-only behavior on older systems
     }
 
     for (const QString& dir : validDirs) {
@@ -206,6 +206,20 @@ static void configureThirdPartyDllSearchPaths()
 #endif
 }
 
+static QString runtimeModeToString(PlatformRuntimeMode runtimeMode)
+{
+    switch (runtimeMode) {
+    case PlatformRuntimeMode::ObserveOnly:
+        return QStringLiteral("observe_only");
+    case PlatformRuntimeMode::FacadeMode:
+        return QStringLiteral("facade_mode");
+    case PlatformRuntimeMode::OrchestrateCore:
+        return QStringLiteral("orchestrate_core");
+    }
+
+    return QStringLiteral("unknown");
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -218,14 +232,14 @@ int main(int argc, char* argv[])
     qDebug() << "========================================";
 
     // ========================================
-    // 阶段1: 创建QApplication & 初始化VTK
+    // Phase 1: create QApplication and initialize VTK
     // ========================================
     qDebug() << "[Phase 1] QApplication + VTK initialization";
     qDebug() << "----------------------------------------";
 
     try {
-        // 先选择 Qt 使用的 OpenGL 后端，再进行 VTK 全局初始化，
-        // 确保 QVTKOpenGLNativeWidget::defaultFormat() 能看到正确的后端配置。
+        // Select the Qt OpenGL backend before VTK global initialization
+        // so QVTKOpenGLNativeWidget sees the correct surface format.
         qDebug() << "[main] Configuring Qt OpenGL backend...";
         QCoreApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
 
@@ -248,9 +262,9 @@ int main(int argc, char* argv[])
         SafeApplication app(argc, argv);
         qDebug() << "[main] QApplication instance created";
 
-        // 在任何插件和 CTK 框架初始化之前，先配置好第三方 DLL 搜索路径，
-        // 这样像 PointRegistration 这类依赖额外 VTK 模块的插件在加载时
-        // 不会因为找不到对应的 VTK *.dll 而直接启动失败。
+        // Configure third-party DLL search paths before any plugin or CTK
+        // initialization so VTK-dependent plugins can resolve their runtime
+        // DLLs without failing during startup.
         configureThirdPartyDllSearchPaths();
 
         // Setup application information
@@ -260,7 +274,7 @@ int main(int argc, char* argv[])
         app.setOrganizationName("Medical Solutions");
         qDebug() << "[main] Application metadata configured";
 
-        // 🔥🔥🔥 关键修复：全局禁用透明窗口，防止VTK Widget透明问题
+        // Key fix: disable transparent native sibling creation for VTK widgets
         qDebug() << "[main] Applying application attributes...";
         QCoreApplication::setAttribute(Qt::AA_DontCreateNativeWidgetSiblings, false);
         qDebug() << "[main] Transparent window attributes disabled";
@@ -296,21 +310,51 @@ int main(int argc, char* argv[])
         VTKWidgetPool::instance()->initialize(defaultPoolSize);
 #endif
 
+        CTKManager* ctkManager = CTKManager::instance();
+        const QString runtimeConfigPath =
+            QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("config/platform_runtime.json"));
+        QString runtimeConfigError;
+        const auto runtimeConfig = PlatformRuntimeConfig::loadFromFile(runtimeConfigPath, &runtimeConfigError);
+        if (!runtimeConfigError.isEmpty()) {
+            throw std::runtime_error(
+                QStringLiteral("Failed to load platform runtime config: %1").arg(runtimeConfigError).toStdString());
+        }
+
+        QStringList coreCtkPluginNames;
+        if (runtimeConfig.runtimeMode != PlatformRuntimeMode::ObserveOnly) {
+            const QString descriptorDirectoryPath =
+                QDir(QCoreApplication::applicationDirPath()).filePath(runtimeConfig.descriptorDirectory);
+            coreCtkPluginNames = runtimeConfig.resolveCoreCtkPluginNames(descriptorDirectoryPath, &runtimeConfigError);
+            if (!runtimeConfigError.isEmpty()) {
+                throw std::runtime_error(
+                    QStringLiteral("Failed to resolve core CTK plugin names: %1").arg(runtimeConfigError).toStdString());
+            }
+        }
+
+        qDebug() << "[main] Platform runtime mode:" << runtimeModeToString(runtimeConfig.runtimeMode);
+        qDebug() << "[main] Platform descriptor directory:" << runtimeConfig.descriptorDirectory;
+        qDebug() << "[main] Platform core plugin ids:" << runtimeConfig.corePluginIds;
+        qDebug() << "[main] Platform core CTK plugin names:" << coreCtkPluginNames;
+
+        PlatformStartupCoordinator startupCoordinator(
+            runtimeConfig.runtimeMode,
+            [ctkManager](const QString& pluginName) {
+                return ctkManager->startPlugin(pluginName);
+            });
         auto orchestrator = StartupOrchestrator::instance();
 
         qDebug() << "[Phase 1] Completed\n";
 
         // ========================================
-        // 阶段3: 显示启动界面 / 基础UI准备
+        // Phase 3: prepare the startup surface and base UI
         // ========================================
         qDebug() << "[Phase 3] Startup surface preparation";
         qDebug() << "----------------------------------------";
 
-        CTKManager* ctkManager = CTKManager::instance();
         qDebug() << "[Phase 3] Completed\n";
 
         // ========================================
-        // 阶段4: 创建主界面（不做耗时初始化）
+        // Phase 4: create the main interface without expensive work
         // ========================================
         qDebug() << "[Phase 4] Creating main interface";
         qDebug() << "----------------------------------------";
@@ -329,9 +373,14 @@ int main(int argc, char* argv[])
         qDebug() << "[Phase 5] Launching background startup tasks";
         qDebug() << "----------------------------------------";
 
-        // 注册 CTK 框架初始化阶段处理器
+        // Register the CTK framework initialization handler
 #ifdef CTK_PLUGIN_FRAMEWORK
-        orchestrator->registerPhaseHandler(StartupPhase::CTKFrameworkInit, [ctkManager](QApplication* app) {
+        orchestrator->registerPhaseHandler(StartupPhase::CTKFrameworkInit, [ctkManager, &startupCoordinator](QApplication* app) {
+            if (!startupCoordinator.shouldInitializeFramework()) {
+                qDebug() << "[StartupOrchestrator] Skipping CTK framework initialization in observe_only mode";
+                return true;
+            }
+
             qDebug() << "[StartupOrchestrator] Running CTK framework initialization...";
             if (!ctkManager->initializeFramework(app)) {
                 qCritical() << "[StartupOrchestrator] CTK framework initialization failed";
@@ -346,11 +395,16 @@ int main(int argc, char* argv[])
             return true;
         });
 
-        // 注册插件安装阶段处理器
-        orchestrator->registerPhaseHandler(StartupPhase::PluginInstallation, [ctkManager](QApplication*) {
+        // Register the plugin installation handler
+        orchestrator->registerPhaseHandler(StartupPhase::PluginInstallation, [ctkManager, &startupCoordinator](QApplication*) {
+            if (!startupCoordinator.shouldInstallPlugins()) {
+                qDebug() << "[StartupOrchestrator] Skipping plugin installation in observe_only mode";
+                return true;
+            }
+
             qDebug() << "[StartupOrchestrator] Running plugin installation...";
 
-            // 🔥 关键修复：在安装插件前先加载插件加载策略配置
+            // Load plugin policy configuration before installing bundles
             QString configPath = QCoreApplication::applicationDirPath() + "/config/plugin_load_policy.json";
             if (QFile::exists(configPath)) {
                 qDebug() << "[StartupOrchestrator] Loading plugin policy configuration:" << configPath;
@@ -362,128 +416,68 @@ int main(int argc, char* argv[])
             QString pluginsPath = QCoreApplication::applicationDirPath() + "/plugins";
             int installedCount = ctkManager->installPluginsFromDirectory(pluginsPath);
             qDebug() << "[StartupOrchestrator] Installed plugin count:" << installedCount;
-            return true; // 插件安装失败不阻止启动
+            return true; // Installation failures should not block app startup
         });
 
-        // 注册关键插件启动阶段处理器
-        // 关键插件必须同步初始化，确保服务立即可用（如登录服务）
-        orchestrator->registerPhaseHandler(StartupPhase::CriticalPluginStart, [ctkManager](QApplication*) {
-            qDebug() << "[StartupOrchestrator] Starting critical plugin activation (synchronous)...";
-
-            // 🔥 使用配置驱动获取关键插件列表
-            PluginLoadPolicy* policy = PluginLoadPolicy::instance();
-            QStringList criticalPlugins;
-            if (policy->hasValidConfig()) {
-                criticalPlugins = policy->getCriticalPlugins();
-                qDebug() << "[StartupOrchestrator] Critical plugins from configuration:" << criticalPlugins;
-            }
-            // 如果配置为空，使用默认的关键插件
-            if (criticalPlugins.isEmpty()) {
-                criticalPlugins.clear();
-                criticalPlugins << "UserManagement";
-                qDebug() << "[StartupOrchestrator] Falling back to default critical plugins:" << criticalPlugins;
-            }
-
-            bool success = true;
-            for (const QString& pluginName : criticalPlugins) {
-                qDebug() << "[StartupOrchestrator] Starting critical plugin:" << pluginName;
-                if (!ctkManager->startPlugin(pluginName)) {
-                    qCritical() << "[StartupOrchestrator] Critical plugin start failed:" << pluginName;
-                    success = false;
-                    break;
+        orchestrator->registerPhaseHandler(
+            StartupPhase::CriticalPluginStart,
+            [&startupCoordinator, coreCtkPluginNames](QApplication*) {
+                if (!startupCoordinator.shouldStartCorePlugins()) {
+                    qDebug() << "[StartupOrchestrator] Skipping core plugin startup in observe_only mode";
+                    return true;
                 }
 
-                // 等待服务注册完成（给异步初始化一点时间）
-                QCoreApplication::processEvents();
-                QThread::msleep(50);
-            }
+                if (coreCtkPluginNames.isEmpty()) {
+                    qDebug() << "[StartupOrchestrator] No core CTK plugins configured for startup";
+                    return true;
+                }
 
-            // 验证关键服务是否可用
-            if (success) {
-                qDebug() << "[StartupOrchestrator] Verifying critical service availability...";
-                // 直接使用 CTKManager 检查服务
-                auto* userService = ctkManager->getService<UserManagementService>();
-                if (!userService) {
-                    qWarning() << "[StartupOrchestrator] UserManagementService not ready yet; waiting...";
+                qDebug() << "[StartupOrchestrator] Starting critical plugin activation (synchronous)...";
 
-                    // 最多等待 2 秒
-                    for (int i = 0; i < 20; ++i) {
-                        QCoreApplication::processEvents();
-                        QThread::msleep(100);
-                        userService = ctkManager->getService<UserManagementService>();
-                        if (userService) {
-                            qDebug() << "[StartupOrchestrator] UserManagementService is ready";
-                            break;
-                        }
+                for (const QString& pluginName : coreCtkPluginNames) {
+                    qDebug() << "[StartupOrchestrator] Starting core plugin from platform config:" << pluginName;
+                    if (!startupCoordinator.ensureReady(pluginName)) {
+                        qCritical() << "[StartupOrchestrator] Critical plugin start failed:" << pluginName;
+                        return false;
                     }
                 }
+
+                qDebug() << "[StartupOrchestrator] Critical plugin activation completed";
+                return true;
+        });
+
+        orchestrator->registerPhaseHandler(StartupPhase::DeferredPluginStart, [ctkManager, &startupCoordinator](QApplication*) {
+            if (!startupCoordinator.shouldStartDeferredPlugins()) {
+                qDebug() << "[StartupOrchestrator] Skipping deferred plugin startup in current runtime mode";
+                return true;
             }
 
-            qDebug() << "[StartupOrchestrator] Critical plugin activation completed";
+            qDebug() << "[StartupOrchestrator] Running deferred plugin activation...";
+
+            const bool success = ctkManager->startDeferredPlugins(false);
+            qDebug() << "[StartupOrchestrator] Deferred plugin activation completed";
             return success;
         });
 
-        // 注册延迟插件启动阶段处理器
-        orchestrator->registerPhaseHandler(StartupPhase::DeferredPluginStart, [ctkManager](QApplication*) {
-            qDebug() << "[StartupOrchestrator] Running deferred plugin activation...";
-
-            // 🔥 使用配置驱动获取需要启动的插件列表
-            PluginLoadPolicy* policy = PluginLoadPolicy::instance();
-            QStringList deferredPlugins;
-            QStringList immediatePlugins;
-
-            if (policy->hasValidConfig()) {
-                // 获取 deferred 策略的插件
-                deferredPlugins = policy->getPluginsByPolicy(LoadPolicy::Deferred);
-                // 获取 immediate 策略的插件（非关键的）
-                immediatePlugins = policy->getPluginsByPolicy(LoadPolicy::Immediate);
-
-                // 过滤掉已标记为 critical 的插件（它们在上一阶段已启动）
-                QStringList criticalPlugins = policy->getCriticalPlugins();
-                for (const QString& critical : criticalPlugins) {
-                    immediatePlugins.removeAll(critical);
-                }
-
-                qDebug() << "[StartupOrchestrator] Policy-driven immediate plugins:" << immediatePlugins;
-                qDebug() << "[StartupOrchestrator] Policy-driven deferred plugins:" << deferredPlugins;
+        // Register the service warmup handler
+        // This phase runs off the UI thread and dispatches UI-bound work back
+        orchestrator->registerPhaseHandler(StartupPhase::ServiceWarmup, [ctkManager, &startupCoordinator](QApplication* app) {
+            if (!startupCoordinator.shouldWarmupServices()) {
+                qDebug() << "[StartupOrchestrator] Skipping service warmup in current runtime mode";
+                return true;
             }
 
-            // 合并列表：先启动 immediate，再启动 deferred
-            QStringList allPlugins = immediatePlugins + deferredPlugins;
-
-            // 如果配置为空，使用默认的插件列表
-            if (allPlugins.isEmpty()) {
-                allPlugins.clear();
-                allPlugins << "DicomViewer"
-                           << "InstrumentManagement"
-                           << "FourViewDisplay"
-                           << "OpticalTracking"
-                           << "Registration2D3D";
-                qDebug() << "[StartupOrchestrator] Falling back to default plugin list:" << allPlugins;
-            }
-
-            for (const QString& pluginName : allPlugins) {
-                qDebug() << "[StartupOrchestrator] Starting plugin:" << pluginName;
-                ctkManager->startPlugin(pluginName); // 失败不影响启动
-            }
-            qDebug() << "[StartupOrchestrator] Deferred plugin activation completed";
-            return true;
-        });
-
-        // 注册服务预热阶段处理器
-        // 注意：这个阶段在后台线程执行，需要将某些操作调度到主线程
-        orchestrator->registerPhaseHandler(StartupPhase::ServiceWarmup, [ctkManager](QApplication* app) {
             qDebug() << "[StartupOrchestrator] Running service warmup...";
 
-            // 使用信号量同步，确保主线程操作完成后再返回
+            // Use a semaphore so background startup waits for the main-thread work
             QSemaphore semaphore(0);
             bool initSuccess = true;
 
-            // 将Python初始化调度到主线程执行
+            // Dispatch Python initialization onto the main thread
             QMetaObject::invokeMethod(app, [&semaphore, &initSuccess, ctkManager]() {
                 qDebug() << "[ServiceWarmup] Initializing services on the main thread...";
 
-                // 1. 预热Registration2D3D的Python环境
+                // 1. Warm up the Registration2D3D Python environment
                 auto reg2D3DService = ctkManager->getService<Registration2D3DService>();
                 if (reg2D3DService) {
                     qDebug() << "[ServiceWarmup] Warming up Registration2D3D Python environment...";
@@ -502,7 +496,7 @@ int main(int argc, char* argv[])
                     qDebug() << "[ServiceWarmup] Registration2D3D Python environment warmup completed";
                 }
 
-                // 2. 预热FourViewDisplay服务
+                // 2. Warm up the FourViewDisplay service
                 auto fourViewService = ctkManager->getService<FourViewDisplayService>();
                 if (fourViewService) {
                     qDebug() << "[ServiceWarmup] Warming up FourViewDisplay service...";
@@ -510,17 +504,17 @@ int main(int argc, char* argv[])
                 }
 
                 qDebug() << "[ServiceWarmup] Main-thread service initialization completed";
-                semaphore.release();  // 释放信号量，让后台线程继续
+                semaphore.release();  // Release the background thread after UI warmup
             }, Qt::QueuedConnection);
 
-            // 等待主线程完成初始化（最多等待30秒）
+            // Wait up to 30 seconds for main-thread initialization
             if (!semaphore.tryAcquire(1, 30000)) {
                 qWarning() << "[ServiceWarmup] Service warmup timed out";
                 return false;
             }
 
             qDebug() << "[StartupOrchestrator] Service warmup completed";
-            return true;  // 即使Python初始化失败也不阻止启动
+            return true;  // Python warmup failures should not block app startup
         });
 
 #else
@@ -566,13 +560,18 @@ int main(int argc, char* argv[])
 
         } catch (const std::exception& e) {
             qCritical() << "[main] Application initialization exception:" << e.what();
-            QMessageBox::critical(nullptr, "启动失败", 
-                QString("应用程序初始化失败：\n\n%1\n\n应用程序将退出。").arg(e.what()));
+            QMessageBox::critical(
+                nullptr,
+                QStringLiteral("Application Startup Error"),
+                QStringLiteral("Application initialization failed.\n\n%1\n\nPlease check the startup log for details.")
+                    .arg(QString::fromUtf8(e.what())));
             return 1;
         } catch (...) {
             qCritical() << "[main] Application initialization hit an unknown exception";
-            QMessageBox::critical(nullptr, "启动失败",
-                "应用程序初始化失败（未知异常）。\n\n应用程序将退出。");
+            QMessageBox::critical(
+                nullptr,
+                QStringLiteral("Application Startup Error"),
+                QStringLiteral("Application initialization hit an unknown exception.\n\nPlease check the startup log for details."));
             return 1;
         }
 

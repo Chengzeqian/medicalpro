@@ -109,6 +109,12 @@ bool StartupOrchestrator::hasWarnings() const
     return !m_warnings.isEmpty();
 }
 
+QVector<PlatformStartupTraceEntry> StartupOrchestrator::getStartupTraceEntries() const
+{
+    QMutexLocker locker(&m_mutex);
+    return m_startupTraceEntries;
+}
+
 void StartupOrchestrator::logDiagnostic(ErrorHandler::ErrorLevel level,
                                         const QString& message,
                                         const QVariantMap& context)
@@ -171,6 +177,13 @@ bool StartupOrchestrator::executePhase(const PhaseInfo& info, QApplication* app,
         QMutexLocker locker(&m_mutex);
         m_phaseDurations.insert(info.phase, elapsedMs);
         m_phaseResults.insert(info.phase, success);
+        m_startupTraceEntries.append({
+            info.name,
+            info.description,
+            success,
+            elapsedMs,
+            success ? QStringLiteral("completed") : QStringLiteral("failed")
+        });
     }
 
     return success;
@@ -222,6 +235,7 @@ void StartupOrchestrator::resetState()
     m_phaseResults.clear();
     m_totalElapsedMs = 0;
     m_diagnostics.clear();
+    m_startupTraceEntries.clear();
 }
 
 QString StartupOrchestrator::buildDiagnosticReportUnsafe() const

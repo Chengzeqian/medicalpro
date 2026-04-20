@@ -15,6 +15,7 @@
 #include <functional>
 
 #include "ErrorHandler.h"
+#include "Framework/Platform/Contracts/PlatformSnapshots.h"
 
 class QApplication;
 
@@ -78,6 +79,7 @@ public:
     QString getDiagnosticReport() const;
     bool hasErrors() const;
     bool hasWarnings() const;
+    QVector<PlatformStartupTraceEntry> getStartupTraceEntries() const;
 
     void logDiagnostic(ErrorHandler::ErrorLevel level,
                        const QString& message,
@@ -116,6 +118,7 @@ private:
     QHash<StartupPhase, PhaseHandler> m_phaseHandlers;
     qint64 m_totalElapsedMs;
     QVector<DiagnosticEntry> m_diagnostics;
+    QVector<PlatformStartupTraceEntry> m_startupTraceEntries;
 };
 
 #endif // STARTUPORCHESTRATOR_H

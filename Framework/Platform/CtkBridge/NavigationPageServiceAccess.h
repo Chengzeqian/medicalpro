@@ -1,0 +1,37 @@
+#pragma once
+
+#include "Framework/FrameworkExport.h"
+
+#include <QObject>
+
+class DicomViewerService;
+class FourViewDisplayService;
+class INavigationPageServicePort;
+class InstrumentManagementService;
+class PointRegistrationService;
+class SegmentationService;
+
+class FRAMEWORK_EXPORT NavigationPageServiceAccess : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit NavigationPageServiceAccess(INavigationPageServicePort* port, QObject* parent = nullptr);
+
+    InstrumentManagementService* instrumentManagementService() const;
+    DicomViewerService* dicomViewerService() const;
+    SegmentationService* segmentationService() const;
+    FourViewDisplayService* fourViewDisplayService() const;
+    bool isPointRegistrationFrameworkReady() const;
+    QString pointRegistrationPluginState() const;
+    PointRegistrationService* pointRegistrationService(bool tryStartPlugin) const;
+
+signals:
+    void pointRegistrationPluginAvailable();
+
+private slots:
+    void onPluginLoaded(const QString& pluginName);
+
+private:
+    INavigationPageServicePort* m_port;
+};

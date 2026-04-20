@@ -18,10 +18,6 @@
 #include <QtGlobal>
 #include <utility>
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include "Framework/CTKManager.h"
-#endif
-
 WelcomePageNew::WelcomePageNew(QWidget* parent, RuntimeStatusProvider runtimeStatusProvider)
     : BasePage(parent)
     , ui(new Ui::WelcomePage)
@@ -44,16 +40,6 @@ void WelcomePageNew::setupUI()
     m_runtimeStatusRefreshTimer->setSingleShot(true);
     m_runtimeStatusRefreshTimer->setInterval(120);
     connect(m_runtimeStatusRefreshTimer, &QTimer::timeout, this, &WelcomePageNew::refreshRuntimeStatus);
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-    auto* ctkManager = CTKManager::instance();
-    connect(ctkManager, &CTKManager::frameworkInitialized, this, &WelcomePageNew::scheduleRuntimeStatusRefresh);
-    connect(ctkManager, &CTKManager::frameworkStarted, this, &WelcomePageNew::scheduleRuntimeStatusRefresh);
-    connect(ctkManager, &CTKManager::frameworkStopped, this, &WelcomePageNew::scheduleRuntimeStatusRefresh);
-    connect(ctkManager, &CTKManager::pluginLoaded, this, &WelcomePageNew::scheduleRuntimeStatusRefresh);
-    connect(ctkManager, &CTKManager::pluginLoadFailed, this, &WelcomePageNew::scheduleRuntimeStatusRefresh);
-    connect(ctkManager, &CTKManager::errorOccurred, this, &WelcomePageNew::scheduleRuntimeStatusRefresh);
-#endif
 
     auto* orchestrator = StartupOrchestrator::instance();
     connect(orchestrator, &StartupOrchestrator::phaseCompleted, this, [this](const QString&, bool) {
@@ -146,18 +132,9 @@ WelcomePageNew::RuntimeStatusSnapshot WelcomePageNew::collectRuntimeStatus() con
         QStringLiteral("FourViewDisplayService")
     };
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    auto* ctkManager = CTKManager::instance();
-    const bool frameworkReady = ctkManager && ctkManager->isCTKAvailable();
-    const int pluginCount = ctkManager
-        ? qMax(ctkManager->getInstalledPlugins().size(), ctkManager->getStartedPlugins().size())
-        : 0;
-    const QStringList missingServices = ctkManager ? ctkManager->getMissingServices(requiredServices) : requiredServices;
-#else
     const bool frameworkReady = false;
     const int pluginCount = 0;
     const QStringList missingServices = requiredServices;
-#endif
 
     int readyServices = requiredServices.size() - missingServices.size();
     if (readyServices < 0) {

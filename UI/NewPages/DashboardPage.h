@@ -9,13 +9,20 @@ class DashboardPage;
 }
 
 class QWidget;
+class IdentityAppService;
+class ImagingAppService;
+class NavigationAppService;
 
 class DashboardPageNew : public BasePage
 {
     Q_OBJECT
 
 public:
-    explicit DashboardPageNew(QWidget* parent = nullptr);
+    explicit DashboardPageNew(
+        QWidget* parent = nullptr,
+        IdentityAppService* identityAppService = nullptr,
+        ImagingAppService* imagingAppService = nullptr,
+        NavigationAppService* navigationAppService = nullptr);
     ~DashboardPageNew();
 
     void onActivated() override;
@@ -52,6 +59,9 @@ private:
     int m_currentPatientId;
     int m_currentDicomStudyCount;
     QList<int> m_patientIds;
+    IdentityAppService* m_identityAppService;
+    ImagingAppService* m_imagingAppService;
+    NavigationAppService* m_navigationAppService;
 };
 
 #endif // DASHBOARDPAGE_NEW_H

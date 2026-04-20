@@ -1,5 +1,13 @@
 # Platform Kernel Governance Implementation Plan
 
+## 2026-04-17 Execution Status
+
+- Completed in this worktree: Task 9 startup runtime routing, `main.cpp` legacy startup residue cleanup, and Task 10 UI decoupling close-out.
+- Verified with `cmake --build build_x64_noctk --config Release --target medicalpro platform_facades_test login_page_platform_providers_test core_pages_platform_providers_test platform_ui_bridge_test ui_ctk_decoupling_acceptance_test`.
+- Verified with `ctest --test-dir build_x64_noctk -C Release -R "platform_facades_test|login_page_platform_providers_test|core_pages_platform_providers_test|platform_startup_coordinator_test|platform_descriptor_runtime_layout_test|platform_ui_bridge_test|ui_ctk_decoupling_acceptance_test" --output-on-failure`.
+- Verified with `rg -n "CTKManager::instance\(|getService<" UI\NewPages UI\MainInterfaceWidget.cpp`, which now returns no matches.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在 `medicalpro` 中完成第一阶段“平台内核治理”落地：建立平台描述文件、依赖图、观察层诊断、三大门面、兼容适配层和最小启动集编排，让核心页面不再直接依赖 CTK 服务，且启动慢问题可以被测量、定位和解释。
@@ -2694,6 +2702,14 @@ git commit -m "refactor: route startup through platform runtime modes"
 - Modify: `docs/current_status_and_project_overview.md`
 - Modify: `docs/superpowers/specs/2026-04-16-platform-kernel-governance-design.md`
 - Modify: `docs/superpowers/plans/2026-04-16-platform-kernel-governance-implementation.md`
+
+**2026-04-17 Update**
+- Completed in worktree `platform-kernel-governance-20260417-133400`.
+- `UI/MainInterfaceWidget.cpp` now reads runtime status through `CoreUiRuntimeStatusProvider`.
+- `UI/NewPages/NavigationPage.cpp` now resolves services through `NavigationPageServiceAccess` instead of direct CTK lookups.
+- Added acceptance coverage in `tests/unit/PlatformUiBridgeTest.cpp` and `tests/unit/UiCtkDecouplingAcceptanceTest.cpp`.
+- Verified with `rg -n "CTKManager::instance\(|getService<" UI\NewPages UI\MainInterfaceWidget.cpp`, which returns no matches.
+
 
 - [ ] **Step 1: 先写治理文档骨架，固定插件治理矩阵和迁移决策格式**
 

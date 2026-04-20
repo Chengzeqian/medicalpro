@@ -272,13 +272,43 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Kernel/PlatformDescriptorLoader.cpp
     Framework/Platform/Kernel/PlatformDependencyGraph.h
     Framework/Platform/Kernel/PlatformDependencyGraph.cpp
+    Framework/Platform/Kernel/PlatformRuntimeConfig.h
+    Framework/Platform/Kernel/PlatformRuntimeConfig.cpp
+    Framework/Platform/Kernel/PlatformStartupCoordinator.h
+    Framework/Platform/Kernel/PlatformStartupCoordinator.cpp
     Framework/Platform/Kernel/PlatformStateStore.h
     Framework/Platform/Kernel/PlatformStateStore.cpp
+    Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.h
+    Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.cpp
+    Framework/Platform/Diagnostics/PlatformDiagnosticsService.h
+    Framework/Platform/Diagnostics/PlatformDiagnosticsService.cpp
+    Framework/Platform/Contracts/PlatformFacadePorts.h
+    Framework/Platform/Contracts/PlatformUiPorts.h
+    Framework/Platform/CtkBridge/CoreUiRuntimeStatusProvider.h
+    Framework/Platform/CtkBridge/CoreUiRuntimeStatusProvider.cpp
+    Framework/Platform/CtkBridge/NavigationPageServiceAccess.h
+    Framework/Platform/CtkBridge/NavigationPageServiceAccess.cpp
+    Framework/Platform/LegacyAdapters/LegacyUserManagementAdapter.h
+    Framework/Platform/LegacyAdapters/LegacyUserManagementAdapter.cpp
+    Framework/Platform/LegacyAdapters/LegacyImagingAdapter.h
+    Framework/Platform/LegacyAdapters/LegacyImagingAdapter.cpp
+    Framework/Platform/LegacyAdapters/LegacyCoreUiRuntimeAdapter.h
+    Framework/Platform/LegacyAdapters/LegacyCoreUiRuntimeAdapter.cpp
+    Framework/Platform/LegacyAdapters/LegacyNavigationAdapter.h
+    Framework/Platform/LegacyAdapters/LegacyNavigationAdapter.cpp
+    Framework/Platform/LegacyAdapters/LegacyNavigationPageServiceAdapter.h
+    Framework/Platform/LegacyAdapters/LegacyNavigationPageServiceAdapter.cpp
+    Framework/Platform/Facades/IdentityAppService.h
+    Framework/Platform/Facades/IdentityAppService.cpp
+    Framework/Platform/Facades/ImagingAppService.h
+    Framework/Platform/Facades/ImagingAppService.cpp
+    Framework/Platform/Facades/NavigationAppService.h
+    Framework/Platform/Facades/NavigationAppService.cpp
 )
 
-# CTK澧炲己缁勪欢婧愭枃浠讹紙鏉′欢缂栬瘧锛?
+# Additional CTK-dependent framework sources
 if(CTK_FOUND)
-    message(STATUS "CTK 鎻掍欢妗嗘灦鍙敤")
+    message(STATUS "CTK plugin framework enabled")
 endif()
 
 # ============================================================================
@@ -512,7 +542,7 @@ if(CTK_FOUND)
         RegistrationCore
     )
 
-    # 娉ㄩ噴鎺夋湁闂鐨勫嚱鏁拌皟鐢?
+# Keep runtime copying disabled here; plugin-specific rules handle it
     # configure_plugin_runtime_copy(medicalpro)
     message(STATUS "Plugin runtime handled by individual plugin configurations")
 endif()

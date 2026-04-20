@@ -5,6 +5,7 @@
 #include "PageIndex.h"
 
 #include <QStringList>
+#include <functional>
 
 class QLabel;
 class QTimer;
@@ -19,7 +20,18 @@ class ModuleSelectionPageNew : public BasePage
     Q_OBJECT
 
 public:
-    explicit ModuleSelectionPageNew(QWidget* parent = nullptr);
+    struct ModuleRuntimeStatus
+    {
+        bool frameworkReady = false;
+        bool workflowReady = false;
+        int readyServices = 0;
+        int totalServices = 0;
+        QStringList missingServices;
+    };
+
+    using RuntimeStatusProvider = std::function<ModuleRuntimeStatus()>;
+
+    explicit ModuleSelectionPageNew(QWidget* parent = nullptr, RuntimeStatusProvider runtimeStatusProvider = {});
     ~ModuleSelectionPageNew();
 
     void onActivated() override;
@@ -37,15 +49,6 @@ private slots:
     void refreshClock();
 
 private:
-    struct ModuleRuntimeStatus
-    {
-        bool frameworkReady = false;
-        bool workflowReady = false;
-        int readyServices = 0;
-        int totalServices = 0;
-        QStringList missingServices;
-    };
-
     ModuleRuntimeStatus collectRuntimeStatus() const;
     void refreshHeaderState();
     void refreshModuleCards();
@@ -54,6 +57,7 @@ private:
     void polishWidget(QWidget* widget);
 
     Ui::ModuleSelectionPage* ui;
+    RuntimeStatusProvider m_runtimeStatusProvider;
     QString m_currentUser;
     QTimer* m_clockTimer;
 };

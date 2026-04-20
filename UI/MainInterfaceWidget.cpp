@@ -1,10 +1,18 @@
 ﻿#include "MainInterfaceWidget.h"
 
+#include "Framework/Platform/Facades/IdentityAppService.h"
+#include "Framework/Platform/Facades/ImagingAppService.h"
+#include "Framework/Platform/Facades/NavigationAppService.h"
+#include "Framework/Platform/LegacyAdapters/LegacyCoreUiRuntimeAdapter.h"
+#include "Framework/Platform/LegacyAdapters/LegacyImagingAdapter.h"
+#include "Framework/Platform/LegacyAdapters/LegacyNavigationAdapter.h"
+#include "Framework/Platform/LegacyAdapters/LegacyUserManagementAdapter.h"
 #include "NewPages/BasePage.h"
 #include "NewPages/DashboardPage.h"
 #include "NewPages/LoginPage.h"
 #include "NewPages/ManagementPage.h"
 #include "NewPages/ModuleSelectionPage.h"
+#include "NewPages/PlatformDiagnosticsPage.h"
 #include "NewPages/NavigationPage.h"
 #include "NewPages/SystemSettingsPage.h"
 #include "NewPages/WelcomePage.h"
@@ -14,6 +22,7 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QPaintEvent>
 #include <QPainter>
@@ -21,63 +30,7 @@
 #include <QVBoxLayout>
 
 #ifdef CTK_PLUGIN_FRAMEWORK
-#include "Framework/Segmentation/SegmentationService.h"
-#include "Plugins/DicomViewer/DicomViewerService.h"
-#include "Plugins/InstrumentManagement/InstrumentManagementService.h"
-#include "Plugins/FourViewDisplay/FourViewDisplayService.h"
 #include "Plugins/UserManagement/UserDataStructures.h"
-#include "Plugins/UserManagement/UserManagementService.h"
-#include <service/event/ctkEventAdmin.h>
-#endif
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-UserManagementService* MainInterfaceWidget::getUserService()
-{
-    if (!m_userService && m_ctkManager) {
-        m_userService = m_ctkManager->getService<UserManagementService>();
-    }
-    return m_userService;
-}
-
-DicomViewerService* MainInterfaceWidget::getDicomService()
-{
-    if (!m_dicomService && m_ctkManager) {
-        m_dicomService = m_ctkManager->getService<DicomViewerService>();
-    }
-    return m_dicomService;
-}
-
-InstrumentManagementService* MainInterfaceWidget::getInstrumentService()
-{
-    if (!m_instrumentService && m_ctkManager) {
-        m_instrumentService = m_ctkManager->getService<InstrumentManagementService>();
-    }
-    return m_instrumentService;
-}
-
-FourViewDisplayService* MainInterfaceWidget::getFourViewService()
-{
-    if (!m_fourViewService && m_ctkManager) {
-        m_fourViewService = m_ctkManager->getService<FourViewDisplayService>();
-    }
-    return m_fourViewService;
-}
-
-SegmentationService* MainInterfaceWidget::getSegmentationService()
-{
-    if (!m_segmentationService && m_ctkManager) {
-        m_segmentationService = m_ctkManager->getService<SegmentationService>();
-    }
-    return m_segmentationService;
-}
-
-ctkEventAdmin* MainInterfaceWidget::getEventAdmin()
-{
-    if (!m_eventAdmin && m_ctkManager) {
-        m_eventAdmin = m_ctkManager->getService<ctkEventAdmin>();
-    }
-    return m_eventAdmin;
-}
 #endif
 
 MainInterfaceWidget::MainInterfaceWidget(QWidget* parent)
@@ -90,15 +43,16 @@ MainInterfaceWidget::MainInterfaceWidget(QWidget* parent)
     , m_managementPage(nullptr)
     , m_surgicalNavigationPage(nullptr)
     , m_dashboardPage(nullptr)
-    , m_ctkManager(CTKManager::instance())
-#ifdef CTK_PLUGIN_FRAMEWORK
-    , m_userService(nullptr)
-    , m_dicomService(nullptr)
-    , m_instrumentService(nullptr)
-    , m_fourViewService(nullptr)
-    , m_segmentationService(nullptr)
-    , m_eventAdmin(nullptr)
-#endif
+    , m_platformDiagnosticsPage(nullptr)
+    , m_platformDiagnosticsService(&m_platformStateStore)
+    , m_coreUiRuntimeAdapter(nullptr)
+    , m_coreUiRuntimeStatusProvider(nullptr)
+    , m_identityAdapter(nullptr)
+    , m_imagingAdapter(nullptr)
+    , m_navigationAdapter(nullptr)
+    , m_identityAppService(nullptr)
+    , m_imagingAppService(nullptr)
+    , m_navigationAppService(nullptr)
     , m_currentPatientId(-1)
     , m_isLoggedIn(false)
 {
@@ -118,6 +72,14 @@ MainInterfaceWidget::MainInterfaceWidget(QWidget* parent)
 
 MainInterfaceWidget::~MainInterfaceWidget()
 {
+    delete m_navigationAppService;
+    delete m_imagingAppService;
+    delete m_identityAppService;
+    delete m_navigationAdapter;
+    delete m_imagingAdapter;
+    delete m_identityAdapter;
+    delete m_coreUiRuntimeStatusProvider;
+    delete m_coreUiRuntimeAdapter;
     qDebug() << "[MainInterfaceWidget] destroy";
 }
 
@@ -178,6 +140,12 @@ void MainInterfaceWidget::onSystemSettingsBack()
     navigateToPage(PAGE_MODULE_SELECTION);
 }
 
+void MainInterfaceWidget::onSystemSettingsDiagnostics()
+{
+    qDebug() << "[MainInterfaceWidget] settings -> diagnostics";
+    navigateToPage(PAGE_DIAGNOSTICS);
+}
+
 void MainInterfaceWidget::onManagementBack()
 {
     qDebug() << "[MainInterfaceWidget] management -> module selection";
@@ -194,6 +162,12 @@ void MainInterfaceWidget::onDashboardBackToManagement()
 {
     qDebug() << "[MainInterfaceWidget] dashboard -> management";
     navigateToPage(PAGE_MANAGEMENT);
+}
+
+void MainInterfaceWidget::onDiagnosticsBack()
+{
+    qDebug() << "[MainInterfaceWidget] diagnostics -> settings";
+    navigateToPage(PAGE_SYSTEM_SETTINGS);
 }
 
 void MainInterfaceWidget::onReturnToWelcomeRequested()
@@ -233,6 +207,19 @@ void MainInterfaceWidget::setupUI()
 {
     qDebug() << "[MainInterfaceWidget] setup ui";
 
+    if (!m_identityAdapter) m_identityAdapter = new LegacyUserManagementAdapter();
+    if (!m_imagingAdapter) m_imagingAdapter = new LegacyImagingAdapter();
+    if (!m_navigationAdapter) m_navigationAdapter = new LegacyNavigationAdapter();
+    if (!m_coreUiRuntimeAdapter) m_coreUiRuntimeAdapter = new LegacyCoreUiRuntimeAdapter();
+    if (!m_coreUiRuntimeStatusProvider) {
+        m_coreUiRuntimeStatusProvider = new CoreUiRuntimeStatusProvider(
+            m_coreUiRuntimeAdapter,
+            QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("data")));
+    }
+    if (!m_identityAppService) m_identityAppService = new IdentityAppService(m_identityAdapter);
+    if (!m_imagingAppService) m_imagingAppService = new ImagingAppService(m_imagingAdapter);
+    if (!m_navigationAppService) m_navigationAppService = new NavigationAppService(m_navigationAdapter);
+
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
@@ -242,13 +229,58 @@ void MainInterfaceWidget::setupUI()
     m_stackedWidget->setStyleSheet(QStringLiteral("QStackedWidget { background: transparent; }"));
     mainLayout->addWidget(m_stackedWidget);
 
-    m_welcomePage = new WelcomePageNew(this);
-    m_loginPage = new LoginPageNew(this);
-    m_moduleSelectionPage = new ModuleSelectionPageNew(this);
-    m_systemSettingsPage = new SystemSettingsPageNew(this);
-    m_managementPage = new ManagementPageNew(this);
-    m_dashboardPage = new DashboardPageNew(this);
+    m_welcomePage = new WelcomePageNew(this, [this]() {
+        const auto runtimeSnapshot = m_coreUiRuntimeStatusProvider
+            ? m_coreUiRuntimeStatusProvider->welcomeSnapshot()
+            : CoreUiRuntimeStatusSnapshot {};
+        WelcomePageNew::RuntimeStatusSnapshot snapshot;
+        snapshot.frameworkReady = runtimeSnapshot.frameworkReady;
+        snapshot.pluginCount = runtimeSnapshot.pluginCount;
+        snapshot.readyServices = runtimeSnapshot.readyServices;
+        snapshot.totalServices = runtimeSnapshot.totalServices;
+        snapshot.dataDirectoryExists = runtimeSnapshot.dataDirectoryExists;
+        snapshot.dataDirectoryReadable = runtimeSnapshot.dataDirectoryReadable;
+        snapshot.missingServices = runtimeSnapshot.missingServices;
+        return snapshot;
+    });
+    m_loginPage = new LoginPageNew(this, [this](const QString& username, const QString& password) {
+        if (!m_identityAppService) return UserInfo {};
+        return m_identityAppService->authenticate(username, password);
+    });
+    m_moduleSelectionPage = new ModuleSelectionPageNew(this, [this]() {
+        const auto runtimeSnapshot = m_coreUiRuntimeStatusProvider
+            ? m_coreUiRuntimeStatusProvider->moduleSelectionSnapshot()
+            : CoreUiRuntimeStatusSnapshot {};
+        ModuleSelectionPageNew::ModuleRuntimeStatus status;
+        status.frameworkReady = runtimeSnapshot.frameworkReady;
+        status.workflowReady = runtimeSnapshot.workflowReady;
+        status.readyServices = runtimeSnapshot.readyServices;
+        status.totalServices = runtimeSnapshot.totalServices;
+        status.missingServices = runtimeSnapshot.missingServices;
+        return status;
+    });
+    m_systemSettingsPage = new SystemSettingsPageNew(this, [this]() {
+        const auto runtimeSnapshot = m_coreUiRuntimeStatusProvider
+            ? m_coreUiRuntimeStatusProvider->systemSettingsSnapshot()
+            : CoreUiRuntimeStatusSnapshot {};
+        SystemSettingsPageNew::RuntimeStatusSnapshot snapshot;
+        snapshot.frameworkReady = runtimeSnapshot.frameworkReady;
+        snapshot.pluginCount = runtimeSnapshot.pluginCount;
+        snapshot.readyServices = runtimeSnapshot.readyServices;
+        snapshot.totalServices = runtimeSnapshot.totalServices;
+        snapshot.dataDirectoryReadable = runtimeSnapshot.dataDirectoryReadable;
+        return snapshot;
+    });
+    m_managementPage = new ManagementPageNew(this, m_identityAppService);
+    m_dashboardPage = new DashboardPageNew(
+        this,
+        m_identityAppService,
+        m_imagingAppService,
+        m_navigationAppService);
     m_surgicalNavigationPage = new NavigationPageNew(this);
+    m_platformDiagnosticsPage = new PlatformDiagnosticsPage(this, [this]() {
+        return m_platformDiagnosticsService.buildSnapshot(m_runtimeCollector.collect());
+    });
 
     m_stackedWidget->addWidget(m_welcomePage);
     m_stackedWidget->addWidget(m_loginPage);
@@ -257,6 +289,7 @@ void MainInterfaceWidget::setupUI()
     m_stackedWidget->addWidget(m_managementPage);
     m_stackedWidget->addWidget(m_dashboardPage);
     m_stackedWidget->addWidget(m_surgicalNavigationPage);
+    m_stackedWidget->addWidget(m_platformDiagnosticsPage);
 }
 
 void MainInterfaceWidget::enterSurgicalNavigationSystem(int patientId)
@@ -305,6 +338,8 @@ void MainInterfaceWidget::setupConnections()
 
     connect(m_systemSettingsPage, &SystemSettingsPageNew::backRequested,
             this, &MainInterfaceWidget::onSystemSettingsBack);
+    connect(m_systemSettingsPage, &SystemSettingsPageNew::diagnosticsRequested,
+            this, &MainInterfaceWidget::onSystemSettingsDiagnostics);
 
     connect(m_managementPage, &ManagementPageNew::backRequested,
             this, &MainInterfaceWidget::onManagementBack);
@@ -320,6 +355,8 @@ void MainInterfaceWidget::setupConnections()
 
     connect(m_surgicalNavigationPage, &NavigationPageNew::backToMainRequested,
             this, &MainInterfaceWidget::exitSurgicalNavigationSystem);
+    connect(m_platformDiagnosticsPage, &PlatformDiagnosticsPage::backRequested,
+            this, &MainInterfaceWidget::onDiagnosticsBack);
 }
 
 void MainInterfaceWidget::onLogoutButtonClicked()
@@ -335,14 +372,9 @@ void MainInterfaceWidget::onLogoutButtonClicked()
         return;
     }
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    if (auto* userService = getUserService()) {
-        const UserInfo currentUser = userService->getCurrentUser();
-        if (currentUser.isValid()) {
-            userService->logoutUser(currentUser.id);
-        }
+    if (m_identityAppService) {
+        m_identityAppService->logoutCurrentUser();
     }
-#endif
 
     onReturnToWelcomeRequested();
 }
@@ -386,6 +418,9 @@ void MainInterfaceWidget::navigateToPage(int pageIndex)
         break;
     case PAGE_SURGICAL_NAVIGATION:
         targetPage = m_surgicalNavigationPage;
+        break;
+    case PAGE_DIAGNOSTICS:
+        targetPage = m_platformDiagnosticsPage;
         break;
     default:
         qWarning() << "[MainInterfaceWidget] invalid page index" << pageIndex;

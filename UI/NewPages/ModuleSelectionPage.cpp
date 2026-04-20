@@ -8,10 +8,7 @@
 #include <QStyle>
 #include <QTimer>
 #include <QWidget>
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include "Framework/CTKManager.h"
-#endif
+#include <utility>
 
 namespace
 {
@@ -22,9 +19,10 @@ const QStringList kRequiredModuleServices = {
 };
 }
 
-ModuleSelectionPageNew::ModuleSelectionPageNew(QWidget* parent)
+ModuleSelectionPageNew::ModuleSelectionPageNew(QWidget* parent, RuntimeStatusProvider runtimeStatusProvider)
     : BasePage(parent)
     , ui(new Ui::ModuleSelectionPage)
+    , m_runtimeStatusProvider(std::move(runtimeStatusProvider))
     , m_clockTimer(new QTimer(this))
 {
     ui->setupUi(this);
@@ -96,22 +94,13 @@ void ModuleSelectionPageNew::refreshClock()
 
 ModuleSelectionPageNew::ModuleRuntimeStatus ModuleSelectionPageNew::collectRuntimeStatus() const
 {
+    if (m_runtimeStatusProvider) {
+        return m_runtimeStatusProvider();
+    }
+
     ModuleRuntimeStatus status;
     status.totalServices = kRequiredModuleServices.size();
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-    auto* ctkManager = CTKManager::instance();
-    status.frameworkReady = ctkManager && ctkManager->isCTKAvailable();
-    status.missingServices = ctkManager ? ctkManager->getMissingServices(kRequiredModuleServices) : kRequiredModuleServices;
-#else
-    status.frameworkReady = false;
     status.missingServices = kRequiredModuleServices;
-#endif
-
-    status.readyServices = status.totalServices - status.missingServices.size();
-    if (status.readyServices < 0) {
-        status.readyServices = 0;
-    }
     status.workflowReady = status.frameworkReady && status.readyServices == status.totalServices;
     return status;
 }

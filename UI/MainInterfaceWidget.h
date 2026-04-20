@@ -6,7 +6,10 @@
 #include <QString>
 #include <QWidget>
 
-#include "Framework/CTKManager.h"
+#include "Framework/Platform/CtkBridge/CoreUiRuntimeStatusProvider.h"
+#include "Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.h"
+#include "Framework/Platform/Diagnostics/PlatformDiagnosticsService.h"
+#include "Framework/Platform/Kernel/PlatformStateStore.h"
 
 class QCloseEvent;
 class QPaintEvent;
@@ -18,15 +21,14 @@ class SystemSettingsPageNew;
 class ManagementPageNew;
 class NavigationPageNew;
 class DashboardPageNew;
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-class UserManagementService;
-class DicomViewerService;
-class InstrumentManagementService;
-class FourViewDisplayService;
-class SegmentationService;
-class ctkEventAdmin;
-#endif
+class PlatformDiagnosticsPage;
+class LegacyCoreUiRuntimeAdapter;
+class LegacyUserManagementAdapter;
+class LegacyImagingAdapter;
+class LegacyNavigationAdapter;
+class IdentityAppService;
+class ImagingAppService;
+class NavigationAppService;
 
 enum class MeasurementTool
 {
@@ -62,9 +64,11 @@ private slots:
     void onModuleSelectionAnkleSurgery();
     void onModuleSelectionBack();
     void onSystemSettingsBack();
+    void onSystemSettingsDiagnostics();
     void onManagementBack();
     void onManagementEnterMainSystem();
     void onDashboardBackToManagement();
+    void onDiagnosticsBack();
     void onReturnToWelcomeRequested();
     void onLogoutButtonClicked();
     void onExitButtonClicked();
@@ -77,7 +81,8 @@ private:
         PAGE_SYSTEM_SETTINGS = 3,
         PAGE_MANAGEMENT = 4,
         PAGE_MAIN = 5,
-        PAGE_SURGICAL_NAVIGATION = 6
+        PAGE_SURGICAL_NAVIGATION = 6,
+        PAGE_DIAGNOSTICS = 7
     };
 
     void setupUI();
@@ -87,15 +92,6 @@ private:
     void exitSurgicalNavigationSystem();
     QString getProjectPath() const;
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    UserManagementService* getUserService();
-    DicomViewerService* getDicomService();
-    InstrumentManagementService* getInstrumentService();
-    FourViewDisplayService* getFourViewService();
-    SegmentationService* getSegmentationService();
-    ctkEventAdmin* getEventAdmin();
-#endif
-
     QStackedWidget* m_stackedWidget;
     WelcomePageNew* m_welcomePage;
     LoginPageNew* m_loginPage;
@@ -104,16 +100,18 @@ private:
     ManagementPageNew* m_managementPage;
     NavigationPageNew* m_surgicalNavigationPage;
     DashboardPageNew* m_dashboardPage;
-    CTKManager* m_ctkManager;
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-    UserManagementService* m_userService;
-    DicomViewerService* m_dicomService;
-    InstrumentManagementService* m_instrumentService;
-    FourViewDisplayService* m_fourViewService;
-    SegmentationService* m_segmentationService;
-    ctkEventAdmin* m_eventAdmin;
-#endif
+    PlatformDiagnosticsPage* m_platformDiagnosticsPage;
+    PlatformStateStore m_platformStateStore;
+    PlatformDiagnosticsService m_platformDiagnosticsService;
+    CtkRuntimeSnapshotCollector m_runtimeCollector;
+    LegacyCoreUiRuntimeAdapter* m_coreUiRuntimeAdapter;
+    CoreUiRuntimeStatusProvider* m_coreUiRuntimeStatusProvider;
+    LegacyUserManagementAdapter* m_identityAdapter;
+    LegacyImagingAdapter* m_imagingAdapter;
+    LegacyNavigationAdapter* m_navigationAdapter;
+    IdentityAppService* m_identityAppService;
+    ImagingAppService* m_imagingAppService;
+    NavigationAppService* m_navigationAppService;
 
     int m_currentPatientId;
     bool m_isLoggedIn;

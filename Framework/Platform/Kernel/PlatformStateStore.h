@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Framework/FrameworkExport.h"
 #include "Framework/Platform/Contracts/PlatformPluginDescriptor.h"
 #include "Framework/Platform/Contracts/PlatformSnapshots.h"
 
@@ -7,7 +8,7 @@
 #include <QStringList>
 #include <QVector>
 
-class PlatformStateStore
+class FRAMEWORK_EXPORT PlatformStateStore
 {
 public:
     void replaceDescriptors(const QVector<PlatformPluginDescriptor>& descriptors);

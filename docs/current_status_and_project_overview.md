@@ -1,3 +1,32 @@
+## Platform Kernel Governance
+
+### 2026-04-17 Startup Diagnostics Rollout Acceptance
+
+- Task 5 governance write-back is completed for design spec, governance matrix, decision log, and current status tracking.
+- The accepted baseline in this worktree is the lifecycle-event-based diagnostics foundation plus the implementation-plan subset that is already wired through the current diagnostics page: top summary, lifecycle timeline, problem list, and plugin lifecycle table.
+- `docs/superpowers/specs/2026-04-17-startup-performance-and-plugin-lifecycle-diagnostics-design.md` remains the broader target design. Its full page field matrix should not be read as "already accepted and fully implemented" by this Task 5 rollout.
+- This section is a 2026-04-17 supplement for Task 5 startup diagnostics acceptance evidence and should be read as scope boundary clarification, not as a claim that every design-spec field has landed.
+- Executed command (build):
+  - `cmake --build build_x64_noctk --config Release --target medicalpro platform_startup_trace_recorder_test platform_plugin_lifecycle_aggregator_test platform_startup_coordinator_test platform_diagnostics_service_test platform_diagnostics_page_test platform_ui_bridge_test ui_ctk_decoupling_acceptance_test`
+- Executed command (ctest):
+  - `ctest --test-dir build_x64_noctk -C Release -R "platform_startup_trace_recorder_test|platform_plugin_lifecycle_aggregator_test|platform_startup_coordinator_test|platform_diagnostics_service_test|platform_diagnostics_page_test|platform_ui_bridge_test|ui_ctk_decoupling_acceptance_test" --output-on-failure`
+- Executed command (CTK direct-call scan):
+  - `rg -n "CTKManager::instance\(|getService<" UI\NewPages UI\MainInterfaceWidget.cpp`
+- Expected outcomes alignment and actual results:
+  - `medicalpro` build target: PASS (build command exit code 0).
+  - Startup diagnostics special test suite: `7/7 PASS` (ctest reports 100% tests passed, 0 failed out of 7).
+  - CTK direct-call scan: no output (`rg` returned no matches).
+
+### 2026-04-17 Rollout Status
+
+- Task 9 startup governance routing is complete in this worktree.
+- Task 10 UI decoupling close-out is complete in this worktree.
+- Verified with `cmake --build build_x64_noctk --config Release --target medicalpro platform_facades_test login_page_platform_providers_test core_pages_platform_providers_test platform_ui_bridge_test ui_ctk_decoupling_acceptance_test`.
+- Verified with `ctest --test-dir build_x64_noctk -C Release -R "platform_facades_test|login_page_platform_providers_test|core_pages_platform_providers_test|platform_startup_coordinator_test|platform_descriptor_runtime_layout_test|platform_ui_bridge_test|ui_ctk_decoupling_acceptance_test" --output-on-failure`.
+- Login, MainWindow, and MainInterface identity flows now enter through facade/provider wiring instead of direct CTK user-service lookups.
+- MainInterface runtime status now enters through `CoreUiRuntimeStatusProvider`, and NavigationPage service loading now enters through `NavigationPageServiceAccess`.
+- `rg -n "CTKManager::instance\(|getService<" UI\NewPages UI\MainInterfaceWidget.cpp` now returns no matches.
+
 # MedicalPro 当前状态与项目说明
 
 更新时间：2026-04-16

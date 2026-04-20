@@ -1,6 +1,9 @@
 ﻿#include "DashboardPage.h"
 #include "ui_DashboardPage.h"
 
+#include "Framework/Platform/Facades/IdentityAppService.h"
+#include "Framework/Platform/Facades/ImagingAppService.h"
+#include "Framework/Platform/Facades/NavigationAppService.h"
 #include "ThreePagePresentationUtils.h"
 
 #include <QFrame>
@@ -9,12 +12,6 @@
 #include <QStyle>
 #include <QVBoxLayout>
 #include <QWidget>
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include "Framework/CTKManager.h"
-#include "Plugins/DicomViewer/DicomViewerService.h"
-#include "Plugins/UserManagement/UserManagementService.h"
-#endif
 
 namespace
 {
@@ -28,11 +25,18 @@ QString compactText(const QString& text, const QString& fallback)
 }
 }
 
-DashboardPageNew::DashboardPageNew(QWidget* parent)
+DashboardPageNew::DashboardPageNew(
+    QWidget* parent,
+    IdentityAppService* identityAppService,
+    ImagingAppService* imagingAppService,
+    NavigationAppService* navigationAppService)
     : BasePage(parent)
     , ui(new Ui::DashboardPage)
     , m_currentPatientId(-1)
     , m_currentDicomStudyCount(0)
+    , m_identityAppService(identityAppService)
+    , m_imagingAppService(imagingAppService)
+    , m_navigationAppService(navigationAppService)
 {
     ui->setupUi(this);
     setObjectName("DashboardPage");
@@ -103,6 +107,12 @@ void DashboardPageNew::on_enterNavigationButton_clicked()
         return;
     }
 
+    if (m_navigationAppService
+        && !m_navigationAppService->ensureReady(QStringLiteral("org.medicalpro.registration_core"))) {
+        showWarning(QStringLiteral("进入导航"), QStringLiteral("导航核心插件尚未就绪。"));
+        return;
+    }
+
     emit enterNavigationRequested(m_currentPatientId);
     emit navigateTo(toInt(PageIndex::Navigation));
 }
@@ -134,9 +144,8 @@ void DashboardPageNew::loadPatients()
     m_patientIds.clear();
     clearPatientDetails();
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    if (auto* userService = CTKManager::instance()->getService<UserManagementService>()) {
-        const auto patients = userService->listPatients();
+    if (m_identityAppService) {
+        const auto patients = m_identityAppService->listPatients();
         for (const auto& patient : patients) {
             m_patientIds.append(patient.id);
             ui->patientListWidget->addItem(QStringLiteral("%1 - %2").arg(patient.id).arg(patient.name));
@@ -147,7 +156,6 @@ void DashboardPageNew::loadPatients()
         }
         return;
     }
-#endif
 
     const QStringList testPatients = {
         QStringLiteral("1 - 患者A（踝关节炎）"),
@@ -167,9 +175,8 @@ void DashboardPageNew::loadPatients()
 
 void DashboardPageNew::loadPatientDetails(int patientId)
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
-    if (auto* userService = CTKManager::instance()->getService<UserManagementService>()) {
-        const auto patient = userService->getPatient(patientId);
+    if (m_identityAppService) {
+        const auto patient = m_identityAppService->patientById(patientId);
         if (patient.id > 0) {
             const QString diagnosisSummary = compactText(patient.description, QStringLiteral("待补充"));
             ui->patientNameLabel->setText(patient.name);
@@ -187,8 +194,10 @@ void DashboardPageNew::loadPatientDetails(int patientId)
             updateNavigationCta(true);
             return;
         }
+
+        clearPatientDetails();
+        return;
     }
-#endif
 
     ui->patientNameLabel->setText(QStringLiteral("患者%1").arg(patientId));
     ui->idLabel->setText(QString::number(patientId));
@@ -218,9 +227,8 @@ void DashboardPageNew::loadDicomImages(int patientId)
         delete child;
     }
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    if (auto* dicomService = CTKManager::instance()->getService<DicomViewerService>()) {
-        const auto studies = dicomService->listStudiesByPatient(patientId);
+    if (m_imagingAppService) {
+        const auto studies = m_imagingAppService->listStudiesByPatient(patientId);
         m_currentDicomStudyCount = studies.size();
 
         if (!studies.isEmpty()) {
@@ -268,7 +276,6 @@ void DashboardPageNew::loadDicomImages(int patientId)
             return;
         }
     }
-#endif
 
     ui->noDicomLabel->setText(QStringLiteral("该患者暂无 DICOM 影像"));
     ui->dicomContentLayout->addWidget(ui->noDicomLabel);

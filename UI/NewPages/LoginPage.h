@@ -3,6 +3,9 @@
 
 #include "BasePage.h"
 #include "PageIndex.h"
+#include "Plugins/UserManagement/UserDataStructures.h"
+
+#include <functional>
 
 namespace Ui {
 class LoginPage;
@@ -21,7 +24,9 @@ class LoginPageNew : public BasePage
     Q_OBJECT
 
 public:
-    explicit LoginPageNew(QWidget* parent = nullptr);
+    using LoginHandler = std::function<UserInfo(const QString&, const QString&)>;
+
+    explicit LoginPageNew(QWidget* parent = nullptr, LoginHandler loginHandler = {});
     ~LoginPageNew();
 
     void onActivated() override;
@@ -41,9 +46,10 @@ private slots:
 private:
     void loadSavedCredentials();
     void saveCredentials();
-    bool validateLogin(const QString& username, const QString& password);
+    UserInfo authenticate(const QString& username, const QString& password) const;
 
     Ui::LoginPage* ui;
+    LoginHandler m_loginHandler;
     QString m_currentUser;
 };
 

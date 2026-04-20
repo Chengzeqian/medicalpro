@@ -1,5 +1,25 @@
 # Platform Kernel Governance Design
 
+## Startup Diagnostics Follow-up (2026-04-17)
+
+- `StartupTrace` has been expanded from phase-level trace into a full lifecycle timeline.
+- `ready-path` and `warmup-tail` are now separated in platform diagnostics.
+- A `PlatformLifecycleEvent` ledger is now recorded and aggregated into `PlatformPluginLifecycleSnapshot` outputs.
+
+## Implementation Links
+
+### 2026-04-17 Rollout Status
+
+- Startup governance routing has been validated in `build_x64_noctk`.
+- Runtime artifact descriptor validation is passing in this worktree.
+- Identity-flow facade decoupling is now complete for MainInterface, Login, and MainWindow.
+- Direct CTK cleanup is now complete for `UI/MainInterfaceWidget.cpp` runtime-status access and `UI/NewPages/NavigationPage.cpp` service lookups through `CoreUiRuntimeStatusProvider` and `NavigationPageServiceAccess`.
+
+- Implementation plan: `docs/superpowers/plans/2026-04-16-platform-kernel-governance-implementation.md`
+- Governance matrix: `docs/superpowers/tracking/platform-plugin-governance-matrix.md`
+- Decision log: `docs/superpowers/tracking/platform-migration-decision-log.md`
+
+
 日期：2026-04-16  
 范围：`medicalpro` 第一阶段“平台内核治理”设计  
 目标：在不替换 CTK、不重写全部业务插件内部实现的前提下，为核心主链建立统一的平台内核、统一插件描述、统一状态模型、统一门面入口和统一诊断机制，解决当前插件识别混乱、初始化链路不清、服务加载无序、启动耗时不可解释的问题。

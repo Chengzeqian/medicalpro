@@ -1,21 +1,18 @@
 #include "MainWindow.h"
 
-#include "WelcomePage.h"
-#include "LoginPage.h"
-#include "ModuleSelectionPage.h"
-#include "SystemSettingsPage.h"
-#include "ManagementPage.h"
+#include "Framework/Platform/Facades/IdentityAppService.h"
+#include "Framework/Platform/LegacyAdapters/LegacyUserManagementAdapter.h"
 #include "DashboardPage.h"
+#include "LoginPage.h"
+#include "ManagementPage.h"
+#include "ModuleSelectionPage.h"
 #include "NavigationPage.h"
+#include "SystemSettingsPage.h"
+#include "WelcomePage.h"
 
 #include <QCloseEvent>
-#include <QMessageBox>
 #include <QDebug>
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include "Framework/CTKManager.h"
-#include "Plugins/UserManagement/UserManagementService.h"
-#endif
+#include <QMessageBox>
 
 MainWindowNew::MainWindowNew(QWidget* parent)
     : QMainWindow(parent)
@@ -27,88 +24,80 @@ MainWindowNew::MainWindowNew(QWidget* parent)
     , m_managementPage(nullptr)
     , m_dashboardPage(nullptr)
     , m_navigationPage(nullptr)
+    , m_identityAdapter(nullptr)
+    , m_identityAppService(nullptr)
     , m_currentPatientId(-1)
 {
     setupUI();
     createPages();
     setupConnections();
-
-    // 从欢迎页开始
     navigateTo(PageIndex::Welcome);
 }
 
 MainWindowNew::~MainWindowNew()
 {
-    // 页面由 QStackedWidget 管理，自动删除
+    delete m_identityAppService;
+    delete m_identityAdapter;
 }
 
 void MainWindowNew::setupUI()
 {
-    setWindowTitle("医疗导航系统");
+    setWindowTitle(QStringLiteral("\u533b\u7597\u5bfc\u822a\u7cfb\u7edf"));
     setMinimumSize(1280, 800);
-
-    // 设置窗口样式
     setStyleSheet(
         "QMainWindow {"
         "    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,"
         "        stop:0 #1a1a2e, stop:1 #16213e);"
-        "}"
-    );
+        "}");
 
-    // 创建中央页面栈
     m_pageStack = new QStackedWidget(this);
     setCentralWidget(m_pageStack);
 }
 
 void MainWindowNew::createPages()
 {
-    // 创建所有页面
+    if (!m_identityAdapter) m_identityAdapter = new LegacyUserManagementAdapter();
+    if (!m_identityAppService) m_identityAppService = new IdentityAppService(m_identityAdapter);
+
     m_welcomePage = new WelcomePageNew(this);
-    m_loginPage = new LoginPageNew(this);
+    m_loginPage = new LoginPageNew(this, [this](const QString& username, const QString& password) {
+        if (!m_identityAppService) return UserInfo {};
+        return m_identityAppService->authenticate(username, password);
+    });
     m_moduleSelectionPage = new ModuleSelectionPageNew(this);
     m_systemSettingsPage = new SystemSettingsPageNew(this);
-    m_managementPage = new ManagementPageNew(this);
-    m_dashboardPage = new DashboardPageNew(this);
+    m_managementPage = new ManagementPageNew(this, m_identityAppService);
+    m_dashboardPage = new DashboardPageNew(this, m_identityAppService);
     m_navigationPage = new NavigationPageNew(this);
 
-    // 按照 PageIndex 顺序添加到栈中
-    m_pageStack->addWidget(m_welcomePage);        // 0 - Welcome
-    m_pageStack->addWidget(m_loginPage);          // 1 - Login
-    m_pageStack->addWidget(m_moduleSelectionPage);// 2 - ModuleSelection
-    m_pageStack->addWidget(m_systemSettingsPage); // 3 - SystemSettings
-    m_pageStack->addWidget(m_managementPage);     // 4 - Management
-    m_pageStack->addWidget(m_dashboardPage);      // 5 - Dashboard
-    m_pageStack->addWidget(m_navigationPage);     // 6 - Navigation
+    m_pageStack->addWidget(m_welcomePage);
+    m_pageStack->addWidget(m_loginPage);
+    m_pageStack->addWidget(m_moduleSelectionPage);
+    m_pageStack->addWidget(m_systemSettingsPage);
+    m_pageStack->addWidget(m_managementPage);
+    m_pageStack->addWidget(m_dashboardPage);
+    m_pageStack->addWidget(m_navigationPage);
 }
 
 void MainWindowNew::setupConnections()
 {
-    // 连接所有页面的导航信号
-
-    // WelcomePage
     connect(m_welcomePage, &WelcomePageNew::navigateTo, this, &MainWindowNew::onNavigateTo);
     connect(m_welcomePage, &WelcomePageNew::exitRequested, this, &MainWindowNew::onExitRequested);
 
-    // LoginPage
     connect(m_loginPage, &LoginPageNew::navigateTo, this, &MainWindowNew::onNavigateTo);
     connect(m_loginPage, &LoginPageNew::loginSucceeded, this, &MainWindowNew::onLoginSucceeded);
 
-    // ModuleSelectionPage
     connect(m_moduleSelectionPage, &ModuleSelectionPageNew::navigateTo, this, &MainWindowNew::onNavigateTo);
     connect(m_moduleSelectionPage, &ModuleSelectionPageNew::logoutRequested, this, &MainWindowNew::onLogoutRequested);
 
-    // SystemSettingsPage
     connect(m_systemSettingsPage, &SystemSettingsPageNew::navigateTo, this, &MainWindowNew::onNavigateTo);
 
-    // ManagementPage
     connect(m_managementPage, &ManagementPageNew::navigateTo, this, &MainWindowNew::onNavigateTo);
 
-    // DashboardPage
     connect(m_dashboardPage, &DashboardPageNew::navigateTo, this, &MainWindowNew::onNavigateTo);
     connect(m_dashboardPage, &DashboardPageNew::logoutRequested, this, &MainWindowNew::onLogoutRequested);
     connect(m_dashboardPage, &DashboardPageNew::enterNavigationRequested, this, &MainWindowNew::onEnterNavigationRequested);
 
-    // NavigationPage
     connect(m_navigationPage, &NavigationPageNew::navigateTo, this, &MainWindowNew::onNavigateTo);
 }
 
@@ -124,28 +113,20 @@ void MainWindowNew::navigateTo(int pageIndex)
         return;
     }
 
-    int currentIndex = m_pageStack->currentIndex();
-
-    // 如果是同一个页面，不做任何事
+    const int currentIndex = m_pageStack->currentIndex();
     if (currentIndex == pageIndex) {
         return;
     }
 
     qDebug() << "[MainWindow] Navigating from" << currentIndex << "to" << pageIndex;
-
-    // 失活当前页面
     deactivatePage(currentIndex);
 
-    // 记录导航历史（除了登录和欢迎页）
-    if (currentIndex != toInt(PageIndex::Welcome) &&
-        currentIndex != toInt(PageIndex::Login)) {
+    if (currentIndex != toInt(PageIndex::Welcome)
+        && currentIndex != toInt(PageIndex::Login)) {
         m_navigationHistory.push(currentIndex);
     }
 
-    // 切换页面
     m_pageStack->setCurrentIndex(pageIndex);
-
-    // 激活新页面
     activatePage(pageIndex);
 }
 
@@ -156,18 +137,12 @@ void MainWindowNew::goBack()
         return;
     }
 
-    int previousPage = m_navigationHistory.pop();
-    int currentIndex = m_pageStack->currentIndex();
+    const int previousPage = m_navigationHistory.pop();
+    const int currentIndex = m_pageStack->currentIndex();
 
     qDebug() << "[MainWindow] Going back from" << currentIndex << "to" << previousPage;
-
-    // 失活当前页面
     deactivatePage(currentIndex);
-
-    // 切换页面
     m_pageStack->setCurrentIndex(previousPage);
-
-    // 激活新页面
     activatePage(previousPage);
 }
 
@@ -176,7 +151,6 @@ void MainWindowNew::activatePage(int pageIndex)
     QWidget* page = m_pageStack->widget(pageIndex);
     if (!page) return;
 
-    // 调用页面的 onActivated 方法
     if (auto* welcomePage = qobject_cast<WelcomePageNew*>(page)) {
         welcomePage->onActivated();
     } else if (auto* loginPage = qobject_cast<LoginPageNew*>(page)) {
@@ -199,7 +173,6 @@ void MainWindowNew::deactivatePage(int pageIndex)
     QWidget* page = m_pageStack->widget(pageIndex);
     if (!page) return;
 
-    // 调用页面的 onDeactivated 方法
     if (auto* welcomePage = qobject_cast<WelcomePageNew*>(page)) {
         welcomePage->onDeactivated();
     } else if (auto* loginPage = qobject_cast<LoginPageNew*>(page)) {
@@ -229,8 +202,12 @@ void MainWindowNew::onGoBack()
 
 void MainWindowNew::onExitRequested()
 {
-    if (QMessageBox::question(this, "退出", "确定要退出吗？",
-        QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+    if (QMessageBox::question(
+            this,
+            QStringLiteral("\u9000\u51fa"),
+            QStringLiteral("\u786e\u5b9a\u8981\u9000\u51fa\u5417\uff1f"),
+            QMessageBox::Yes | QMessageBox::No)
+        == QMessageBox::Yes) {
         emit exitRequested();
         close();
     }
@@ -238,6 +215,10 @@ void MainWindowNew::onExitRequested()
 
 void MainWindowNew::onLogoutRequested()
 {
+    if (m_identityAppService) {
+        m_identityAppService->logoutCurrentUser();
+    }
+
     m_currentUser.clear();
     m_currentPatientId = -1;
     m_navigationHistory.clear();
@@ -248,8 +229,6 @@ void MainWindowNew::onLogoutRequested()
 void MainWindowNew::onLoginSucceeded(const QString& username)
 {
     m_currentUser = username;
-
-    // 更新模块选择页面的用户信息
     m_moduleSelectionPage->setCurrentUser(username);
 
     qDebug() << "[MainWindow] User logged in:" << username;
@@ -258,35 +237,31 @@ void MainWindowNew::onLoginSucceeded(const QString& username)
 void MainWindowNew::onEnterNavigationRequested(int patientId)
 {
     m_currentPatientId = patientId;
-
-    // 设置导航页面的患者信息
     m_navigationPage->setPatientId(patientId);
 
-    // 获取患者名称（简化处理）
-    QString patientName = QString("患者 %1").arg(patientId);
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-    auto* userService = CTKManager::instance()->getService<UserManagementService>();
-    if (userService) {
-        const auto patient = userService->getPatient(patientId);
+    QString patientName = QStringLiteral("\u60a3\u8005%1").arg(patientId);
+    if (m_identityAppService) {
+        const auto patient = m_identityAppService->patientById(patientId);
         if (patient.isValid()) {
             patientName = patient.name;
         }
     }
-#endif
 
     m_navigationPage->setPatientName(patientName);
-
     qDebug() << "[MainWindow] Entering navigation for patient:" << patientId;
 }
 
 void MainWindowNew::closeEvent(QCloseEvent* event)
 {
-    // 确认退出
-    if (QMessageBox::question(this, "退出", "确定要退出吗？",
-        QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+    if (QMessageBox::question(
+            this,
+            QStringLiteral("\u9000\u51fa"),
+            QStringLiteral("\u786e\u5b9a\u8981\u9000\u51fa\u5417\uff1f"),
+            QMessageBox::Yes | QMessageBox::No)
+        == QMessageBox::Yes) {
         event->accept();
-    } else {
-        event->ignore();
+        return;
     }
+
+    event->ignore();
 }

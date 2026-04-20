@@ -7,17 +7,18 @@
  * 统一管理所有页面的索引值，用于页面导航
  */
 enum class PageIndex {
-    Welcome = 0,           // 欢迎页
-    Login = 1,             // 登录页
-    ModuleSelection = 2,   // 模块选择页
-    SystemSettings = 3,    // 系统设置页
-    Management = 4,        // 数据管理页
-    Dashboard = 5,         // 患者总览页
-    Navigation = 6         // 手术导航页
+    Welcome = 0,
+    Login = 1,
+    ModuleSelection = 2,
+    SystemSettings = 3,
+    Management = 4,
+    Dashboard = 5,
+    Navigation = 6,
+    Diagnostics = 7
 };
 
-// 方便使用的转换函数
-inline int toInt(PageIndex page) {
+inline int toInt(PageIndex page)
+{
     return static_cast<int>(page);
 }
 

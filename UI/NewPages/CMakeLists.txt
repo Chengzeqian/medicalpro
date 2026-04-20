@@ -32,6 +32,7 @@ set(NEWPAGES_HEADERS
     ManagementPage.h
     DashboardPage.h
     NavigationPage.h
+    PlatformDiagnosticsPage.h
     # BoneSurfaceMotionSimulator used by NavigationPage
     ${CMAKE_SOURCE_DIR}/Plugins/OpticalTracking/BoneSurfaceMotionSimulator.h
 )
@@ -48,6 +49,7 @@ set(NEWPAGES_SOURCES
     ManagementPage.cpp
     DashboardPage.cpp
     NavigationPage.cpp
+    PlatformDiagnosticsPage.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/OpticalTracking/BoneSurfaceMotionSimulator.cpp
 )
 
@@ -63,6 +65,10 @@ if(NOT DEFINED NEWPAGES_UI_FILES)
         ${UI_FORMS_DIR}/NavigationPage.ui
     )
 endif()
+
+list(APPEND NEWPAGES_UI_FILES
+    ${UI_FORMS_DIR}/PlatformDiagnosticsPage.ui
+)
 
 # 创建库
 add_library(NewPagesLib STATIC

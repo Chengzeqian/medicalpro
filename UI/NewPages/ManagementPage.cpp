@@ -1,6 +1,7 @@
 ﻿#include "ManagementPage.h"
 #include "ui_ManagementPage.h"
 
+#include "Framework/Platform/Facades/IdentityAppService.h"
 #include "ThreePagePresentationUtils.h"
 
 #include <QAbstractItemView>
@@ -16,12 +17,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include "Framework/CTKManager.h"
-#include "Plugins/UserManagement/UserManagementService.h"
-#endif
-
-ManagementPageNew::ManagementPageNew(QWidget* parent)
+ManagementPageNew::ManagementPageNew(QWidget* parent, IdentityAppService* identityAppService)
     : BasePage(parent)
     , ui(new Ui::ManagementPage)
     , m_doctorOverviewCard(nullptr)
@@ -42,6 +38,7 @@ ManagementPageNew::ManagementPageNew(QWidget* parent)
     , m_managementFlowFrame(nullptr)
     , m_managementFlowHintLabel(nullptr)
     , m_enterDashboardButtonSecondary(nullptr)
+    , m_identityAppService(identityAppService)
 {
     ui->setupUi(this);
     setObjectName("ManagementPage");
@@ -583,9 +580,8 @@ void ManagementPageNew::loadDoctors()
 {
     ui->doctorTable->setRowCount(0);
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    if (auto* userService = CTKManager::instance()->getService<UserManagementService>()) {
-        const auto doctors = userService->getAllUsers();
+    if (m_identityAppService) {
+        const auto doctors = m_identityAppService->listDoctors();
         for (const auto& doctor : doctors) {
             const int row = ui->doctorTable->rowCount();
             ui->doctorTable->insertRow(row);
@@ -598,7 +594,6 @@ void ManagementPageNew::loadDoctors()
         }
         return;
     }
-#endif
 
     const QStringList testDoctors = { QStringLiteral("张伟"), QStringLiteral("李明"), QStringLiteral("王芳") };
     for (int index = 0; index < testDoctors.size(); ++index) {
@@ -672,9 +667,8 @@ void ManagementPageNew::loadPatients()
 {
     ui->patientTable->setRowCount(0);
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    if (auto* userService = CTKManager::instance()->getService<UserManagementService>()) {
-        const auto patients = userService->listPatients();
+    if (m_identityAppService) {
+        const auto patients = m_identityAppService->listPatients();
         for (const auto& patient : patients) {
             const int row = ui->patientTable->rowCount();
             ui->patientTable->insertRow(row);
@@ -688,7 +682,6 @@ void ManagementPageNew::loadPatients()
         }
         return;
     }
-#endif
 
     ui->patientTable->insertRow(0);
     ui->patientTable->setItem(0, 0, new QTableWidgetItem(QStringLiteral("1")));
@@ -759,9 +752,8 @@ void ManagementPageNew::loadSurgeries()
 {
     ui->surgeryTable->setRowCount(0);
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    if (auto* userService = CTKManager::instance()->getService<UserManagementService>()) {
-        const auto surgeries = userService->listSurgeryItems();
+    if (m_identityAppService) {
+        const auto surgeries = m_identityAppService->listSurgeries();
         for (const auto& surgery : surgeries) {
             const int row = ui->surgeryTable->rowCount();
             ui->surgeryTable->insertRow(row);
@@ -774,7 +766,6 @@ void ManagementPageNew::loadSurgeries()
         }
         return;
     }
-#endif
 
     ui->surgeryTable->insertRow(0);
     ui->surgeryTable->setItem(0, 0, new QTableWidgetItem(QStringLiteral("1")));

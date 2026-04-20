@@ -158,3 +158,244 @@ add_test(
     NAME platform_dependency_graph_test
     COMMAND platform_dependency_graph_test
 )
+
+add_executable(platform_diagnostics_service_test
+    PlatformDiagnosticsServiceTest.cpp
+)
+
+set_target_properties(platform_diagnostics_service_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo"
+)
+
+target_include_directories(platform_diagnostics_service_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_diagnostics_service_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_diagnostics_service_test
+    COMMAND platform_diagnostics_service_test
+)
+
+set_tests_properties(platform_diagnostics_service_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_diagnostics_service_test>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(platform_diagnostics_page_test
+    PlatformDiagnosticsPageTest.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/BasePage.h
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/PlatformDiagnosticsPage.h
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/PlatformDiagnosticsPage.cpp
+    ${CMAKE_SOURCE_DIR}/UI/Forms/PlatformDiagnosticsPage.ui
+)
+
+set_target_properties(platform_diagnostics_page_test PROPERTIES
+    AUTOUIC_SEARCH_PATHS "${CMAKE_SOURCE_DIR}/UI/Forms"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo"
+)
+
+target_include_directories(platform_diagnostics_page_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/UI/NewPages
+    ${CMAKE_SOURCE_DIR}/UI/Forms
+)
+
+target_link_libraries(platform_diagnostics_page_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_diagnostics_page_test
+    COMMAND platform_diagnostics_page_test
+)
+
+set_tests_properties(platform_diagnostics_page_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_diagnostics_page_test>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(platform_facades_test
+    PlatformFacadesTest.cpp
+)
+
+target_include_directories(platform_facades_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_facades_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_facades_test
+    COMMAND platform_facades_test
+)
+
+set_tests_properties(platform_facades_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_facades_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(platform_startup_coordinator_test
+    PlatformStartupCoordinatorTest.cpp
+)
+
+target_include_directories(platform_startup_coordinator_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_startup_coordinator_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_startup_coordinator_test
+    COMMAND platform_startup_coordinator_test
+)
+
+set_tests_properties(platform_startup_coordinator_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_startup_coordinator_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(core_pages_platform_providers_test
+    CorePagesPlatformProvidersTest.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/BasePage.h
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/ThreePagePresentationUtils.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/ManagementPage.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/DashboardPage.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/ModuleSelectionPage.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/SystemSettingsPage.cpp
+    ${CMAKE_SOURCE_DIR}/UI/Forms/ManagementPage.ui
+    ${CMAKE_SOURCE_DIR}/UI/Forms/DashboardPage.ui
+    ${CMAKE_SOURCE_DIR}/UI/Forms/ModuleSelectionPage.ui
+    ${CMAKE_SOURCE_DIR}/UI/Forms/SystemSettingsPage.ui
+)
+
+set_target_properties(core_pages_platform_providers_test PROPERTIES
+    AUTOUIC_SEARCH_PATHS "${CMAKE_SOURCE_DIR}/UI/Forms"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo"
+)
+
+target_include_directories(core_pages_platform_providers_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/UI/NewPages
+    ${CMAKE_SOURCE_DIR}/UI/Forms
+)
+
+target_link_libraries(core_pages_platform_providers_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME core_pages_platform_providers_test
+    COMMAND core_pages_platform_providers_test
+)
+
+set_tests_properties(core_pages_platform_providers_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:core_pages_platform_providers_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(login_page_platform_providers_test
+    LoginPagePlatformProvidersTest.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/BasePage.h
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/LoginPage.h
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/LoginPage.cpp
+    ${CMAKE_SOURCE_DIR}/UI/Forms/LoginPage.ui
+)
+
+set_target_properties(login_page_platform_providers_test PROPERTIES
+    AUTOUIC_SEARCH_PATHS "${CMAKE_SOURCE_DIR}/UI/Forms"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo"
+)
+
+target_include_directories(login_page_platform_providers_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/UI/NewPages
+    ${CMAKE_SOURCE_DIR}/UI/Forms
+)
+
+target_link_libraries(login_page_platform_providers_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME login_page_platform_providers_test
+    COMMAND login_page_platform_providers_test
+)
+
+set_tests_properties(login_page_platform_providers_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:login_page_platform_providers_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(ui_ctk_decoupling_acceptance_test
+    UiCtkDecouplingAcceptanceTest.cpp
+)
+
+target_include_directories(ui_ctk_decoupling_acceptance_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(ui_ctk_decoupling_acceptance_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(ui_ctk_decoupling_acceptance_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME ui_ctk_decoupling_acceptance_test
+    COMMAND ui_ctk_decoupling_acceptance_test
+)
+
+add_executable(platform_ui_bridge_test
+    PlatformUiBridgeTest.cpp
+)
+
+target_include_directories(platform_ui_bridge_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_ui_bridge_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_ui_bridge_test
+    COMMAND platform_ui_bridge_test
+)
+
+set_tests_properties(platform_ui_bridge_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_ui_bridge_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)

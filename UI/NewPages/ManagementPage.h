@@ -10,6 +10,7 @@ class QPushButton;
 class QTableWidget;
 class QVBoxLayout;
 class QWidget;
+class IdentityAppService;
 
 namespace Ui {
 class ManagementPage;
@@ -20,7 +21,7 @@ class ManagementPageNew : public BasePage
     Q_OBJECT
 
 public:
-    explicit ManagementPageNew(QWidget* parent = nullptr);
+    explicit ManagementPageNew(QWidget* parent = nullptr, IdentityAppService* identityAppService = nullptr);
     ~ManagementPageNew();
 
     void onActivated() override;
@@ -96,6 +97,7 @@ private:
     QFrame* m_managementFlowFrame;
     QLabel* m_managementFlowHintLabel;
     QPushButton* m_enterDashboardButtonSecondary;
+    IdentityAppService* m_identityAppService;
 };
 
 #endif // MANAGEMENTPAGE_NEW_H

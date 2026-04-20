@@ -21,6 +21,8 @@ class NavigationPage;
 // 前向声明
 class Navigation3DViewWidget;
 class BoneSurfaceMotionSimulator;
+class LegacyNavigationPageServiceAdapter;
+class NavigationPageServiceAccess;
 
 #ifdef CTK_PLUGIN_FRAMEWORK
 class FourViewDisplayService;
@@ -57,7 +59,7 @@ class NavigationPageNew : public BasePage
     Q_OBJECT
 
 public:
-    explicit NavigationPageNew(QWidget* parent = nullptr);
+    explicit NavigationPageNew(QWidget* parent = nullptr, NavigationPageServiceAccess* serviceAccess = nullptr);
     ~NavigationPageNew();
 
     void onActivated() override;
@@ -164,6 +166,8 @@ private:
 #endif
 
     Ui::NavigationPage* ui;
+    NavigationPageServiceAccess* m_serviceAccess;
+    LegacyNavigationPageServiceAdapter* m_ownedServiceAdapter;
     int m_patientId;
     QString m_patientName;
     bool m_trackerConnected;
