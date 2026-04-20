@@ -108,11 +108,9 @@ endif()
 
 # CTK编译定义（从父项目继承）
 if(CTK_FOUND)
-    list(APPEND NEWPAGES_HEADERS
+    target_sources(NewPagesLib PRIVATE
         ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/RegistrationWorkflow.h
         ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/PointRegistrationService.h
-    )
-    list(APPEND NEWPAGES_SOURCES
         ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/RegistrationWorkflow.cpp
     )
     target_compile_definitions(NewPagesLib PRIVATE CTK_PLUGIN_FRAMEWORK)
