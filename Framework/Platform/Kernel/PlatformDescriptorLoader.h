@@ -1,11 +1,12 @@
 #pragma once
 
+#include "Framework/FrameworkExport.h"
 #include "Framework/Platform/Contracts/PlatformPluginDescriptor.h"
 
 #include <QStringList>
 #include <QVector>
 
-class PlatformDescriptorLoader
+class FRAMEWORK_EXPORT PlatformDescriptorLoader
 {
 public:
     static PlatformPluginDescriptor loadFromFile(const QString& filePath, QString* error = nullptr);

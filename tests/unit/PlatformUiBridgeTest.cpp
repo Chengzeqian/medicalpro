@@ -99,6 +99,7 @@ class PlatformUiBridgeTest : public QObject
 private slots:
     void coreRuntimeProvider_builds_welcome_snapshot_from_port();
     void coreRuntimeProvider_builds_system_settings_snapshot_from_loaded_plugins();
+    void coreRuntimeProvider_system_settings_prefers_loaded_plugins_over_started_plugins();
     void navigationServiceAccess_forwards_service_pointers_from_port();
     void navigationServiceAccess_starts_point_registration_plugin_on_demand();
     void navigationServiceAccess_re_emits_point_registration_plugin_load();
@@ -151,6 +152,29 @@ void PlatformUiBridgeTest::coreRuntimeProvider_builds_system_settings_snapshot_f
     QVERIFY(snapshot.dataDirectoryExists);
     QVERIFY(!snapshot.dataDirectoryReadable);
     QVERIFY(snapshot.workflowReady);
+}
+
+void PlatformUiBridgeTest::coreRuntimeProvider_system_settings_prefers_loaded_plugins_over_started_plugins()
+{
+    FakeCoreUiRuntimePort port;
+    port.frameworkReadyValue = true;
+    port.startedPluginsValue = QStringList {
+        QStringLiteral("UserManagement"),
+        QStringLiteral("DicomViewer"),
+        QStringLiteral("FourViewDisplay"),
+        QStringLiteral("RegistrationCore")
+    };
+    port.loadedPluginsValue = QStringList {
+        QStringLiteral("UserManagement"),
+        QStringLiteral("DicomViewer")
+    };
+    port.directoryExistsValue = true;
+    port.directoryReadableValue = true;
+
+    CoreUiRuntimeStatusProvider provider(&port, QStringLiteral("D:/runtime/data"));
+    const auto snapshot = provider.systemSettingsSnapshot();
+
+    QCOMPARE(snapshot.pluginCount, 2);
 }
 
 void PlatformUiBridgeTest::navigationServiceAccess_forwards_service_pointers_from_port()

@@ -120,7 +120,6 @@ add_test(
 
 add_executable(platform_descriptor_loader_test
     PlatformDescriptorLoaderTest.cpp
-    ${CMAKE_SOURCE_DIR}/Framework/Platform/Kernel/PlatformDescriptorLoader.cpp
 )
 
 target_include_directories(platform_descriptor_loader_test PRIVATE
@@ -136,6 +135,57 @@ target_link_libraries(platform_descriptor_loader_test PRIVATE
 add_test(
     NAME platform_descriptor_loader_test
     COMMAND platform_descriptor_loader_test
+)
+
+set_tests_properties(platform_descriptor_loader_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_descriptor_loader_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(platform_startup_trace_recorder_test
+    PlatformStartupTraceRecorderTest.cpp
+)
+
+target_include_directories(platform_startup_trace_recorder_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_startup_trace_recorder_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_startup_trace_recorder_test
+    COMMAND platform_startup_trace_recorder_test
+)
+
+set_tests_properties(platform_startup_trace_recorder_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_startup_trace_recorder_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(startup_orchestrator_lifecycle_test
+    StartupOrchestratorLifecycleTest.cpp
+)
+
+target_include_directories(startup_orchestrator_lifecycle_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(startup_orchestrator_lifecycle_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME startup_orchestrator_lifecycle_test
+    COMMAND startup_orchestrator_lifecycle_test
+)
+
+set_tests_properties(startup_orchestrator_lifecycle_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:startup_orchestrator_lifecycle_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
 add_executable(platform_dependency_graph_test
@@ -187,6 +237,36 @@ add_test(
 
 set_tests_properties(platform_diagnostics_service_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_diagnostics_service_test>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(platform_plugin_lifecycle_aggregator_test
+    PlatformPluginLifecycleAggregatorTest.cpp
+)
+
+set_target_properties(platform_plugin_lifecycle_aggregator_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo"
+)
+
+target_include_directories(platform_plugin_lifecycle_aggregator_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_plugin_lifecycle_aggregator_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_plugin_lifecycle_aggregator_test
+    COMMAND platform_plugin_lifecycle_aggregator_test
+)
+
+set_tests_properties(platform_plugin_lifecycle_aggregator_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_plugin_lifecycle_aggregator_test>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
 add_executable(platform_diagnostics_page_test

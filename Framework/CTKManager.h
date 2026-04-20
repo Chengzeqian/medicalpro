@@ -280,6 +280,12 @@ signals:
     void frameworkInitialized();
     void frameworkStarted();
     void frameworkStopped();
+    void pluginInstallStartedDetailed(const QString& pluginName, const QString& pluginPath);
+    void pluginInstalled(const QString& pluginName, const QString& pluginPath);
+    void pluginInstallFailedDetailed(const QString& pluginName, const QString& pluginPath, const QString& reason);
+    void pluginStartRequestedDetailed(const QString& pluginName);
+    void pluginStartedDetailed(const QString& pluginName);
+    void pluginStartFailedDetailed(const QString& pluginName, const QString& reason);
     void pluginLoaded(const QString& pluginName);
     void pluginLoadFailed(const QString& pluginPath, const QString& error);
     void errorOccurred(const QString& error);

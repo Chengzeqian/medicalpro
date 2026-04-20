@@ -7,6 +7,7 @@
 #include <QtGlobal>
 
 #include "Logger.h"
+#include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
 
 StartupOrchestrator::StartupOrchestrator()
     : QObject(nullptr)
@@ -40,11 +41,22 @@ void StartupOrchestrator::start(QApplication* app)
         return;
     }
 
+    waitForCompletion();
     resetState();
 
-    QtConcurrent::run([this, app]() {
+    QFuture<void> startFuture = QtConcurrent::run([this, app]() {
         QElapsedTimer totalTimer;
         totalTimer.start();
+        PlatformRuntimeMode runtimeMode = PlatformRuntimeMode::ObserveOnly;
+        PlatformLifecycleTraceRecorder* lifecycleRecorder = nullptr;
+        {
+            QMutexLocker locker(&m_mutex);
+            runtimeMode = m_runtimeMode;
+            lifecycleRecorder = m_lifecycleRecorder;
+        }
+        if (lifecycleRecorder) {
+            lifecycleRecorder->beginSession(runtimeMode);
+        }
         int accumulatedMs = 0;
         for (const PhaseInfo& info : m_phases) {
             qint64 elapsedMs = 0;
@@ -61,6 +73,12 @@ void StartupOrchestrator::start(QApplication* app)
                         QMutexLocker locker(&m_mutex);
                         m_totalElapsedMs = totalTimer.elapsed();
                     }
+                    if (lifecycleRecorder) {
+                        lifecycleRecorder->finishSession(
+                            PlatformLifecycleResult::Failed,
+                            QStringLiteral("critical_phase_failed"),
+                            info.name);
+                    }
                     emit startupCompleted(false);
                     return;
                 }
@@ -75,8 +93,29 @@ void StartupOrchestrator::start(QApplication* app)
             QMutexLocker locker(&m_mutex);
             m_totalElapsedMs = totalTimer.elapsed();
         }
+        if (lifecycleRecorder) {
+            lifecycleRecorder->finishSession(
+                PlatformLifecycleResult::Succeeded,
+                QString(),
+                QStringLiteral("startup_completed"));
+        }
         emit startupCompleted(true);
     });
+
+    {
+        QMutexLocker locker(&m_mutex);
+        m_startFuture = startFuture;
+    }
+}
+
+void StartupOrchestrator::waitForCompletion()
+{
+    QFuture<void> startFuture;
+    {
+        QMutexLocker locker(&m_mutex);
+        startFuture = m_startFuture;
+    }
+    if (startFuture.isStarted()) startFuture.waitForFinished();
 }
 
 int StartupOrchestrator::getProgress() const
@@ -112,7 +151,27 @@ bool StartupOrchestrator::hasWarnings() const
 QVector<PlatformStartupTraceEntry> StartupOrchestrator::getStartupTraceEntries() const
 {
     QMutexLocker locker(&m_mutex);
+    if (m_lifecycleRecorder) return m_lifecycleRecorder->startupTrace();
     return m_startupTraceEntries;
+}
+
+QVector<PlatformLifecycleEvent> StartupOrchestrator::getLifecycleEvents() const
+{
+    QMutexLocker locker(&m_mutex);
+    if (!m_lifecycleRecorder) return {};
+    return m_lifecycleRecorder->lifecycleEvents();
+}
+
+void StartupOrchestrator::setLifecycleRecorder(PlatformLifecycleTraceRecorder* recorder)
+{
+    QMutexLocker locker(&m_mutex);
+    m_lifecycleRecorder = recorder;
+}
+
+void StartupOrchestrator::setRuntimeMode(PlatformRuntimeMode runtimeMode)
+{
+    QMutexLocker locker(&m_mutex);
+    m_runtimeMode = runtimeMode;
 }
 
 void StartupOrchestrator::logDiagnostic(ErrorHandler::ErrorLevel level,
@@ -162,31 +221,45 @@ bool StartupOrchestrator::executePhase(const PhaseInfo& info, QApplication* app,
     }
 
     LOG_INFO("StartupOrchestrator", QString("Executing phase: %1").arg(info.name));
+    if (m_lifecycleRecorder) {
+        m_lifecycleRecorder->recordPhaseStarted(info.name, info.description, info.isCritical);
+    }
 
     QElapsedTimer phaseTimer;
     phaseTimer.start();
 
-    bool success = true;
-    if (handler) {
-        success = handler(app);
-    }
+    auto phaseResult = PhaseExecutionResult {};
+    if (handler) phaseResult = handler(app);
 
     elapsedMs = phaseTimer.elapsed();
+    if (m_lifecycleRecorder) {
+        m_lifecycleRecorder->recordPhaseFinished(
+            info.name,
+            phaseResult.lifecycleResult,
+            phaseResult.reasonCode,
+            phaseResult.detail);
+    }
 
     {
         QMutexLocker locker(&m_mutex);
         m_phaseDurations.insert(info.phase, elapsedMs);
-        m_phaseResults.insert(info.phase, success);
-        m_startupTraceEntries.append({
-            info.name,
-            info.description,
-            success,
-            elapsedMs,
-            success ? QStringLiteral("completed") : QStringLiteral("failed")
-        });
+        m_phaseResults.insert(info.phase, phaseResult.success);
+
+        PlatformStartupTraceEntry entry;
+        entry.spanId = QStringLiteral("phase:%1").arg(info.name);
+        entry.parentSpanId = QStringLiteral("startup_session");
+        entry.phaseKey = info.name;
+        entry.phaseLabel = info.description;
+        entry.result = phaseResult.lifecycleResult;
+        entry.success = phaseResult.success;
+        entry.blockingStartup = info.isCritical;
+        entry.elapsedMs = elapsedMs;
+        entry.reasonCode = phaseResult.reasonCode;
+        entry.detail = phaseResult.detail;
+        m_startupTraceEntries.append(entry);
     }
 
-    return success;
+    return phaseResult.success;
 }
 
 void StartupOrchestrator::updateProgress(int completedMs, const QString& message)

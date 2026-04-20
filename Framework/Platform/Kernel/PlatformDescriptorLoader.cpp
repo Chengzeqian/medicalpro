@@ -8,6 +8,78 @@
 
 namespace
 {
+bool tryReadStringArray(
+    const QJsonObject& object,
+    const QString& key,
+    QStringList* output,
+    QString* error,
+    const QString& filePath)
+{
+    if (!object.contains(key)) return true;
+
+    const auto value = object.value(key);
+    if (!value.isArray()) {
+        if (error) *error = QStringLiteral("diagnostics.%1 must be an array: %2").arg(key, filePath);
+        return false;
+    }
+
+    QStringList strings;
+    for (const auto& item : value.toArray()) {
+        if (!item.isString()) {
+            if (error) *error = QStringLiteral("diagnostics.%1 must contain only strings: %2").arg(key, filePath);
+            return false;
+        }
+        strings.append(item.toString());
+    }
+
+    if (output) *output = strings;
+    return true;
+}
+
+bool tryReadNonNegativeInt(
+    const QJsonObject& object,
+    const QString& key,
+    int* output,
+    QString* error,
+    const QString& filePath)
+{
+    if (!object.contains(key)) return true;
+
+    const auto value = object.value(key);
+    if (!value.isDouble()) {
+        if (error) *error = QStringLiteral("diagnostics.%1 must be a number: %2").arg(key, filePath);
+        return false;
+    }
+
+    const auto raw = value.toInt(-1);
+    if (raw < 0) {
+        if (error) *error = QStringLiteral("diagnostics.%1 must be non-negative: %2").arg(key, filePath);
+        return false;
+    }
+
+    if (output) *output = raw;
+    return true;
+}
+
+bool tryReadBool(
+    const QJsonObject& object,
+    const QString& key,
+    bool* output,
+    QString* error,
+    const QString& filePath)
+{
+    if (!object.contains(key)) return true;
+
+    const auto value = object.value(key);
+    if (!value.isBool()) {
+        if (error) *error = QStringLiteral("diagnostics.%1 must be a bool: %2").arg(key, filePath);
+        return false;
+    }
+
+    if (output) *output = value.toBool();
+    return true;
+}
+
 QStringList toStringList(const QJsonValue& value)
 {
     QStringList output;
@@ -48,6 +120,7 @@ PlatformBootstrapLevel toBootstrapLevel(const QString& rawValue, bool* ok)
     *ok = false;
     return PlatformBootstrapLevel::Deferred;
 }
+
 }
 
 PlatformPluginDescriptor PlatformDescriptorLoader::loadFromFile(const QString& filePath, QString* error)
@@ -93,6 +166,49 @@ PlatformPluginDescriptor PlatformDescriptorLoader::loadFromFile(const QString& f
         if (error) *error = QStringLiteral("Unsupported bootstrap_level in descriptor: %1").arg(filePath);
         return {};
     }
+
+    if (root.contains(QStringLiteral("diagnostics")) && !root.value(QStringLiteral("diagnostics")).isObject()) {
+        if (error) *error = QStringLiteral("diagnostics must be an object: %1").arg(filePath);
+        return {};
+    }
+
+    const auto diagnosticsObject = root.value(QStringLiteral("diagnostics")).toObject();
+    if (!tryReadStringArray(
+            diagnosticsObject,
+            QStringLiteral("required_services"),
+            &descriptor.diagnostics.requiredServices,
+            error,
+            filePath)) return {};
+    if (!tryReadNonNegativeInt(
+            diagnosticsObject,
+            QStringLiteral("service_ready_timeout_ms"),
+            &descriptor.diagnostics.serviceReadyTimeoutMs,
+            error,
+            filePath)) return {};
+    if (!tryReadStringArray(
+            diagnosticsObject,
+            QStringLiteral("warmup_tasks"),
+            &descriptor.diagnostics.warmupTasks,
+            error,
+            filePath)) return {};
+    if (!tryReadNonNegativeInt(
+            diagnosticsObject,
+            QStringLiteral("warmup_timeout_ms"),
+            &descriptor.diagnostics.warmupTimeoutMs,
+            error,
+            filePath)) return {};
+    if (!tryReadBool(
+            diagnosticsObject,
+            QStringLiteral("warmup_impacts_ready"),
+            &descriptor.diagnostics.warmupImpactsReady,
+            error,
+            filePath)) return {};
+    if (!tryReadStringArray(
+            diagnosticsObject,
+            QStringLiteral("degrade_on"),
+            &descriptor.diagnostics.degradeOn,
+            error,
+            filePath)) return {};
 
     const auto providesObject = root.value(QStringLiteral("provides")).toObject();
     descriptor.provides.services = toStringList(providesObject.value(QStringLiteral("services")));

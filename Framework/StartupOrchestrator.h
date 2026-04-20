@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QDateTime>
+#include <QFuture>
 #include <QHash>
 #include <QMutex>
 #include <QVariantMap>
@@ -18,6 +19,7 @@
 #include "Framework/Platform/Contracts/PlatformSnapshots.h"
 
 class QApplication;
+class PlatformLifecycleTraceRecorder;
 
 enum class StartupPhase {
     VTKInit,
@@ -64,7 +66,42 @@ class FRAMEWORK_EXPORT StartupOrchestrator : public QObject, public SingletonMan
     friend class SingletonManager<StartupOrchestrator>;
 
 public:
-    using PhaseHandler = std::function<bool(QApplication*)>;
+    struct PhaseExecutionResult
+    {
+        PhaseExecutionResult(bool successValue = true)
+            : success(successValue)
+            , lifecycleResult(successValue ? PlatformLifecycleResult::Succeeded : PlatformLifecycleResult::Failed)
+            , reasonCode(successValue ? QString() : QStringLiteral("phase_failed"))
+            , detail(successValue ? QStringLiteral("completed") : QStringLiteral("failed"))
+        {
+        }
+
+        PhaseExecutionResult(
+            bool successValue,
+            PlatformLifecycleResult lifecycleResultValue,
+            const QString& reasonCodeValue,
+            const QString& detailValue)
+            : success(successValue)
+            , lifecycleResult(lifecycleResultValue)
+            , reasonCode(reasonCodeValue)
+            , detail(detailValue)
+        {
+        }
+
+        static PhaseExecutionResult skipped(
+            const QString& detailValue,
+            const QString& reasonCodeValue = QStringLiteral("skipped_by_mode"))
+        {
+            return {true, PlatformLifecycleResult::Skipped, reasonCodeValue, detailValue};
+        }
+
+        bool success = true;
+        PlatformLifecycleResult lifecycleResult = PlatformLifecycleResult::Succeeded;
+        QString reasonCode;
+        QString detail;
+    };
+
+    using PhaseHandler = std::function<PhaseExecutionResult(QApplication*)>;
 
     /**
      * @brief 获取单例实例指针（兼容性接口）
@@ -73,6 +110,7 @@ public:
     static StartupOrchestrator* instance() { return &SingletonManager<StartupOrchestrator>::instance(); }
 
     void start(QApplication* app);
+    void waitForCompletion();
 
     int getProgress() const;
     QString getCurrentPhase() const;
@@ -80,6 +118,9 @@ public:
     bool hasErrors() const;
     bool hasWarnings() const;
     QVector<PlatformStartupTraceEntry> getStartupTraceEntries() const;
+    QVector<PlatformLifecycleEvent> getLifecycleEvents() const;
+    void setLifecycleRecorder(PlatformLifecycleTraceRecorder* recorder);
+    void setRuntimeMode(PlatformRuntimeMode runtimeMode);
 
     void logDiagnostic(ErrorHandler::ErrorLevel level,
                        const QString& message,
@@ -119,6 +160,9 @@ private:
     qint64 m_totalElapsedMs;
     QVector<DiagnosticEntry> m_diagnostics;
     QVector<PlatformStartupTraceEntry> m_startupTraceEntries;
+    PlatformLifecycleTraceRecorder* m_lifecycleRecorder = nullptr;
+    PlatformRuntimeMode m_runtimeMode = PlatformRuntimeMode::ObserveOnly;
+    QFuture<void> m_startFuture;
 };
 
 #endif // STARTUPORCHESTRATOR_H

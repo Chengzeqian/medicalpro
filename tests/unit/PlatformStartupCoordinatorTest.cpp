@@ -1,8 +1,11 @@
 #include <QtTest/QtTest>
 
+#include <algorithm>
 #include <QFile>
+#include <QHash>
 #include <QTemporaryDir>
 
+#include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
 #include "Framework/Platform/Kernel/PlatformRuntimeConfig.h"
 #include "Framework/Platform/Kernel/PlatformStartupCoordinator.h"
 
@@ -18,6 +21,13 @@ private slots:
     void orchestrate_core_runs_all_platform_managed_phases();
     void ensureReady_starts_target_plugin_once();
     void observe_only_does_not_start_any_plugin();
+    void startCorePlugin_records_blocking_start_with_platform_plugin_id();
+    void startCorePlugin_deduplicates_followup_ensureReady();
+    void observe_only_records_skipped_start_event();
+    void facade_mode_records_successful_on_demand_start();
+    void facade_mode_direct_deferred_start_reports_skip_without_failure();
+    void orchestrate_core_mixed_governance_deferred_does_not_fail_for_unmanaged_ctk_plugin();
+    void orchestrate_core_records_deferred_start_path();
 };
 
 void PlatformStartupCoordinatorTest::loadFromFile_reads_runtime_mode_and_core_plugin_ids()
@@ -155,30 +165,295 @@ void PlatformStartupCoordinatorTest::orchestrate_core_runs_all_platform_managed_
 void PlatformStartupCoordinatorTest::ensureReady_starts_target_plugin_once()
 {
     QStringList startedPlugins;
+    const QHash<QString, QString> platformPluginIdToCtkSymbolicName{
+        {QStringLiteral("org.medicalpro.registration_core"), QStringLiteral("RegistrationCore")}
+    };
     PlatformStartupCoordinator coordinator(
         PlatformRuntimeMode::FacadeMode,
         [&startedPlugins](const QString& pluginId) {
             startedPlugins.append(pluginId);
             return true;
-        });
+        },
+        platformPluginIdToCtkSymbolicName);
 
     QVERIFY(coordinator.ensureReady(QStringLiteral("org.medicalpro.registration_core")));
     QVERIFY(coordinator.ensureReady(QStringLiteral("org.medicalpro.registration_core")));
-    QCOMPARE(startedPlugins, (QStringList{QStringLiteral("org.medicalpro.registration_core")}));
+    QCOMPARE(startedPlugins, (QStringList{QStringLiteral("RegistrationCore")}));
 }
 
 void PlatformStartupCoordinatorTest::observe_only_does_not_start_any_plugin()
 {
     QStringList startedPlugins;
+    const QHash<QString, QString> platformPluginIdToCtkSymbolicName{
+        {QStringLiteral("org.medicalpro.optical_tracking"), QStringLiteral("OpticalTracking")}
+    };
     PlatformStartupCoordinator coordinator(
         PlatformRuntimeMode::ObserveOnly,
         [&startedPlugins](const QString& pluginId) {
             startedPlugins.append(pluginId);
             return true;
-        });
+        },
+        platformPluginIdToCtkSymbolicName);
 
     QVERIFY(!coordinator.ensureReady(QStringLiteral("org.medicalpro.optical_tracking")));
     QVERIFY(startedPlugins.isEmpty());
+}
+
+void PlatformStartupCoordinatorTest::startCorePlugin_records_blocking_start_with_platform_plugin_id()
+{
+    PlatformLifecycleTraceRecorder recorder;
+    recorder.beginSession(PlatformRuntimeMode::OrchestrateCore);
+
+    QStringList startedPlugins;
+    const QHash<QString, QString> platformPluginIdToCtkSymbolicName{
+        {QStringLiteral("org.medicalpro.registration_core"), QStringLiteral("RegistrationCore")}
+    };
+    PlatformStartupCoordinator coordinator(
+        PlatformRuntimeMode::OrchestrateCore,
+        [&startedPlugins](const QString& ctkSymbolicName) {
+            startedPlugins.append(ctkSymbolicName);
+            return true;
+        },
+        platformPluginIdToCtkSymbolicName,
+        &recorder);
+
+    QVERIFY(coordinator.startCorePlugin(QStringLiteral("org.medicalpro.registration_core")));
+
+    const auto events = recorder.lifecycleEvents();
+    const auto trace = recorder.startupTrace();
+    QCOMPARE(startedPlugins, (QStringList{QStringLiteral("RegistrationCore")}));
+    QVERIFY(events.size() >= 3);
+    QCOMPARE(events.at(events.size() - 2).kind, PlatformLifecycleEventKind::PluginStartStarted);
+    QVERIFY(events.at(events.size() - 2).blockingStartup);
+    QCOMPARE(events.constLast().kind, PlatformLifecycleEventKind::PluginStartFinished);
+    QVERIFY(events.constLast().blockingStartup);
+    QCOMPARE(events.constLast().pluginId, QStringLiteral("org.medicalpro.registration_core"));
+    QCOMPARE(events.constLast().ctkSymbolicName, QStringLiteral("RegistrationCore"));
+    QCOMPARE(events.constLast().reasonCode, QStringLiteral("core"));
+    QCOMPARE(trace.size(), 1);
+    QVERIFY(trace.constFirst().blockingStartup);
+    QCOMPARE(trace.constFirst().pluginId, QStringLiteral("org.medicalpro.registration_core"));
+    QCOMPARE(trace.constFirst().ctkSymbolicName, QStringLiteral("RegistrationCore"));
+}
+
+void PlatformStartupCoordinatorTest::startCorePlugin_deduplicates_followup_ensureReady()
+{
+    QStringList startedPlugins;
+    const QHash<QString, QString> platformPluginIdToCtkSymbolicName{
+        {QStringLiteral("org.medicalpro.registration_core"), QStringLiteral("RegistrationCore")}
+    };
+    PlatformStartupCoordinator coordinator(
+        PlatformRuntimeMode::OrchestrateCore,
+        [&startedPlugins](const QString& ctkSymbolicName) {
+            startedPlugins.append(ctkSymbolicName);
+            return true;
+        },
+        platformPluginIdToCtkSymbolicName);
+
+    QVERIFY(coordinator.startCorePlugin(QStringLiteral("org.medicalpro.registration_core")));
+    QVERIFY(coordinator.ensureReady(QStringLiteral("org.medicalpro.registration_core")));
+    QCOMPARE(startedPlugins, (QStringList{QStringLiteral("RegistrationCore")}));
+}
+
+void PlatformStartupCoordinatorTest::observe_only_records_skipped_start_event()
+{
+    PlatformLifecycleTraceRecorder recorder;
+    recorder.beginSession(PlatformRuntimeMode::ObserveOnly);
+    const QHash<QString, QString> platformPluginIdToCtkSymbolicName{
+        {QStringLiteral("org.medicalpro.optical_tracking"), QStringLiteral("OpticalTracking")}
+    };
+
+    PlatformStartupCoordinator coordinator(
+        PlatformRuntimeMode::ObserveOnly,
+        [](const QString&) { return true; },
+        platformPluginIdToCtkSymbolicName,
+        &recorder);
+
+    QVERIFY(!coordinator.ensureReady(QStringLiteral("org.medicalpro.optical_tracking")));
+
+    const auto events = recorder.lifecycleEvents();
+    const auto trace = recorder.startupTrace();
+    QVERIFY(events.size() >= 3);
+    QCOMPARE(events.at(events.size() - 2).kind, PlatformLifecycleEventKind::PluginStartStarted);
+    QCOMPARE(events.constLast().kind, PlatformLifecycleEventKind::PluginSkippedByMode);
+    QCOMPARE(events.constLast().result, PlatformLifecycleResult::Skipped);
+    QCOMPARE(events.constLast().step, PlatformLifecycleStep::Start);
+    QCOMPARE(events.constLast().pluginId, QStringLiteral("org.medicalpro.optical_tracking"));
+    QCOMPARE(events.constLast().ctkSymbolicName, QStringLiteral("OpticalTracking"));
+    QCOMPARE(events.constLast().runtimeMode, PlatformRuntimeMode::ObserveOnly);
+    QCOMPARE(events.constLast().reasonCode, QStringLiteral("skipped_by_mode"));
+    QCOMPARE(events.constLast().detail, QStringLiteral("On-demand plugin start skipped in observe_only mode"));
+    QVERIFY(!events.constLast().blockingStartup);
+    QCOMPARE(trace.size(), 1);
+    QCOMPARE(trace.constFirst().result, PlatformLifecycleResult::Skipped);
+    QCOMPARE(trace.constFirst().ctkSymbolicName, QStringLiteral("OpticalTracking"));
+    QCOMPARE(trace.constFirst().reasonCode, QStringLiteral("skipped_by_mode"));
+    QCOMPARE(trace.constFirst().detail, QStringLiteral("On-demand plugin start skipped in observe_only mode"));
+    QVERIFY(!trace.constFirst().blockingStartup);
+}
+
+void PlatformStartupCoordinatorTest::facade_mode_records_successful_on_demand_start()
+{
+    PlatformLifecycleTraceRecorder recorder;
+    recorder.beginSession(PlatformRuntimeMode::FacadeMode);
+
+    QStringList startedPlugins;
+    const QHash<QString, QString> platformPluginIdToCtkSymbolicName{
+        {QStringLiteral("org.medicalpro.registration_core"), QStringLiteral("RegistrationCore")}
+    };
+    PlatformStartupCoordinator coordinator(
+        PlatformRuntimeMode::FacadeMode,
+        [&startedPlugins](const QString& ctkSymbolicName) {
+            startedPlugins.append(ctkSymbolicName);
+            return true;
+        },
+        platformPluginIdToCtkSymbolicName,
+        &recorder);
+
+    QVERIFY(coordinator.ensureReady(QStringLiteral("org.medicalpro.registration_core")));
+
+    const auto events = recorder.lifecycleEvents();
+    const auto trace = recorder.startupTrace();
+    QCOMPARE(startedPlugins, (QStringList{QStringLiteral("RegistrationCore")}));
+    QVERIFY(events.size() >= 3);
+    QCOMPARE(events.at(events.size() - 2).kind, PlatformLifecycleEventKind::PluginStartStarted);
+    QCOMPARE(events.constLast().kind, PlatformLifecycleEventKind::PluginStartFinished);
+    QCOMPARE(events.constLast().result, PlatformLifecycleResult::Succeeded);
+    QCOMPARE(events.constLast().pluginId, QStringLiteral("org.medicalpro.registration_core"));
+    QCOMPARE(events.constLast().ctkSymbolicName, QStringLiteral("RegistrationCore"));
+    QCOMPARE(events.constLast().runtimeMode, PlatformRuntimeMode::FacadeMode);
+    QCOMPARE(events.constLast().reasonCode, QStringLiteral("on_demand"));
+    QCOMPARE(events.constLast().detail, QStringLiteral("On-demand plugin start completed"));
+    QVERIFY(!events.at(events.size() - 2).blockingStartup);
+    QVERIFY(!events.constLast().blockingStartup);
+    QCOMPARE(trace.size(), 1);
+    QCOMPARE(trace.constFirst().pluginId, QStringLiteral("org.medicalpro.registration_core"));
+    QCOMPARE(trace.constFirst().ctkSymbolicName, QStringLiteral("RegistrationCore"));
+    QCOMPARE(trace.constFirst().result, PlatformLifecycleResult::Succeeded);
+    QCOMPARE(trace.constFirst().reasonCode, QStringLiteral("on_demand"));
+    QCOMPARE(trace.constFirst().detail, QStringLiteral("On-demand plugin start completed"));
+    QVERIFY(!trace.constFirst().blockingStartup);
+}
+
+void PlatformStartupCoordinatorTest::facade_mode_direct_deferred_start_reports_skip_without_failure()
+{
+    PlatformLifecycleTraceRecorder recorder;
+    recorder.beginSession(PlatformRuntimeMode::FacadeMode);
+
+    QStringList startedPlugins;
+    const QHash<QString, QString> platformPluginIdToCtkSymbolicName{
+        {QStringLiteral("org.medicalpro.deferred_navigation"), QStringLiteral("DeferredNavigation")}
+    };
+    PlatformStartupCoordinator coordinator(
+        PlatformRuntimeMode::FacadeMode,
+        [&startedPlugins](const QString& ctkSymbolicName) {
+            startedPlugins.append(ctkSymbolicName);
+            return true;
+        },
+        platformPluginIdToCtkSymbolicName,
+        &recorder);
+
+    QVERIFY(coordinator.startDeferredPlugins(QStringList{
+        QStringLiteral("DeferredNavigation")
+    }));
+
+    const auto events = recorder.lifecycleEvents();
+    const auto trace = recorder.startupTrace();
+    QVERIFY(startedPlugins.isEmpty());
+    QVERIFY(events.size() >= 3);
+    QCOMPARE(events.constLast().kind, PlatformLifecycleEventKind::PluginSkippedByMode);
+    QCOMPARE(events.constLast().result, PlatformLifecycleResult::Skipped);
+    QCOMPARE(events.constLast().pluginId, QStringLiteral("org.medicalpro.deferred_navigation"));
+    QCOMPARE(events.constLast().ctkSymbolicName, QStringLiteral("DeferredNavigation"));
+    QCOMPARE(events.constLast().reasonCode, QStringLiteral("skipped_by_mode"));
+    QCOMPARE(trace.size(), 1);
+    QCOMPARE(trace.constFirst().result, PlatformLifecycleResult::Skipped);
+    QCOMPARE(trace.constFirst().pluginId, QStringLiteral("org.medicalpro.deferred_navigation"));
+    QCOMPARE(trace.constFirst().ctkSymbolicName, QStringLiteral("DeferredNavigation"));
+}
+
+void PlatformStartupCoordinatorTest::orchestrate_core_mixed_governance_deferred_does_not_fail_for_unmanaged_ctk_plugin()
+{
+    PlatformLifecycleTraceRecorder recorder;
+    recorder.beginSession(PlatformRuntimeMode::OrchestrateCore);
+
+    QStringList startedPlugins;
+    const QHash<QString, QString> platformPluginIdToCtkSymbolicName{
+        {QStringLiteral("org.medicalpro.registration_core"), QStringLiteral("RegistrationCore")}
+    };
+    PlatformStartupCoordinator coordinator(
+        PlatformRuntimeMode::OrchestrateCore,
+        [&startedPlugins](const QString& ctkSymbolicName) {
+            startedPlugins.append(ctkSymbolicName);
+            return true;
+        },
+        platformPluginIdToCtkSymbolicName,
+        &recorder);
+
+    QVERIFY(coordinator.startDeferredPlugins(QStringList{
+        QStringLiteral("RegistrationCore"),
+        QStringLiteral("PointRegistration")
+    }));
+
+    const auto events = recorder.lifecycleEvents();
+    const auto trace = recorder.startupTrace();
+    QCOMPARE(startedPlugins, (QStringList{
+        QStringLiteral("RegistrationCore"),
+        QStringLiteral("PointRegistration")
+    }));
+    QCOMPARE(trace.size(), 1);
+    QCOMPARE(trace.constFirst().pluginId, QStringLiteral("org.medicalpro.registration_core"));
+    QCOMPARE(trace.constFirst().ctkSymbolicName, QStringLiteral("RegistrationCore"));
+    QCOMPARE(trace.constFirst().reasonCode, QStringLiteral("deferred"));
+    QVERIFY(std::none_of(events.cbegin(), events.cend(), [](const PlatformLifecycleEvent& event) {
+        return event.ctkSymbolicName == QStringLiteral("PointRegistration");
+    }));
+}
+
+void PlatformStartupCoordinatorTest::orchestrate_core_records_deferred_start_path()
+{
+    PlatformLifecycleTraceRecorder recorder;
+    recorder.beginSession(PlatformRuntimeMode::OrchestrateCore);
+
+    QStringList startedPlugins;
+    const QHash<QString, QString> platformPluginIdToCtkSymbolicName{
+        {QStringLiteral("org.medicalpro.deferred_navigation"), QStringLiteral("DeferredNavigation")},
+        {QStringLiteral("org.medicalpro.registration_core"), QStringLiteral("RegistrationCore")}
+    };
+    PlatformStartupCoordinator coordinator(
+        PlatformRuntimeMode::OrchestrateCore,
+        [&startedPlugins](const QString& ctkSymbolicName) {
+            startedPlugins.append(ctkSymbolicName);
+            return true;
+        },
+        platformPluginIdToCtkSymbolicName,
+        &recorder);
+
+    QVERIFY(coordinator.startDeferredPlugins(QStringList{
+        QStringLiteral("DeferredNavigation")
+    }));
+
+    const auto events = recorder.lifecycleEvents();
+    const auto trace = recorder.startupTrace();
+    QCOMPARE(startedPlugins, (QStringList{QStringLiteral("DeferredNavigation")}));
+    QVERIFY(events.size() >= 3);
+    QCOMPARE(events.at(events.size() - 2).kind, PlatformLifecycleEventKind::PluginStartStarted);
+    QCOMPARE(events.constLast().kind, PlatformLifecycleEventKind::PluginStartFinished);
+    QCOMPARE(events.constLast().result, PlatformLifecycleResult::Succeeded);
+    QCOMPARE(events.constLast().pluginId, QStringLiteral("org.medicalpro.deferred_navigation"));
+    QCOMPARE(events.constLast().ctkSymbolicName, QStringLiteral("DeferredNavigation"));
+    QCOMPARE(events.constLast().runtimeMode, PlatformRuntimeMode::OrchestrateCore);
+    QCOMPARE(events.constLast().reasonCode, QStringLiteral("deferred"));
+    QCOMPARE(events.constLast().detail, QStringLiteral("Deferred plugin start completed"));
+    QVERIFY(!events.at(events.size() - 2).blockingStartup);
+    QVERIFY(!events.constLast().blockingStartup);
+    QCOMPARE(trace.size(), 1);
+    QCOMPARE(trace.constFirst().pluginId, QStringLiteral("org.medicalpro.deferred_navigation"));
+    QCOMPARE(trace.constFirst().ctkSymbolicName, QStringLiteral("DeferredNavigation"));
+    QCOMPARE(trace.constFirst().result, PlatformLifecycleResult::Succeeded);
+    QCOMPARE(trace.constFirst().reasonCode, QStringLiteral("deferred"));
+    QCOMPARE(trace.constFirst().detail, QStringLiteral("Deferred plugin start completed"));
+    QVERIFY(!trace.constFirst().blockingStartup);
 }
 
 QTEST_APPLESS_MAIN(PlatformStartupCoordinatorTest)

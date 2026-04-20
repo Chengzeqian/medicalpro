@@ -20,6 +20,16 @@ struct PlatformRuntimeDescriptor
     QString entryCapability;
 };
 
+struct PlatformDiagnosticsDescriptor
+{
+    QStringList requiredServices;
+    int serviceReadyTimeoutMs = 0;
+    QStringList warmupTasks;
+    int warmupTimeoutMs = 0;
+    bool warmupImpactsReady = false;
+    QStringList degradeOn;
+};
+
 struct PlatformPluginDescriptor
 {
     QString id;
@@ -28,6 +38,7 @@ struct PlatformPluginDescriptor
     QString domain;
     bool enabled = true;
     PlatformRuntimeDescriptor runtime;
+    PlatformDiagnosticsDescriptor diagnostics;
     PlatformServiceSet provides;
     PlatformServiceSet required;
     PlatformServiceSet optional;

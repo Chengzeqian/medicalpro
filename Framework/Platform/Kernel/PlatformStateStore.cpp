@@ -1,7 +1,12 @@
 #include "Framework/Platform/Kernel/PlatformStateStore.h"
 
+#include <QReadLocker>
+#include <QWriteLocker>
+
 void PlatformStateStore::replaceDescriptors(const QVector<PlatformPluginDescriptor>& descriptors)
 {
+    QWriteLocker locker(&m_lock);
+
     m_descriptorOrder.clear();
     m_descriptors.clear();
     m_snapshots.clear();
@@ -21,11 +26,13 @@ void PlatformStateStore::replaceDescriptors(const QVector<PlatformPluginDescript
 
 void PlatformStateStore::setRuntimeMode(PlatformRuntimeMode runtimeMode)
 {
+    QWriteLocker locker(&m_lock);
     m_runtimeMode = runtimeMode;
 }
 
 void PlatformStateStore::setPluginState(const QString& pluginId, PlatformPluginState state)
 {
+    QWriteLocker locker(&m_lock);
     if (!m_snapshots.contains(pluginId)) return;
 
     auto snapshot = m_snapshots.value(pluginId);
@@ -34,8 +41,23 @@ void PlatformStateStore::setPluginState(const QString& pluginId, PlatformPluginS
     refreshSnapshots();
 }
 
+QVector<PlatformPluginDescriptor> PlatformStateStore::descriptors() const
+{
+    QReadLocker locker(&m_lock);
+    QVector<PlatformPluginDescriptor> descriptors;
+    descriptors.reserve(m_descriptorOrder.size());
+
+    for (const auto& pluginId : m_descriptorOrder) {
+        if (!m_descriptors.contains(pluginId)) continue;
+        descriptors.append(m_descriptors.value(pluginId));
+    }
+
+    return descriptors;
+}
+
 PlatformCapabilitySnapshot PlatformStateStore::capabilitySnapshot() const
 {
+    QReadLocker locker(&m_lock);
     PlatformCapabilitySnapshot snapshot;
     snapshot.runtimeMode = m_runtimeMode;
 
@@ -61,6 +83,7 @@ PlatformCapabilitySnapshot PlatformStateStore::capabilitySnapshot() const
 
 QVector<PlatformPluginRuntimeSnapshot> PlatformStateStore::pluginSnapshots() const
 {
+    QReadLocker locker(&m_lock);
     QVector<PlatformPluginRuntimeSnapshot> snapshots;
     snapshots.reserve(m_descriptorOrder.size());
 

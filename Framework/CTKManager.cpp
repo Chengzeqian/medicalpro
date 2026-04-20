@@ -476,6 +476,7 @@ bool CTKManager::installPlugin(const QString& pluginPath, bool autoStart, QStrin
 #ifdef CTK_PLUGIN_FRAMEWORK
     if (!m_started || !m_pluginContext) {
         LOG_ERROR("CTKManager", "CTK Framework not started - cannot install plugin");
+        emit pluginInstallFailedDetailed(QString(), pluginPath, QStringLiteral("framework_not_started"));
         return false;
     }
 
@@ -483,17 +484,20 @@ bool CTKManager::installPlugin(const QString& pluginPath, bool autoStart, QStrin
     if (!fileInfo.exists()) {
         QString error = QString("Plugin file does not exist: %1").arg(pluginPath);
         LOG_ERROR("CTKManager", error);
+        emit pluginInstallFailedDetailed(fileInfo.completeBaseName(), pluginPath, error);
         emit pluginLoadFailed(pluginPath, error);
         return false;
     }
 
     const QString canonicalPath = fileInfo.canonicalFilePath();
+    emit pluginInstallStartedDetailed(fileInfo.completeBaseName(), canonicalPath);
 
     try {
         QSharedPointer<ctkPlugin> pluginHandle = m_pluginContext->installPlugin(QUrl::fromLocalFile(canonicalPath));
         if (!pluginHandle) {
             QString error = QStringLiteral("Failed to install plugin (null handle)");
             LOG_ERROR("CTKManager", error);
+            emit pluginInstallFailedDetailed(fileInfo.completeBaseName(), canonicalPath, error);
             emit pluginLoadFailed(pluginPath, error);
             return false;
         }
@@ -508,6 +512,7 @@ bool CTKManager::installPlugin(const QString& pluginPath, bool autoStart, QStrin
         }
 
         LOG_INFO_F("CTKManager", "Installed plugin: %1", pluginName);
+        emit pluginInstalled(pluginName, canonicalPath);
 
         if (!applyPolicyForPlugin(pluginName, autoStart, false)) {
             LOG_WARNING_F("CTKManager", "Policy application failed for plugin %1", pluginName);
@@ -516,6 +521,7 @@ bool CTKManager::installPlugin(const QString& pluginPath, bool autoStart, QStrin
         if (autoStart && !m_startedPluginNames.contains(pluginName)) {
             QString error = QString("Plugin installed but failed to start: %1").arg(pluginName);
             LOG_WARNING("CTKManager", error);
+            emit pluginStartFailedDetailed(pluginName, error);
             emit pluginLoadFailed(pluginPath, error);
             return false;
         }
@@ -530,22 +536,25 @@ bool CTKManager::installPlugin(const QString& pluginPath, bool autoStart, QStrin
         if (cause) {
             LOG_ERROR_F("CTKManager", "  Cause: %1", cause->message());
         }
+        emit pluginInstallFailedDetailed(fileInfo.completeBaseName(), canonicalPath, error);
         emit pluginLoadFailed(pluginPath, error);
         return false;
     } catch (const std::exception& e) {
         QString error = QString("Standard Exception: %1 (path: %2)").arg(e.what(), canonicalPath);
         LOG_ERROR("CTKManager", error);
+        emit pluginInstallFailedDetailed(fileInfo.completeBaseName(), canonicalPath, error);
         emit pluginLoadFailed(pluginPath, error);
         return false;
     } catch (...) {
         QString error = QString("Unknown exception during plugin installation (path: %1)").arg(canonicalPath);
         LOG_ERROR("CTKManager", error);
+        emit pluginInstallFailedDetailed(fileInfo.completeBaseName(), canonicalPath, error);
         emit pluginLoadFailed(pluginPath, error);
         return false;
     }
 #else
-    Q_UNUSED(pluginPath);
     Q_UNUSED(autoStart);
+    emit pluginInstallFailedDetailed(QString(), pluginPath, QStringLiteral("ctk_not_available"));
     return false;
 #endif
 }
@@ -555,13 +564,21 @@ bool CTKManager::startPlugin(const QString& pluginName)
 #ifdef CTK_PLUGIN_FRAMEWORK
     if (!m_started || !m_pluginContext) {
         LOG_ERROR("CTKManager", "CTK Framework not started - cannot start plugin");
+        emit pluginStartFailedDetailed(pluginName, QStringLiteral("framework_not_started"));
         return false;
     }
 
     QSet<QString> visiting;
-    return startPluginInternal(pluginName.trimmed(), visiting);
+    const auto normalizedPluginName = pluginName.trimmed();
+    const bool started = startPluginInternal(normalizedPluginName, visiting);
+    if (!started) {
+        emit pluginStartFailedDetailed(
+            normalizedPluginName,
+            QStringLiteral("start_plugin_internal_failed"));
+    }
+    return started;
 #else
-    Q_UNUSED(pluginName);
+    emit pluginStartFailedDetailed(pluginName, QStringLiteral("ctk_not_available"));
     return false;
 #endif
 }
@@ -702,8 +719,10 @@ bool CTKManager::startPluginInternal(const QString& pluginName, QSet<QString>& v
 {
     if (pluginName.isEmpty()) {
         LOG_WARNING("CTKManager", "Cannot start plugin with empty name");
+        emit pluginStartFailedDetailed(pluginName, QStringLiteral("plugin_name_empty"));
         return false;
     }
+    emit pluginStartRequestedDetailed(pluginName);
 
     QString resolvedName = pluginName;
     if (m_startedPluginNames.contains(resolvedName)) {
@@ -744,6 +763,7 @@ bool CTKManager::startPluginInternal(const QString& pluginName, QSet<QString>& v
 
     if (!pluginHandle) {
         LOG_WARNING_F("CTKManager", "Plugin handle not found for %1", resolvedName);
+        emit pluginStartFailedDetailed(resolvedName, QStringLiteral("plugin_handle_not_found"));
         return false;
     }
 
@@ -755,6 +775,7 @@ bool CTKManager::startPluginInternal(const QString& pluginName, QSet<QString>& v
 
     if (visiting.contains(resolvedName)) {
         LOG_ERROR_F("CTKManager", "Detected cyclic plugin dependency involving %1", resolvedName);
+        emit pluginStartFailedDetailed(resolvedName, QStringLiteral("plugin_dependency_cycle"));
         return false;
     }
 
@@ -814,6 +835,7 @@ bool CTKManager::activatePlugin(const QString& pluginName)
 
     if (!pluginHandle) {
         LOG_WARNING_F("CTKManager", "Cannot activate plugin %1: handle missing", pluginName);
+        emit pluginStartFailedDetailed(pluginName, QStringLiteral("plugin_handle_missing"));
         return false;
     }
 
@@ -824,6 +846,7 @@ bool CTKManager::activatePlugin(const QString& pluginName)
         if (!m_loadedPlugins.contains(pluginName)) {
             m_loadedPlugins.append(pluginName);
         }
+        emit pluginStartedDetailed(pluginName);
         emit pluginLoaded(pluginName);
         return true;
     }
@@ -832,12 +855,15 @@ bool CTKManager::activatePlugin(const QString& pluginName)
         pluginHandle->start(ctkPlugin::START_TRANSIENT);
     } catch (const ctkPluginException& ex) {
         LOG_ERROR_F("CTKManager", "Failed to start plugin %1: %2", pluginName, ex.what());
+        emit pluginStartFailedDetailed(pluginName, QString::fromUtf8(ex.what()));
         return false;
     } catch (const std::exception& ex) {
         LOG_ERROR_F("CTKManager", "Exception while starting plugin %1: %2", pluginName, ex.what());
+        emit pluginStartFailedDetailed(pluginName, QString::fromUtf8(ex.what()));
         return false;
     } catch (...) {
         LOG_ERROR_F("CTKManager", "Unknown exception while starting plugin %1", pluginName);
+        emit pluginStartFailedDetailed(pluginName, QStringLiteral("unknown_start_exception"));
         return false;
     }
 
@@ -848,6 +874,7 @@ bool CTKManager::activatePlugin(const QString& pluginName)
         }
         m_deferredPlugins.remove(pluginName);
         m_onDemandPlugins.remove(pluginName);
+        emit pluginStartedDetailed(pluginName);
         emit pluginLoaded(pluginName);
         LOG_INFO_F("CTKManager", "Plugin started successfully: %1", pluginName);
         return true;
@@ -855,6 +882,7 @@ bool CTKManager::activatePlugin(const QString& pluginName)
 
     QString stateStr = getPluginStateString(pluginHandle->getState());
     LOG_WARNING_F("CTKManager", "Plugin %1 failed to reach ACTIVE state (state: %2)", pluginName, stateStr);
+    emit pluginStartFailedDetailed(pluginName, stateStr);
     return false;
 }
 

@@ -12,10 +12,13 @@ PlatformRuntimeObservation CtkRuntimeSnapshotCollector::collect() const
         observation.frameworkReady = ctkManager->isCTKAvailable();
         observation.installedPlugins = ctkManager->getInstalledPlugins();
         observation.startedPlugins = ctkManager->getStartedPlugins();
+        observation.loadedPlugins = ctkManager->getLoadedPlugins();
+        observation.pluginStates = ctkManager->getPluginStatus();
     }
 
     auto* startupOrchestrator = StartupOrchestrator::instance();
     if (startupOrchestrator) {
+        observation.lifecycleEvents = startupOrchestrator->getLifecycleEvents();
         observation.startupTrace = startupOrchestrator->getStartupTraceEntries();
     }
 

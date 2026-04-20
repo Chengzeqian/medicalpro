@@ -83,6 +83,16 @@ MainInterfaceWidget::~MainInterfaceWidget()
     qDebug() << "[MainInterfaceWidget] destroy";
 }
 
+PlatformStateStore* MainInterfaceWidget::platformStateStore()
+{
+    return &m_platformStateStore;
+}
+
+PlatformLifecycleTraceRecorder* MainInterfaceWidget::lifecycleTraceRecorder()
+{
+    return &m_lifecycleTraceRecorder;
+}
+
 void MainInterfaceWidget::onWelcomeEnterSystem()
 {
     qDebug() << "[MainInterfaceWidget] welcome -> module selection";

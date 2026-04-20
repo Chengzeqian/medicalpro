@@ -9,6 +9,7 @@
 #include "Framework/Platform/CtkBridge/CoreUiRuntimeStatusProvider.h"
 #include "Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.h"
 #include "Framework/Platform/Diagnostics/PlatformDiagnosticsService.h"
+#include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
 #include "Framework/Platform/Kernel/PlatformStateStore.h"
 
 class QCloseEvent;
@@ -46,6 +47,8 @@ class MainInterfaceWidget : public QWidget
 public:
     explicit MainInterfaceWidget(QWidget* parent = nullptr);
     ~MainInterfaceWidget() override;
+    PlatformStateStore* platformStateStore();
+    PlatformLifecycleTraceRecorder* lifecycleTraceRecorder();
 
 signals:
     void exitRequested();
@@ -103,6 +106,7 @@ private:
     PlatformDiagnosticsPage* m_platformDiagnosticsPage;
     PlatformStateStore m_platformStateStore;
     PlatformDiagnosticsService m_platformDiagnosticsService;
+    PlatformLifecycleTraceRecorder m_lifecycleTraceRecorder;
     CtkRuntimeSnapshotCollector m_runtimeCollector;
     LegacyCoreUiRuntimeAdapter* m_coreUiRuntimeAdapter;
     CoreUiRuntimeStatusProvider* m_coreUiRuntimeStatusProvider;

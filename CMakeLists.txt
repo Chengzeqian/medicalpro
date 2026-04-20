@@ -282,6 +282,10 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.cpp
     Framework/Platform/Diagnostics/PlatformDiagnosticsService.h
     Framework/Platform/Diagnostics/PlatformDiagnosticsService.cpp
+    Framework/Platform/Diagnostics/PlatformPluginLifecycleAggregator.h
+    Framework/Platform/Diagnostics/PlatformPluginLifecycleAggregator.cpp
+    Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h
+    Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.cpp
     Framework/Platform/Contracts/PlatformFacadePorts.h
     Framework/Platform/Contracts/PlatformUiPorts.h
     Framework/Platform/CtkBridge/CoreUiRuntimeStatusProvider.h
@@ -1087,7 +1091,5 @@ if(CTK_FOUND)
         )
     endforeach()
 endif()
-
-
 
 
