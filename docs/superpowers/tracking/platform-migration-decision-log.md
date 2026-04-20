@@ -35,3 +35,9 @@
 - Decision: accept the full diagnostics page matrix as landed on top of the previously accepted lifecycle-event-based diagnostics foundation.
 - Rationale: the page now surfaces all required summary, plugin lifecycle, timeline, and problem-list fields from the 2026-04-17 diagnostics design without reintroducing UI direct-CTK access.
 - Impact: the previous `implementation-plan subset only` wording is now historical rollout context instead of the current functional limitation in this worktree.
+
+## 2026-04-20
+
+- Decision: accept the startup lifecycle diagnostics infrastructure itself as landed, not only the diagnostics page presentation layer.
+- Rationale: `PlatformLifecycleTraceRecorder` now records session, phase, and plugin-step facts; `PlatformPluginLifecycleAggregator` now derives slowest plugin, blocking point, failure point, ready-path versus warmup-tail, and recovery hints; `PlatformDiagnosticsService` now reports `ctk_platform_state_mismatch` as a first-class governed problem instead of leaving it implicit.
+- Impact: startup slowness and degradation should now be explainable through the governance layer in `observe_only`, `facade_mode`, and `orchestrate_core`, so future work can extend the diagnostics experience without redefining the lifecycle model again.

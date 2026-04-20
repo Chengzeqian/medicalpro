@@ -5,8 +5,17 @@
 - `StartupTrace` has been expanded from phase-level trace into a full lifecycle timeline.
 - `ready-path` and `warmup-tail` are now separated in platform diagnostics.
 - A `PlatformLifecycleEvent` ledger is now recorded and aggregated into `PlatformPluginLifecycleSnapshot` outputs.
+- The landed lifecycle recorder now covers `install / start / service_ready / warmup / failed / degraded / skipped_by_mode` without bypassing the governance layer back into direct UI-to-CTK wiring.
+- `PlatformDiagnosticsService` now derives `slowestPluginId`, `blockingSpanLabel`, `failurePointLabel`, recovery hints, and `ctk_platform_state_mismatch` problems from the same lifecycle ledger.
 
 ## Implementation Links
+
+### 2026-04-20 Lifecycle Diagnostics Infrastructure Acceptance
+
+- `PlatformLifecycleTraceRecorder`, `PlatformPluginLifecycleAggregator`, and the diagnostics-service lifecycle aggregation path are now landed in this worktree.
+- The three governance runtime modes remain aligned: `observe_only` records explicit `skipped_by_mode` facts, `facade_mode` records the governed framework/core path while skipping deferred warmup, and `orchestrate_core` records the full ready-path plus warmup tail.
+- The accepted infrastructure contract now explains startup slowness by phase, plugin, and lifecycle step instead of stopping at phase-only trace output.
+- Acceptance evidence was refreshed in `build_x64_noctk` with `medicalpro`, `platform_startup_trace_recorder_test`, `platform_plugin_lifecycle_aggregator_test`, `platform_startup_coordinator_test`, `platform_diagnostics_service_test`, `platform_ui_bridge_test`, and `startup_orchestrator_lifecycle_test`.
 
 ### 2026-04-17 Rollout Status
 
