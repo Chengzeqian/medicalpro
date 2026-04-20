@@ -1399,9 +1399,9 @@ git commit -m "refactor: extract managed warmup coordinator"
 Run:
 
 ```powershell
-cmake --build build_x64_noctk --config Release --target medicalpro platform_descriptor_loader_test platform_managed_plugin_plan_test platform_dependency_graph_test platform_startup_coordinator_test platform_diagnostics_service_test platform_warmup_coordinator_test startup_orchestrator_lifecycle_test
-ctest --test-dir build_x64_noctk -C Release -R "platform_descriptor_loader_test|platform_managed_plugin_plan_test|platform_dependency_graph_test|platform_startup_coordinator_test|platform_diagnostics_service_test|platform_warmup_coordinator_test|startup_orchestrator_lifecycle_test|platform_descriptor_runtime_layout_test" --output-on-failure
-rg -n "installPluginsFromDirectory\\(|loadPluginPolicy\\(" main.cpp
+cmake --build build_x64 --config Release --target medicalpro platform_descriptor_loader_test platform_managed_plugin_plan_test platform_dependency_graph_test platform_startup_coordinator_test platform_diagnostics_service_test platform_warmup_coordinator_test startup_orchestrator_lifecycle_test
+ctest --test-dir build_x64 -C Release -R "platform_descriptor_loader_test|platform_managed_plugin_plan_test|platform_dependency_graph_test|platform_startup_coordinator_test|platform_diagnostics_service_test|platform_warmup_coordinator_test|startup_orchestrator_lifecycle_test|platform_descriptor_runtime_layout_test" --output-on-failure
+rg -n 'installPluginsFromDirectory\(|loadPluginPolicy\(' main.cpp
 ```
 
 Expected:
@@ -1416,6 +1416,15 @@ Expected:
 git add docs/current_status_and_project_overview.md docs/superpowers/tracking/platform-migration-decision-log.md docs/superpowers/specs/2026-04-16-platform-kernel-governance-design.md
 git commit -m "docs: record plugin chain remediation phase 1 acceptance"
 ```
+
+Status update 2026-04-20:
+
+- Completed. The current-status overview, migration decision log, and governance design spec now all record the landed Phase 1 runtime mode, managed startup scope, descriptor-driven install path, and `ready` versus `warmup` boundary.
+- Acceptance rerun passed on `build_x64`:
+  - `medicalpro` target build: PASS
+  - `platform_descriptor_loader_test|platform_managed_plugin_plan_test|platform_dependency_graph_test|platform_startup_coordinator_test|platform_diagnostics_service_test|platform_warmup_coordinator_test|startup_orchestrator_lifecycle_test|platform_descriptor_runtime_layout_test`: `8/8 PASS`
+  - `rg -n 'installPluginsFromDirectory\(|loadPluginPolicy\(' main.cpp`: no output
+- The documentation close-out batch can now be committed as `docs: record plugin chain remediation phase 1 acceptance`.
 
 ## Self-Review
 

@@ -1,5 +1,15 @@
 # Platform Kernel Governance Design
 
+## Plugin Chain Remediation Follow-up (2026-04-20)
+
+- The default runtime mode is now `facade_mode` for the product startup path.
+- The governed startup path is now generated from a descriptor-driven managed plan instead of whole-directory plugin installation.
+- Phase 1 managed scope is limited to `UserManagement`, `DicomViewer`, and `FourViewDisplay`.
+- `platform ready` now evaluates only the managed Phase 1 scope.
+- `ready` remains bounded to dependency satisfaction, service registration, and lightweight health checks.
+- Warmup is now routed through `PlatformWarmupCoordinator` and is no longer part of the blocking ready path in Phase 1.
+- Acceptance evidence was refreshed in `build_x64` with `medicalpro`, `platform_descriptor_loader_test`, `platform_managed_plugin_plan_test`, `platform_dependency_graph_test`, `platform_startup_coordinator_test`, `platform_diagnostics_service_test`, `platform_warmup_coordinator_test`, `startup_orchestrator_lifecycle_test`, and `platform_descriptor_runtime_layout_test`.
+
 ## Startup Diagnostics Follow-up (2026-04-17)
 
 - `StartupTrace` has been expanded from phase-level trace into a full lifecycle timeline.

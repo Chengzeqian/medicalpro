@@ -1,5 +1,24 @@
 ## Platform Kernel Governance
 
+### 2026-04-20 Plugin Chain Remediation Phase 1 Acceptance
+
+- Default runtime mode is now `facade_mode` for the product startup path.
+- The managed startup scope is now limited to `UserManagement`, `DicomViewer`, and `FourViewDisplay`.
+- Startup install and core activation now run from a descriptor-driven managed plan instead of scanning the entire `plugins/` directory as the main truth source.
+- `platform ready` now evaluates only the managed Phase 1 scope.
+- `ready` remains limited to `service registration + required plugin/capability satisfaction + lightweight health checks`.
+- Warmup is no longer part of the blocking ready path in Phase 1.
+- Executed command (build):
+  - `cmake --build build_x64 --config Release --target medicalpro platform_descriptor_loader_test platform_managed_plugin_plan_test platform_dependency_graph_test platform_startup_coordinator_test platform_diagnostics_service_test platform_warmup_coordinator_test startup_orchestrator_lifecycle_test`
+- Executed command (ctest):
+  - `ctest --test-dir build_x64 -C Release -R "platform_descriptor_loader_test|platform_managed_plugin_plan_test|platform_dependency_graph_test|platform_startup_coordinator_test|platform_diagnostics_service_test|platform_warmup_coordinator_test|startup_orchestrator_lifecycle_test|platform_descriptor_runtime_layout_test" --output-on-failure`
+- Executed command (legacy-entry scan):
+  - `rg -n "installPluginsFromDirectory\\(|loadPluginPolicy\\(" main.cpp`
+- Expected outcomes alignment and actual results:
+  - `medicalpro` build target: PASS.
+  - Phase 1 plugin-chain suite: `8/8 PASS`.
+  - Legacy entry scan: no output.
+
 ### 2026-04-20 Startup Lifecycle Diagnostics Infrastructure Acceptance
 
 - The lifecycle diagnostics foundation is now landed in this worktree through `PlatformLifecycleTraceRecorder`, `PlatformPluginLifecycleAggregator`, and the enriched `PlatformDiagnosticsService` aggregation path.

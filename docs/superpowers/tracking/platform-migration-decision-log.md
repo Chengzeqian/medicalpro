@@ -1,5 +1,19 @@
 # Platform Migration Decision Log
 
+## 2026-04-20
+
+- Decision: switch the product default runtime mode to `facade_mode` for plugin-chain remediation Phase 1.
+- Rationale: `observe_only` can explain the current plugin chain but cannot stabilize framework init, managed install, core start, and service-ready gating.
+- Impact: the startup truth source is now `platform_runtime.json + descriptor-driven managed startup plan`, while `plugin_load_policy.json` remains compatibility-only.
+
+- Decision: treat `UserManagement`, `DicomViewer`, and `FourViewDisplay` as the only Phase 1 managed startup scope.
+- Rationale: these three plugins define the minimum stable core path without forcing deferred or on-demand registration workflows into the first remediation slice.
+- Impact: unmanaged plugins no longer block `platform ready`, and diagnostics can report them as excluded rather than startup failures.
+
+- Decision: keep warmup outside the blocking Phase 1 ready path.
+- Rationale: the old main-thread hard-coded warmup path mixed readiness with plugin-specific tail work and made startup slowness harder to explain.
+- Impact: `ready` now stops at dependency satisfaction, service registration, and lightweight health checks, while warmup is routed through `PlatformWarmupCoordinator`.
+
 ## 2026-04-16
 
 - Decision: keep CTK for phase 1 and add a platform-governance layer around it.
