@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Framework/FrameworkExport.h"
+#include "Framework/Platform/Kernel/PlatformOnDemandActivationPlan.h"
 #include "Framework/Platform/Kernel/PlatformManagedPluginPlan.h"
 #include "Framework/Platform/Contracts/PlatformRuntimeTypes.h"
 
@@ -31,11 +32,35 @@ struct PlatformServiceReadyOutcome
     QStringList missingCapabilities;
 };
 
+struct PlatformOnDemandProbeSet
+{
+    std::function<PlatformPluginState(const QString&)> currentStateFn;
+    std::function<QStringList(const QStringList&)> missingServicesFn;
+    std::function<QStringList(const QString&)> missingPluginsFn;
+    std::function<QStringList(const QString&)> missingCapabilitiesFn;
+    std::function<QVector<PlatformHealthCheckResult>(const QString&, const QStringList&)> runHealthChecksFn;
+};
+
+struct PlatformOnDemandActivationOutcome
+{
+    bool success = false;
+    PlatformLifecycleResult result = PlatformLifecycleResult::Failed;
+    PlatformPluginState finalState = PlatformPluginState::Failed;
+    QString reasonCode;
+    QString detail;
+    QString targetPluginId;
+    QStringList missingServices;
+    QStringList missingPlugins;
+    QStringList missingCapabilities;
+    QVector<PlatformHealthCheckResult> healthCheckResults;
+};
+
 class FRAMEWORK_EXPORT PlatformStartupCoordinator
 {
 public:
     using StartPluginFn = std::function<bool(const QString&)>;
     using InstallManagedPluginFn = std::function<bool(const PlatformManagedPluginPlanEntry&)>;
+    using InstallOnDemandPluginFn = std::function<bool(const PlatformOnDemandActivationPlanEntry&)>;
     enum class PluginStartPath
     {
         Core,
@@ -63,6 +88,11 @@ public:
         const PlatformManagedPluginPlanEntry& entry,
         const PlatformServiceReadyProbeSet& probes,
         int pollIntervalMs = 50) const;
+    PlatformOnDemandActivationOutcome activateOnDemand(
+        const PlatformOnDemandActivationPlan& plan,
+        const InstallOnDemandPluginFn& installOnDemandPluginFn,
+        const PlatformOnDemandProbeSet& probes,
+        int pollIntervalMs = 50);
     PlatformRuntimeMode runtimeMode() const;
 
 private:

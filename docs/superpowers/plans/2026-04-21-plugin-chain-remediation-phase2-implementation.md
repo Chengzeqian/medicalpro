@@ -472,7 +472,7 @@ git commit -m "feat: add governed on-demand activation plan"
 - Modify: `Framework/Platform/Kernel/PlatformStartupCoordinator.cpp`
 - Modify: `tests/unit/PlatformStartupCoordinatorTest.cpp`
 
-- [ ] **Step 1: 先补 RED 测试，锁定三档模式、`already_ready` 和 health check 行为**
+- [x] **Step 1: 先补 RED 测试，锁定三档模式、`already_ready` 和 health check 行为**
 
 ```cpp
 // tests/unit/PlatformStartupCoordinatorTest.cpp
@@ -559,7 +559,7 @@ void PlatformStartupCoordinatorTest::on_demand_activation_short_circuits_when_ta
 }
 ```
 
-- [ ] **Step 2: 运行 coordinator 测试，确认因新类型和新方法缺失而失败**
+- [x] **Step 2: 运行 coordinator 测试，确认因新类型和新方法缺失而失败**
 
 Run:
 
@@ -572,7 +572,7 @@ Expected:
 
 - `platform_startup_coordinator_test` 编译失败，因为 `activateOnDemand`、`PlatformOnDemandProbeSet`、`PlatformOnDemandActivationOutcome` 尚不存在
 
-- [ ] **Step 3: 实现 on-demand activation outcome、probe set 与显式执行入口**
+- [x] **Step 3: 实现 on-demand activation outcome、probe set 与显式执行入口**
 
 ```cpp
 // Framework/Platform/Kernel/PlatformStartupCoordinator.h
@@ -713,7 +713,7 @@ PlatformOnDemandActivationOutcome PlatformStartupCoordinator::activateOnDemand(
 }
 ```
 
-- [ ] **Step 4: 重新运行 coordinator 测试并确认通过**
+- [x] **Step 4: 重新运行 coordinator 测试并确认通过**
 
 Run:
 
@@ -726,7 +726,7 @@ Expected:
 
 - `platform_startup_coordinator_test` PASS
 
-- [ ] **Step 5: 提交 on-demand execution coordinator**
+- [x] **Step 5: 提交 on-demand execution coordinator**
 
 ```powershell
 git add Framework/Platform/Kernel/PlatformStartupCoordinator.h Framework/Platform/Kernel/PlatformStartupCoordinator.cpp tests/unit/PlatformStartupCoordinatorTest.cpp

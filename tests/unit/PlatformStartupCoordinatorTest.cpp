@@ -7,6 +7,7 @@
 
 #include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
 #include "Framework/Platform/Kernel/PlatformManagedPluginPlan.h"
+#include "Framework/Platform/Kernel/PlatformOnDemandActivationPlan.h"
 #include "Framework/Platform/Kernel/PlatformRuntimeConfig.h"
 #include "Framework/Platform/Kernel/PlatformStartupCoordinator.h"
 
@@ -31,6 +32,11 @@ private slots:
     void orchestrate_core_records_deferred_start_path();
     void installManagedPlugins_installs_only_planned_entries();
     void waitForServiceReady_returns_timeout_with_missing_dependencies();
+    void observe_only_on_demand_activation_reports_skip();
+    void facade_mode_on_demand_activation_runs_install_start_ready_and_health_checks();
+    void orchestrate_core_on_demand_activation_reuses_same_governed_path();
+    void on_demand_activation_short_circuits_when_target_is_already_ready();
+    void on_demand_activation_fails_when_health_check_fails();
 };
 
 void PlatformStartupCoordinatorTest::loadFromFile_reads_runtime_mode_and_core_plugin_ids()
@@ -516,6 +522,268 @@ void PlatformStartupCoordinatorTest::waitForServiceReady_returns_timeout_with_mi
 
     QVERIFY(!outcome.success);
     QCOMPARE(outcome.reasonCode, QStringLiteral("service_ready_timeout"));
+}
+
+void PlatformStartupCoordinatorTest::observe_only_on_demand_activation_reports_skip()
+{
+    PlatformLifecycleTraceRecorder recorder;
+    recorder.beginSession(PlatformRuntimeMode::ObserveOnly);
+
+    PlatformOnDemandActivationPlan plan;
+    plan.targetPluginId = QStringLiteral("org.medicalpro.registration_core");
+    plan.activationEntries = {
+        {
+            QStringLiteral("org.medicalpro.registration_core"),
+            QStringLiteral("RegistrationCore"),
+            QStringLiteral("RegistrationCore"),
+            QStringLiteral("C:/runtime/plugins/RegistrationCore.dll"),
+            {},
+            {QStringLiteral("imaging.data")},
+            {QStringLiteral("RegistrationService")},
+            {QStringLiteral("service_registered"), QStringLiteral("core_binary_accessible")},
+            5000,
+            true
+        }
+    };
+
+    PlatformStartupCoordinator coordinator(PlatformRuntimeMode::ObserveOnly, {}, {}, &recorder);
+    const auto outcome = coordinator.activateOnDemand(
+        plan,
+        {},
+        {
+            [](const QString&) { return PlatformPluginState::Discovered; },
+            [](const QStringList&) { return QStringList{}; },
+            [](const QString&) { return QStringList{}; },
+            [](const QString&) { return QStringList{}; },
+            [](const QString&, const QStringList&) { return QVector<PlatformHealthCheckResult>{}; }
+        });
+
+    QVERIFY(!outcome.success);
+    QCOMPARE(outcome.reasonCode, QStringLiteral("skipped_by_mode"));
+}
+
+void PlatformStartupCoordinatorTest::facade_mode_on_demand_activation_runs_install_start_ready_and_health_checks()
+{
+    QStringList installedPlugins;
+    QStringList startedPlugins;
+    QStringList healthCheckTargets;
+
+    PlatformOnDemandActivationPlan plan;
+    plan.targetPluginId = QStringLiteral("org.medicalpro.registration_core");
+    plan.activationEntries = {
+        {
+            QStringLiteral("org.medicalpro.registration_support"),
+            QStringLiteral("RegistrationSupport"),
+            QStringLiteral("RegistrationSupport"),
+            QStringLiteral("C:/runtime/plugins/RegistrationSupport.dll"),
+            {},
+            {},
+            {QStringLiteral("RegistrationSupportService")},
+            {QStringLiteral("service_registered")},
+            5000,
+            false
+        },
+        {
+            QStringLiteral("org.medicalpro.registration_core"),
+            QStringLiteral("RegistrationCore"),
+            QStringLiteral("RegistrationCore"),
+            QStringLiteral("C:/runtime/plugins/RegistrationCore.dll"),
+            {QStringLiteral("org.medicalpro.registration_support")},
+            {QStringLiteral("imaging.data")},
+            {QStringLiteral("RegistrationService")},
+            {QStringLiteral("service_registered"), QStringLiteral("core_binary_accessible")},
+            5000,
+            true
+        }
+    };
+
+    PlatformStartupCoordinator coordinator(
+        PlatformRuntimeMode::FacadeMode,
+        [&startedPlugins](const QString& ctkSymbolicName) {
+            startedPlugins.append(ctkSymbolicName);
+            return true;
+        });
+
+    const auto outcome = coordinator.activateOnDemand(
+        plan,
+        [&installedPlugins](const PlatformOnDemandActivationPlanEntry& entry) {
+            installedPlugins.append(entry.pluginId);
+            return true;
+        },
+        {
+            [](const QString&) { return PlatformPluginState::Discovered; },
+            [](const QStringList&) { return QStringList{}; },
+            [](const QString&) { return QStringList{}; },
+            [](const QString&) { return QStringList{}; },
+            [&healthCheckTargets](const QString& pluginId, const QStringList& healthChecks) {
+                healthCheckTargets.append(pluginId);
+                QVector<PlatformHealthCheckResult> results;
+                for (const auto& healthCheck : healthChecks) {
+                    PlatformHealthCheckResult result;
+                    result.name = healthCheck;
+                    result.passed = true;
+                    results.append(result);
+                }
+                return results;
+            }
+        });
+
+    QVERIFY(outcome.success);
+    QCOMPARE(outcome.reasonCode, QStringLiteral("service_ready"));
+    QCOMPARE(installedPlugins, (QStringList{
+        QStringLiteral("org.medicalpro.registration_support"),
+        QStringLiteral("org.medicalpro.registration_core")
+    }));
+    QCOMPARE(startedPlugins, (QStringList{
+        QStringLiteral("RegistrationSupport"),
+        QStringLiteral("RegistrationCore")
+    }));
+    QCOMPARE(healthCheckTargets, (QStringList{QStringLiteral("org.medicalpro.registration_core")}));
+}
+
+void PlatformStartupCoordinatorTest::orchestrate_core_on_demand_activation_reuses_same_governed_path()
+{
+    QStringList installedPlugins;
+    QStringList startedPlugins;
+
+    PlatformOnDemandActivationPlan plan;
+    plan.targetPluginId = QStringLiteral("org.medicalpro.optical_tracking");
+    plan.activationEntries = {
+        {
+            QStringLiteral("org.medicalpro.optical_tracking"),
+            QStringLiteral("OpticalTracking"),
+            QStringLiteral("OpticalTracking"),
+            QStringLiteral("C:/runtime/plugins/OpticalTracking.dll"),
+            {},
+            {},
+            {QStringLiteral("OpticalTrackingService")},
+            {QStringLiteral("service_registered"), QStringLiteral("tracking_adapter_accessible")},
+            5000,
+            true
+        }
+    };
+
+    PlatformStartupCoordinator coordinator(
+        PlatformRuntimeMode::OrchestrateCore,
+        [&startedPlugins](const QString& ctkSymbolicName) {
+            startedPlugins.append(ctkSymbolicName);
+            return true;
+        });
+
+    const auto outcome = coordinator.activateOnDemand(
+        plan,
+        [&installedPlugins](const PlatformOnDemandActivationPlanEntry& entry) {
+            installedPlugins.append(entry.pluginId);
+            return true;
+        },
+        {
+            [](const QString&) { return PlatformPluginState::Discovered; },
+            [](const QStringList&) { return QStringList{}; },
+            [](const QString&) { return QStringList{}; },
+            [](const QString&) { return QStringList{}; },
+            [](const QString&, const QStringList& healthChecks) {
+                QVector<PlatformHealthCheckResult> results;
+                for (const auto& healthCheck : healthChecks) {
+                    PlatformHealthCheckResult result;
+                    result.name = healthCheck;
+                    result.passed = true;
+                    results.append(result);
+                }
+                return results;
+            }
+        });
+
+    QVERIFY(outcome.success);
+    QCOMPARE(outcome.reasonCode, QStringLiteral("service_ready"));
+    QCOMPARE(installedPlugins, (QStringList{QStringLiteral("org.medicalpro.optical_tracking")}));
+    QCOMPARE(startedPlugins, (QStringList{QStringLiteral("OpticalTracking")}));
+}
+
+void PlatformStartupCoordinatorTest::on_demand_activation_short_circuits_when_target_is_already_ready()
+{
+    PlatformOnDemandActivationPlan plan;
+    plan.targetPluginId = QStringLiteral("org.medicalpro.registration_core");
+    plan.activationEntries = {
+        {
+            QStringLiteral("org.medicalpro.registration_core"),
+            QStringLiteral("RegistrationCore"),
+            QStringLiteral("RegistrationCore"),
+            QStringLiteral("C:/runtime/plugins/RegistrationCore.dll"),
+            {},
+            {},
+            {QStringLiteral("RegistrationService")},
+            {QStringLiteral("service_registered")},
+            5000,
+            true
+        }
+    };
+
+    PlatformStartupCoordinator coordinator(PlatformRuntimeMode::FacadeMode, {}, {});
+    const auto outcome = coordinator.activateOnDemand(
+        plan,
+        {},
+        {
+            [](const QString&) { return PlatformPluginState::Ready; },
+            [](const QStringList&) { return QStringList{}; },
+            [](const QString&) { return QStringList{}; },
+            [](const QString&) { return QStringList{}; },
+            [](const QString&, const QStringList&) { return QVector<PlatformHealthCheckResult>{}; }
+        });
+
+    QVERIFY(outcome.success);
+    QCOMPARE(outcome.reasonCode, QStringLiteral("already_ready"));
+}
+
+void PlatformStartupCoordinatorTest::on_demand_activation_fails_when_health_check_fails()
+{
+    PlatformOnDemandActivationPlan plan;
+    plan.targetPluginId = QStringLiteral("org.medicalpro.registration_core");
+    plan.activationEntries = {
+        {
+            QStringLiteral("org.medicalpro.registration_core"),
+            QStringLiteral("RegistrationCore"),
+            QStringLiteral("RegistrationCore"),
+            QStringLiteral("C:/runtime/plugins/RegistrationCore.dll"),
+            {},
+            {},
+            {QStringLiteral("RegistrationService")},
+            {QStringLiteral("service_registered"), QStringLiteral("core_binary_accessible")},
+            5000,
+            true
+        }
+    };
+
+    PlatformStartupCoordinator coordinator(
+        PlatformRuntimeMode::FacadeMode,
+        [](const QString&) { return true; },
+        {});
+
+    const auto outcome = coordinator.activateOnDemand(
+        plan,
+        [](const PlatformOnDemandActivationPlanEntry&) { return true; },
+        {
+            [](const QString&) { return PlatformPluginState::Discovered; },
+            [](const QStringList&) { return QStringList{}; },
+            [](const QString&) { return QStringList{}; },
+            [](const QString&) { return QStringList{}; },
+            [](const QString&, const QStringList& healthChecks) {
+                QVector<PlatformHealthCheckResult> results;
+                for (const auto& healthCheck : healthChecks) {
+                    PlatformHealthCheckResult result;
+                    result.name = healthCheck;
+                    result.passed = healthCheck == QStringLiteral("service_registered");
+                    result.detail = result.passed
+                        ? QStringLiteral("ok")
+                        : QStringLiteral("core binary is not accessible");
+                    results.append(result);
+                }
+                return results;
+            }
+        });
+
+    QVERIFY(!outcome.success);
+    QCOMPARE(outcome.reasonCode, QStringLiteral("health_check_failed"));
+    QCOMPARE(outcome.finalState, PlatformPluginState::Failed);
 }
 
 QTEST_APPLESS_MAIN(PlatformStartupCoordinatorTest)

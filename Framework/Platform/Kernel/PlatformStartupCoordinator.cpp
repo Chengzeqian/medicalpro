@@ -208,6 +208,14 @@ PlatformServiceReadyOutcome PlatformStartupCoordinator::waitForServiceReady(
     int pollIntervalMs) const
 {
     PlatformServiceReadyOutcome outcome;
+    if (m_recorder) {
+        m_recorder->recordPluginStepStarted(
+            entry.pluginId,
+            entry.ctkSymbolicName,
+            PlatformLifecycleStep::ServiceReady,
+            false);
+    }
+
     QElapsedTimer timer;
     timer.start();
 
@@ -222,6 +230,15 @@ PlatformServiceReadyOutcome PlatformStartupCoordinator::waitForServiceReady(
             outcome.finalState = PlatformPluginState::Ready;
             outcome.reasonCode = QStringLiteral("service_ready");
             outcome.detail = QStringLiteral("Required services and dependencies are ready");
+            if (m_recorder) {
+                m_recorder->recordPluginStepFinished(
+                    entry.pluginId,
+                    entry.ctkSymbolicName,
+                    PlatformLifecycleStep::ServiceReady,
+                    PlatformLifecycleResult::Succeeded,
+                    outcome.reasonCode,
+                    outcome.detail);
+            }
             return outcome;
         }
 
@@ -232,6 +249,130 @@ PlatformServiceReadyOutcome PlatformStartupCoordinator::waitForServiceReady(
     outcome.finalState = PlatformPluginState::Failed;
     outcome.reasonCode = QStringLiteral("service_ready_timeout");
     outcome.detail = QStringLiteral("Timed out while waiting for managed plugin service readiness");
+    if (m_recorder) {
+        m_recorder->recordPluginStepFinished(
+            entry.pluginId,
+            entry.ctkSymbolicName,
+            PlatformLifecycleStep::ServiceReady,
+            PlatformLifecycleResult::Timeout,
+            outcome.reasonCode,
+            outcome.detail);
+    }
+    return outcome;
+}
+
+PlatformOnDemandActivationOutcome PlatformStartupCoordinator::activateOnDemand(
+    const PlatformOnDemandActivationPlan& plan,
+    const InstallOnDemandPluginFn& installOnDemandPluginFn,
+    const PlatformOnDemandProbeSet& probes,
+    int pollIntervalMs)
+{
+    PlatformOnDemandActivationOutcome outcome;
+    outcome.targetPluginId = plan.targetPluginId.trimmed();
+
+    if (plan.activationEntries.isEmpty()) {
+        outcome.reasonCode = QStringLiteral("descriptor_missing");
+        outcome.detail = QStringLiteral("On-demand activation plan is empty");
+        return outcome;
+    }
+
+    const auto& targetEntry = plan.activationEntries.constLast();
+    const auto makeTarget = [](const PlatformOnDemandActivationPlanEntry& entry) {
+        ResolvedPluginTarget target;
+        target.managed = true;
+        target.platformPluginId = entry.pluginId.trimmed();
+        target.ctkSymbolicName = entry.ctkSymbolicName.trimmed();
+        return target;
+    };
+
+    if (m_runtimeMode == PlatformRuntimeMode::ObserveOnly) {
+        const auto startOutcome = startPluginForPath(makeTarget(targetEntry), PluginStartPath::OnDemand);
+        if (startOutcome == StartOutcome::Skipped) {
+            outcome.reasonCode = QStringLiteral("skipped_by_mode");
+            outcome.detail = QStringLiteral("On-demand plugin start skipped in observe_only mode");
+            outcome.result = PlatformLifecycleResult::Skipped;
+            outcome.finalState = PlatformPluginState::Discovered;
+            return outcome;
+        }
+
+        outcome.reasonCode = QStringLiteral("start_failed");
+        outcome.detail = QStringLiteral("On-demand plugin start failed");
+        return outcome;
+    }
+
+    if (probes.currentStateFn && probes.currentStateFn(targetEntry.pluginId) == PlatformPluginState::Ready) {
+        outcome.success = true;
+        outcome.result = PlatformLifecycleResult::Succeeded;
+        outcome.finalState = PlatformPluginState::Ready;
+        outcome.reasonCode = QStringLiteral("already_ready");
+        outcome.detail = QStringLiteral("Target plugin is already ready");
+        return outcome;
+    }
+
+    for (const auto& entry : plan.activationEntries) {
+        if (!installOnDemandPluginFn || !installOnDemandPluginFn(entry)) {
+            outcome.reasonCode = QStringLiteral("install_failed");
+            outcome.detail = QStringLiteral("On-demand bundle install failed");
+            return outcome;
+        }
+
+        const auto startOutcome = startPluginForPath(makeTarget(entry), PluginStartPath::OnDemand);
+        if (startOutcome == StartOutcome::Failed) {
+            outcome.reasonCode = QStringLiteral("start_failed");
+            outcome.detail = QStringLiteral("On-demand plugin start failed");
+            return outcome;
+        }
+
+        PlatformManagedPluginPlanEntry managedEntry;
+        managedEntry.pluginId = entry.pluginId;
+        managedEntry.displayName = entry.displayName;
+        managedEntry.ctkSymbolicName = entry.ctkSymbolicName;
+        managedEntry.bundleFilePath = entry.bundleFilePath;
+        managedEntry.bootstrapLevel = PlatformBootstrapLevel::Deferred;
+        managedEntry.startupPolicy = PlatformStartupPolicy::OnDemand;
+        managedEntry.requiredPlugins = entry.requiredPlugins;
+        managedEntry.requiredCapabilities = entry.requiredCapabilities;
+        managedEntry.requiredServices = entry.requiredServices;
+        managedEntry.healthChecks = entry.healthChecks;
+        managedEntry.serviceReadyTimeoutMs = entry.serviceReadyTimeoutMs;
+
+        const auto serviceOutcome = waitForServiceReady(
+            managedEntry,
+            {
+                probes.missingServicesFn,
+                probes.missingPluginsFn,
+                probes.missingCapabilitiesFn
+            },
+            pollIntervalMs);
+        if (!serviceOutcome.success) {
+            outcome.result = PlatformLifecycleResult::Timeout;
+            outcome.finalState = serviceOutcome.finalState;
+            outcome.reasonCode = serviceOutcome.reasonCode;
+            outcome.detail = serviceOutcome.detail;
+            outcome.missingServices = serviceOutcome.missingServices;
+            outcome.missingPlugins = serviceOutcome.missingPlugins;
+            outcome.missingCapabilities = serviceOutcome.missingCapabilities;
+            return outcome;
+        }
+    }
+
+    outcome.healthCheckResults = probes.runHealthChecksFn
+        ? probes.runHealthChecksFn(targetEntry.pluginId, targetEntry.healthChecks)
+        : QVector<PlatformHealthCheckResult>{};
+    for (const auto& healthCheckResult : outcome.healthCheckResults) {
+        if (healthCheckResult.passed) continue;
+        outcome.reasonCode = QStringLiteral("health_check_failed");
+        outcome.detail = healthCheckResult.detail;
+        outcome.result = PlatformLifecycleResult::Failed;
+        outcome.finalState = PlatformPluginState::Failed;
+        return outcome;
+    }
+
+    outcome.success = true;
+    outcome.result = PlatformLifecycleResult::Succeeded;
+    outcome.finalState = PlatformPluginState::Ready;
+    outcome.reasonCode = QStringLiteral("service_ready");
+    outcome.detail = QStringLiteral("On-demand plugin is ready");
     return outcome;
 }
 
