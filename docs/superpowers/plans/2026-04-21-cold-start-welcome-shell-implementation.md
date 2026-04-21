@@ -14,10 +14,14 @@
 - Verified commands:
   - `cmake --build build_x64 --config Release --target welcome_page_bootstrap_state_test welcome_page_runtime_refresh_test`
   - `ctest --test-dir build_x64 -C Release -R "welcome_page_bootstrap_state_test|welcome_page_runtime_refresh_test" --output-on-failure`
+- Additional verified commands:
+  - `cmake --build build_x64 --config Release --target startup_bootstrap_controller_test welcome_page_bootstrap_state_test medicalpro`
+  - `ctest --test-dir build_x64 -C Release -R "startup_bootstrap_controller_test|welcome_page_bootstrap_state_test|welcome_page_runtime_refresh_test" --output-on-failure`
 - Current checkpoint:
   - `StartupShellSnapshot` contract is added.
   - `WelcomePageNew` can consume shell bootstrap snapshots without being overwritten by its legacy runtime refresh path.
-  - Task 2 and later tasks are still pending.
+  - `StartupBootstrapController` and `StartupShell` are now compiled into the framework/app targets.
+  - Task 3 and later tasks are still pending.
 
 ---
 
@@ -316,7 +320,7 @@ Expected:
 - `welcome_page_bootstrap_state_test` PASS
 - `welcome_page_runtime_refresh_test` PASS
 
-- [ ] **Step 5: Commit the welcome shell-state contract**
+- [x] **Step 5: Commit the welcome shell-state contract**
 
 ```powershell
 git add Framework/Platform/Contracts/StartupShellSnapshot.h UI/NewPages/WelcomePage.h UI/NewPages/WelcomePage.cpp tests/unit/CMakeLists.txt tests/unit/WelcomePageBootstrapStateTest.cpp
@@ -334,7 +338,7 @@ git commit -m "feat: add welcome shell state contract"
 - Modify: `tests/unit/CMakeLists.txt`
 - Create: `tests/unit/StartupBootstrapControllerTest.cpp`
 
-- [ ] **Step 1: Add a red controller test for `booting -> ready -> failed -> retry`**
+- [x] **Step 1: Add a red controller test for `booting -> ready -> failed -> retry`**
 
 ```cpp
 // tests/unit/StartupBootstrapControllerTest.cpp
@@ -395,7 +399,7 @@ QTEST_APPLESS_MAIN(StartupBootstrapControllerTest)
 #include "StartupBootstrapControllerTest.moc"
 ```
 
-- [ ] **Step 2: Register the new controller test and run it red**
+- [x] **Step 2: Register the new controller test and run it red**
 
 ```cmake
 # tests/unit/CMakeLists.txt
@@ -430,7 +434,7 @@ Expected:
 
 - build fails because `StartupBootstrapController` does not exist yet
 
-- [ ] **Step 3: Implement the controller state machine and lightweight shell window**
+- [x] **Step 3: Implement the controller state machine and lightweight shell window**
 
 ```cpp
 // Framework/Platform/Bootstrap/StartupBootstrapController.h
@@ -608,7 +612,7 @@ void StartupShell::applySnapshot(const StartupShellSnapshot& snapshot)
 }
 ```
 
-- [ ] **Step 4: Add the new files to the build and turn the controller test green**
+- [x] **Step 4: Add the new files to the build and turn the controller test green**
 
 ```cmake
 # CMakeLists.txt
@@ -636,7 +640,7 @@ Expected:
 - `startup_bootstrap_controller_test` PASS
 - `welcome_page_bootstrap_state_test` PASS
 
-- [ ] **Step 5: Commit the shell controller layer**
+- [x] **Step 5: Commit the shell controller layer**
 
 ```powershell
 git add CMakeLists.txt Framework/Platform/Bootstrap/StartupBootstrapController.h Framework/Platform/Bootstrap/StartupBootstrapController.cpp UI/StartupShell.h UI/StartupShell.cpp tests/unit/CMakeLists.txt tests/unit/StartupBootstrapControllerTest.cpp

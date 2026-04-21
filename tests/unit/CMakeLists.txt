@@ -158,6 +158,33 @@ add_test(
     COMMAND welcome_page_bootstrap_state_test
 )
 
+add_executable(startup_bootstrap_controller_test
+    StartupBootstrapControllerTest.cpp
+)
+
+target_include_directories(startup_bootstrap_controller_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(startup_bootstrap_controller_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+if(MSVC)
+    target_compile_options(startup_bootstrap_controller_test PRIVATE /utf-8)
+endif()
+
+add_test(
+    NAME startup_bootstrap_controller_test
+    COMMAND startup_bootstrap_controller_test
+)
+
+set_tests_properties(startup_bootstrap_controller_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:startup_bootstrap_controller_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
 add_executable(platform_descriptor_loader_test
     PlatformDescriptorLoaderTest.cpp
 )

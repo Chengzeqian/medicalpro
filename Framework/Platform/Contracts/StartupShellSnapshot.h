@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QStringList>
+#include <QMetaType>
 
 enum class StartupShellState
 {
@@ -24,5 +25,7 @@ struct StartupShellSnapshot
     QString failureReason;
     QStringList recoveryHints;
 };
+
+Q_DECLARE_METATYPE(StartupShellSnapshot)
 
 #endif // STARTUPSHELLSNAPSHOT_H

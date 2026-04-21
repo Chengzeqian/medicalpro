@@ -268,6 +268,7 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Contracts/PlatformRuntimeTypes.h
     Framework/Platform/Contracts/PlatformPluginDescriptor.h
     Framework/Platform/Contracts/PlatformSnapshots.h
+    Framework/Platform/Contracts/StartupShellSnapshot.h
     Framework/Platform/Kernel/PlatformDescriptorLoader.h
     Framework/Platform/Kernel/PlatformDescriptorLoader.cpp
     Framework/Platform/Kernel/PlatformDependencyGraph.h
@@ -286,6 +287,8 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Kernel/PlatformWarmupCoordinator.cpp
     Framework/Platform/Kernel/PlatformStateStore.h
     Framework/Platform/Kernel/PlatformStateStore.cpp
+    Framework/Platform/Bootstrap/StartupBootstrapController.h
+    Framework/Platform/Bootstrap/StartupBootstrapController.cpp
     Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.h
     Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.cpp
     Framework/Platform/Diagnostics/PlatformDiagnosticsService.h
@@ -460,6 +463,8 @@ set(PROJECT_SOURCES
         # === 鏃I鍏ュ彛锛堜繚鐣欑敤浜庢笎杩涜縼绉伙紝鍚庣画鍙垹闄わ級 ===
         UI/MainInterfaceWidget.h
         UI/MainInterfaceWidget.cpp
+        UI/StartupShell.h
+        UI/StartupShell.cpp
 
         # === 瀵硅瘽妗嗘ā鍧?===
         UI/Dialogs/InstrumentPreviewDialog.h
