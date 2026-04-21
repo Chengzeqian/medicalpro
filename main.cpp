@@ -1,8 +1,11 @@
 #include "UI/MainInterfaceWidget.h"
+#include "UI/MainInterfaceFactory.h"
+#include "UI/StartupShell.h"
 #include "UI/AppTheme.h"
 
 #include "Framework/CTKManager.h"
 #include "Framework/ConsoleLogBridge.h"
+#include "Framework/Platform/Bootstrap/StartupBootstrapController.h"
 #include "Framework/Platform/Kernel/PlatformDescriptorLoader.h"
 #include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
 #include "Framework/Platform/Kernel/PlatformManagedPluginPlan.h"
@@ -544,10 +547,28 @@ int main(int argc, char* argv[])
         qDebug() << "[Phase 3] Completed\n";
 
         // ========================================
-        // Phase 4: create the main interface without expensive work
+        // Phase 4: create the startup shell and delay the heavy main interface
         // ========================================
-        qDebug() << "[Phase 4] Creating main interface";
+        qDebug() << "[Phase 4] Creating startup shell";
         qDebug() << "----------------------------------------";
+        QStringList governedPluginIds = managedPlan.managedPluginIds;
+        if (!governedPluginIds.contains(QStringLiteral("org.medicalpro.registration_core"))) {
+            governedPluginIds.append(QStringLiteral("org.medicalpro.registration_core"));
+        }
+        if (!governedPluginIds.contains(QStringLiteral("org.medicalpro.optical_tracking"))) {
+            governedPluginIds.append(QStringLiteral("org.medicalpro.optical_tracking"));
+        }
+
+        PlatformStateStore bootstrapStateStore;
+        const auto resetBootstrapStateStore = [&]() {
+            bootstrapStateStore.replaceDescriptors(descriptors);
+            bootstrapStateStore.setRuntimeMode(runtimeConfig.runtimeMode);
+            bootstrapStateStore.setStartupScopePluginIds(managedPlan.managedPluginIds);
+            bootstrapStateStore.setGovernedPluginIds(governedPluginIds);
+        };
+
+        resetBootstrapStateStore();
+        startupContext->stateStore = &bootstrapStateStore;
         const PlatformOnDemandProbeSet onDemandProbes {
             [startupContext](const QString& pluginId) {
                 if (!startupContext->stateStore) return PlatformPluginState::Discovered;
@@ -611,27 +632,151 @@ int main(int argc, char* argv[])
             [service = startupContext->onDemandActivationService](const QString& pluginId) {
                 return service->ensureReady(pluginId);
             });
-        QPointer<MainInterfaceWidget> mainInterface = new MainInterfaceWidget(startupContext->navigationAdapter.get(), nullptr);
-        mainInterface->platformStateStore()->replaceDescriptors(descriptors);
-        mainInterface->platformStateStore()->setRuntimeMode(runtimeConfig.runtimeMode);
-        mainInterface->platformStateStore()->setStartupScopePluginIds(managedPlan.managedPluginIds);
-        QStringList governedPluginIds = managedPlan.managedPluginIds;
-        if (!governedPluginIds.contains(QStringLiteral("org.medicalpro.registration_core"))) {
-            governedPluginIds.append(QStringLiteral("org.medicalpro.registration_core"));
-        }
-        if (!governedPluginIds.contains(QStringLiteral("org.medicalpro.optical_tracking"))) {
-            governedPluginIds.append(QStringLiteral("org.medicalpro.optical_tracking"));
-        }
-        mainInterface->platformStateStore()->setGovernedPluginIds(governedPluginIds);
-        qDebug() << "[main] Creating main interface window...";
-        mainInterface->setAttribute(Qt::WA_DeleteOnClose, true);
-        startupContext->stateStore = mainInterface->platformStateStore();
         startupContext->onDemandActivationService->setStateStore(startupContext->stateStore);
-        mainInterface->show();
-        mainInterface->raise();
-        mainInterface->activateWindow();
-        mainInterface->showFullScreen();
-        mainInterface->raise();
+
+        auto bootstrapController = std::make_unique<StartupBootstrapController>();
+        QPointer<StartupShell> startupShell = new StartupShell(nullptr);
+        QPointer<MainInterfaceWidget> mainInterface;
+
+        const auto publishBootStage = [bootstrapControllerPtr = bootstrapController.get()](
+                                          const QString& stageLabel,
+                                          const QString& statusText) {
+            QMetaObject::invokeMethod(
+                bootstrapControllerPtr,
+                [bootstrapControllerPtr, stageLabel, statusText]() {
+                    bootstrapControllerPtr->updateBootStage(stageLabel, statusText);
+                },
+                Qt::BlockingQueuedConnection);
+        };
+
+        const auto publishReady = [bootstrapControllerPtr = bootstrapController.get()]() {
+            QMetaObject::invokeMethod(
+                bootstrapControllerPtr,
+                [bootstrapControllerPtr]() {
+                    bootstrapControllerPtr->markReady();
+                    qDebug() << "[StartupShell] enter enabled";
+                },
+                Qt::BlockingQueuedConnection);
+        };
+
+        const auto publishFailure = [bootstrapControllerPtr = bootstrapController.get()](const QString& failureReason) {
+            QMetaObject::invokeMethod(
+                bootstrapControllerPtr,
+                [bootstrapControllerPtr, failureReason]() {
+                    bootstrapControllerPtr->markFailed(
+                        failureReason,
+                        QStringList{QStringLiteral("Retry startup or inspect diagnostics.")});
+                },
+                Qt::BlockingQueuedConnection);
+        };
+
+        QObject::connect(
+            bootstrapController.get(),
+            &StartupBootstrapController::snapshotChanged,
+            startupShell,
+            [startupShell](const StartupShellSnapshot& snapshot) {
+                if (!startupShell) {
+                    return;
+                }
+                startupShell->applySnapshot(snapshot);
+            });
+
+        QObject::connect(startupShell, &StartupShell::exitRequested, &app, [&app, startupContext]() {
+            startupContext->shutdownRequested.store(true);
+            app.quit();
+        });
+
+        QObject::connect(startupShell, &StartupShell::viewDiagnosticsRequested, &app, [startupShell, orchestrator]() {
+            if (!startupShell) {
+                return;
+            }
+            QMessageBox::information(
+                startupShell,
+                QStringLiteral("启动诊断"),
+                orchestrator->getDiagnosticReport());
+        });
+
+        QObject::connect(
+            startupShell,
+            &StartupShell::retryStartupRequested,
+            &app,
+            [&app,
+             ctkManager,
+             orchestrator,
+             startupContext,
+             resetBootstrapStateStore,
+             &bootstrapStateStore,
+             bootstrapControllerPtr = bootstrapController.get()]() {
+                startupContext->shutdownRequested.store(false);
+                ctkManager->stopFramework();
+                resetBootstrapStateStore();
+                startupContext->stateStore = &bootstrapStateStore;
+                startupContext->onDemandActivationService->setStateStore(startupContext->stateStore);
+                bootstrapControllerPtr->resetForRetry();
+                bootstrapControllerPtr->beginBoot(
+                    QStringLiteral("Startup shell shown"),
+                    QStringLiteral("系统初始化中"));
+                QTimer::singleShot(0, orchestrator, [orchestrator, app = &app]() {
+                    orchestrator->start(app);
+                });
+            });
+
+        QObject::connect(
+            startupShell,
+            &StartupShell::enterSystemRequested,
+            &app,
+            [&app,
+             startupShell,
+             startupContext,
+             &mainInterface,
+             bootstrapControllerPtr = bootstrapController.get(),
+             &bootstrapStateStore]() mutable {
+                if (!bootstrapControllerPtr->snapshot().canEnterSystem) {
+                    return;
+                }
+
+                if (!mainInterface) {
+                    auto mainInterfaceOwner = createMainInterface(
+                        startupContext->navigationAdapter.get(),
+                        &bootstrapStateStore,
+                        nullptr);
+                    mainInterface = mainInterfaceOwner.release();
+                    mainInterface->setAttribute(Qt::WA_DeleteOnClose, true);
+                    startupContext->stateStore = mainInterface->platformStateStore();
+                    startupContext->onDemandActivationService->setStateStore(startupContext->stateStore);
+
+                    QObject::connect(mainInterface, &MainInterfaceWidget::exitRequested, &app, [mainInterface, startupContext, app = &app]() mutable {
+                        startupContext->shutdownRequested.store(true);
+                        if (mainInterface) {
+                            mainInterface->close();
+                        }
+                        app->quit();
+                    });
+                    QObject::connect(mainInterface, &MainInterfaceWidget::logoutRequested, &app, []() {
+                        qDebug() << "[main] Handling logout request and returning to Welcome page";
+                    });
+                }
+
+                if (startupShell) {
+                    startupShell->hide();
+                }
+                mainInterface->show();
+                mainInterface->raise();
+                mainInterface->activateWindow();
+                mainInterface->showFullScreen();
+                mainInterface->raise();
+            });
+
+        bootstrapController->beginBoot(
+            QStringLiteral("Startup shell shown"),
+            QStringLiteral("系统初始化中"));
+        startupShell->applySnapshot(bootstrapController->snapshot());
+        startupShell->show();
+        startupShell->raise();
+        startupShell->activateWindow();
+        startupShell->showFullScreen();
+        startupShell->raise();
+        qDebug() << "[StartupShell] shown";
 
         qDebug() << "[Phase 4] Completed\n";
 
@@ -856,7 +1001,21 @@ int main(int argc, char* argv[])
 
         // Register the CTK framework initialization handler
 #ifdef CTK_PLUGIN_FRAMEWORK
-        orchestrator->registerPhaseHandler(StartupPhase::CTKFrameworkInit, [ctkManager, startupContext](QApplication* app) -> StartupOrchestrator::PhaseExecutionResult {
+        orchestrator->registerPhaseHandler(
+            StartupPhase::MainUICreation,
+            [publishBootStage](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+                publishBootStage(
+                    QStringLiteral("Main interface deferred"),
+                    QStringLiteral("欢迎页已显示，主界面将在进入系统后创建"));
+                return StartupOrchestrator::PhaseExecutionResult::skipped(
+                    QStringLiteral("Main interface deferred until enter"),
+                    QStringLiteral("main_interface_deferred"));
+            });
+
+        orchestrator->registerPhaseHandler(StartupPhase::CTKFrameworkInit, [ctkManager, startupContext, publishBootStage, publishFailure](QApplication* app) -> StartupOrchestrator::PhaseExecutionResult {
+            publishBootStage(
+                QStringLiteral("CTK framework initialization"),
+                QStringLiteral("正在初始化插件框架"));
             if (!startupContext->startupCoordinator.shouldInitializeFramework()) {
                 qDebug() << "[StartupOrchestrator] Skipping CTK framework initialization in observe_only mode";
                 return StartupOrchestrator::PhaseExecutionResult::skipped(
@@ -866,10 +1025,12 @@ int main(int argc, char* argv[])
             qDebug() << "[StartupOrchestrator] Running CTK framework initialization...";
             if (!ctkManager->initializeFramework(app)) {
                 qCritical() << "[StartupOrchestrator] CTK framework initialization failed";
+                publishFailure(QStringLiteral("CTK framework initialization failed"));
                 return false;
             }
             if (!ctkManager->startFramework()) {
                 qCritical() << "[StartupOrchestrator] CTK framework startup failed";
+                publishFailure(QStringLiteral("CTK framework startup failed"));
                 return false;
             }
             qDebug() << "[StartupOrchestrator] CTK framework initialization completed";
@@ -878,7 +1039,10 @@ int main(int argc, char* argv[])
         });
 
         // Register the plugin installation handler
-        orchestrator->registerPhaseHandler(StartupPhase::PluginInstallation, [ctkManager, startupContext](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+        orchestrator->registerPhaseHandler(StartupPhase::PluginInstallation, [ctkManager, startupContext, publishBootStage, publishFailure](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+            publishBootStage(
+                QStringLiteral("Plugin installation"),
+                QStringLiteral("正在安装平台插件"));
             if (!startupContext->startupCoordinator.shouldInstallPlugins()) {
                 qDebug() << "[StartupOrchestrator] Skipping plugin installation in observe_only mode";
                 return StartupOrchestrator::PhaseExecutionResult::skipped(
@@ -892,20 +1056,28 @@ int main(int argc, char* argv[])
                     return ctkManager->installPlugin(entry.bundleFilePath, false, nullptr);
                 });
             qDebug() << "[StartupOrchestrator] Managed plugin installation completed";
+            if (!installed) {
+                publishFailure(QStringLiteral("Managed plugin installation failed"));
+            }
             return installed;
         });
 
         orchestrator->registerPhaseHandler(
             StartupPhase::CriticalPluginStart,
-            [startupContext, ctkManager, applyPluginState](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+            [startupContext, ctkManager, applyPluginState, publishBootStage, publishFailure, publishReady](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+                publishBootStage(
+                    QStringLiteral("Critical plugin activation"),
+                    QStringLiteral("正在准备主流程插件"));
                 if (!startupContext->startupCoordinator.shouldStartCorePlugins()) {
                     qDebug() << "[StartupOrchestrator] Skipping core plugin startup in observe_only mode";
+                    publishReady();
                     return StartupOrchestrator::PhaseExecutionResult::skipped(
                         QStringLiteral("Core plugin activation skipped in observe_only mode"));
                 }
 
                 if (startupContext->managedPlan.installEntries.isEmpty()) {
                     qDebug() << "[StartupOrchestrator] No managed core plugins configured for startup";
+                    publishReady();
                     return true;
                 }
 
@@ -916,6 +1088,7 @@ int main(int argc, char* argv[])
                     if (!startupContext->startupCoordinator.startCorePlugin(entry.pluginId)) {
                         applyPluginState(startupContext->resolveByPlatformPluginId(entry.pluginId), PlatformPluginState::Failed);
                         qCritical() << "[StartupOrchestrator] Critical plugin start failed:" << entry.pluginId;
+                        publishFailure(QStringLiteral("Critical plugin activation failed"));
                         return false;
                     }
 
@@ -950,15 +1123,20 @@ int main(int argc, char* argv[])
                     if (!outcome.success) {
                         qCritical() << "[StartupOrchestrator] Service ready timeout:" << entry.pluginId
                                     << outcome.missingServices << outcome.missingPlugins << outcome.missingCapabilities;
+                        publishFailure(outcome.detail);
                         return false;
                     }
                 }
 
                 qDebug() << "[StartupOrchestrator] Critical plugin activation completed";
+                publishReady();
                 return true;
         });
 
-        orchestrator->registerPhaseHandler(StartupPhase::DeferredPluginStart, [ctkManager, startupContext](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+        orchestrator->registerPhaseHandler(StartupPhase::DeferredPluginStart, [ctkManager, startupContext, publishBootStage](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+            publishBootStage(
+                QStringLiteral("Deferred plugin activation"),
+                QStringLiteral("主流程已就绪，后台继续启动可选插件"));
             if (!startupContext->startupCoordinator.shouldStartDeferredPlugins()) {
                 qDebug() << "[StartupOrchestrator] Skipping deferred plugin startup in current runtime mode";
                 return StartupOrchestrator::PhaseExecutionResult::skipped(
@@ -978,7 +1156,10 @@ int main(int argc, char* argv[])
             return success;
         });
 
-        orchestrator->registerPhaseHandler(StartupPhase::ServiceWarmup, [startupContext](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+        orchestrator->registerPhaseHandler(StartupPhase::ServiceWarmup, [startupContext, publishBootStage](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+            publishBootStage(
+                QStringLiteral("Service warmup"),
+                QStringLiteral("主流程已就绪，后台继续预热服务"));
             if (startupContext->shutdownRequested.load()) {
                 qDebug() << "[StartupOrchestrator] Aborting service warmup because shutdown was requested";
                 return StartupOrchestrator::PhaseExecutionResult::skipped(
@@ -1020,14 +1201,19 @@ int main(int argc, char* argv[])
         qDebug() << "[Phase 5] CTK plugin framework disabled, skipping CTK startup handlers";
 #endif
 
-        QPointer<MainInterfaceWidget> mainInterfaceGuard(mainInterface);
-        QObject::connect(orchestrator, &StartupOrchestrator::startupCompleted,
-                             mainInterface, [mainInterfaceGuard, safeMode](bool success) {
-                                 if (!success) {
-                                     qWarning() << "[Startup] Background startup reported failures; continuing runtime";
-                                     qWarning() << StartupOrchestrator::instance()->getDiagnosticReport();
-                                 } else if (safeMode && mainInterfaceGuard) {
-                                     QMessageBox::information(mainInterfaceGuard,
+        QObject::connect(orchestrator, &StartupOrchestrator::startupCompleted, &app, [startupShell, &mainInterface, safeMode](bool success) {
+            if (!success) {
+                qWarning() << "[Startup] Background startup reported failures; staying on startup shell";
+                qWarning() << StartupOrchestrator::instance()->getDiagnosticReport();
+                return;
+            }
+
+            QWidget* messageHost = mainInterface
+                ? static_cast<QWidget*>(mainInterface.data())
+                : static_cast<QWidget*>(startupShell.data());
+            if (safeMode && messageHost) {
+                QMessageBox::information(
+                    messageHost,
                                                               QObject::tr("安全模式"),
                                                               QObject::tr("应用正在安全模式下运行，部分可选插件已被跳过。\n\n诊断摘要：\n%1")
                                                                   .arg(StartupOrchestrator::instance()->getDiagnosticReport()));
@@ -1038,14 +1224,6 @@ int main(int argc, char* argv[])
                 orchestrator->start(app);
             });
 
-            QObject::connect(mainInterface, &MainInterfaceWidget::exitRequested, &app, [mainInterface, startupContext, app = &app]() mutable {
-                startupContext->shutdownRequested.store(true);
-                mainInterface->close();
-                app->quit();
-            });
-            QObject::connect(mainInterface, &MainInterfaceWidget::logoutRequested, &app, []() {
-                qDebug() << "[main] Handling logout request and returning to Welcome page";
-            });
             qDebug() << "========================================";
             qDebug() << "Startup flow completed, entering event loop";
             qDebug() << "========================================\n";
