@@ -41,7 +41,7 @@
 - Create: `docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md`
 - Modify: `Framework/CTKManager.cpp`
 
-- [ ] **Step 1: 先注册新的源码契约测试 target**
+- [x] **Step 1: 先注册新的源码契约测试 target**
 
 ```cmake
 # tests/unit/CMakeLists.txt
@@ -68,7 +68,7 @@ add_test(
 )
 ```
 
-- [ ] **Step 2: 写 RED 源码契约测试，把 inventory 和 internal debt 边界先锁死**
+- [x] **Step 2: 写 RED 源码契约测试，把 inventory 和 internal debt 边界先锁死**
 
 ```cpp
 // tests/unit/PluginLegacyConsumerGovernanceContractTest.cpp
@@ -138,7 +138,7 @@ QTEST_APPLESS_MAIN(PluginLegacyConsumerGovernanceContractTest)
 #include "PluginLegacyConsumerGovernanceContractTest.moc"
 ```
 
-- [ ] **Step 3: 先运行 RED，证明 inventory 和 internal debt 说明还没被完整写实**
+- [x] **Step 3: 先运行 RED，证明 inventory 和 internal debt 说明还没被完整写实**
 
 Run:
 
@@ -154,7 +154,7 @@ Expected:
   - `failed to read source file: docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md`
   - `CTKManager.cpp does not mark legacy policy internals as temporary_internal_compatibility_debt`
 
-- [ ] **Step 4: 补 inventory 文档和 CTKManager internal debt 注释，让契约测试转绿**
+- [x] **Step 4: 补 inventory 文档和 CTKManager internal debt 注释，让契约测试转绿**
 
 ```md
 <!-- docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md -->
@@ -204,7 +204,7 @@ LoadPolicy CTKManager::policyForPlugin(const QString& pluginName)
 }
 ```
 
-- [ ] **Step 5: 重新运行源码契约测试，并顺手回归现有 truth-source contract**
+- [x] **Step 5: 重新运行源码契约测试，并顺手回归现有 truth-source contract**
 
 Run:
 
@@ -218,7 +218,7 @@ Expected:
 - `plugin_legacy_consumer_governance_contract_test` PASS
 - `plugin_truth_source_governance_contract_test` PASS
 
-- [ ] **Step 6: 提交 inventory + internal debt 边界锁定批次**
+- [x] **Step 6: 提交 inventory + internal debt 边界锁定批次**
 
 ```powershell
 git add tests/unit/CMakeLists.txt tests/unit/PluginLegacyConsumerGovernanceContractTest.cpp docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md Framework/CTKManager.cpp
@@ -233,7 +233,7 @@ git commit -m "test: lock plugin legacy consumer inventory boundary"
 - Modify: `tests/runtime/verify_runtime_artifacts.cmake`
 - Modify: `docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md`
 
-- [ ] **Step 1: 扩展源码契约测试，先把 runtime acceptance wiring 的目标状态写成 RED**
+- [x] **Step 1: 扩展源码契约测试，先把 runtime acceptance wiring 的目标状态写成 RED**
 
 ```cpp
 // tests/unit/PluginLegacyConsumerGovernanceContractTest.cpp
@@ -256,7 +256,7 @@ void PluginLegacyConsumerGovernanceContractTest::runtime_acceptance_wiring_separ
 }
 ```
 
-- [ ] **Step 2: 先运行 RED，确认默认 runtime 验收与 compatibility artifact 仍然混在一起**
+- [x] **Step 2: 先运行 RED，确认默认 runtime 验收与 compatibility artifact 仍然混在一起**
 
 Run:
 
@@ -272,7 +272,7 @@ Expected:
   - `tests/CMakeLists.txt still wires plugin_policy_file into the default product runtime layout test`
   - 或 `tests/CMakeLists.txt has not registered plugin_legacy_compatibility_runtime_contract_test`
 
-- [ ] **Step 3: 更新测试注册，让默认 runtime artifact 验收不再夹带 compatibility artifact**
+- [x] **Step 3: 更新测试注册，让默认 runtime artifact 验收不再夹带 compatibility artifact**
 
 ```cmake
 # tests/CMakeLists.txt
@@ -307,7 +307,7 @@ endif()
 | `plugin_legacy_compatibility_runtime_contract_test` | `allowed_compatibility_surface` | retained | Dedicated runtime acceptance for compatibility-only artifacts. | Keep it separate from product runtime layout acceptance. |
 ```
 
-- [ ] **Step 4: 更新 runtime 校验脚本，显式拆开 product / compatibility / truth-source 三种语义**
+- [x] **Step 4: 更新 runtime 校验脚本，显式拆开 product / compatibility / truth-source 三种语义**
 
 ```cmake
 # tests/runtime/verify_runtime_artifacts.cmake
@@ -375,7 +375,7 @@ if(verify_plugin_legacy_compatibility_runtime_contract)
 endif()
 ```
 
-- [ ] **Step 5: 重新运行源码契约测试和 runtime acceptance，确认三条语义边界都转绿**
+- [x] **Step 5: 重新运行源码契约测试和 runtime acceptance，确认三条语义边界都转绿**
 
 Run:
 
@@ -392,7 +392,7 @@ Expected:
 - `plugin_truth_source_runtime_contract_test` PASS
 - `platform_descriptor_runtime_layout_test` PASS
 
-- [ ] **Step 6: 提交 runtime acceptance separation 批次**
+- [x] **Step 6: 提交 runtime acceptance separation 批次**
 
 ```powershell
 git add tests/unit/PluginLegacyConsumerGovernanceContractTest.cpp tests/CMakeLists.txt tests/runtime/verify_runtime_artifacts.cmake docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md
@@ -407,7 +407,7 @@ git commit -m "test: separate plugin legacy compatibility runtime contract"
 - Modify: `docs/superpowers/tracking/platform-plugin-governance-matrix.md`
 - Modify: `docs/superpowers/plans/2026-04-21-plugin-legacy-consumer-governance-implementation.md`
 
-- [ ] **Step 1: 在 current status 顶部增加 acceptance，并修正 runtime artifact 文案**
+- [x] **Step 1: 在 current status 顶部增加 acceptance，并修正 runtime artifact 文案**
 
 ```md
 <!-- docs/current_status_and_project_overview.md -->
@@ -431,7 +431,7 @@ git commit -m "test: separate plugin legacy compatibility runtime contract"
 - Runtime acceptance now includes `plugin_truth_source_governance_contract_test`, `plugin_truth_source_runtime_contract_test`, and the separated compatibility check `plugin_legacy_compatibility_runtime_contract_test`.
 ```
 
-- [ ] **Step 2: 给 decision log 和 governance matrix 写正式 consumer-boundary 说明**
+- [x] **Step 2: 给 decision log 和 governance matrix 写正式 consumer-boundary 说明**
 
 ```md
 <!-- docs/superpowers/tracking/platform-migration-decision-log.md -->
@@ -456,7 +456,7 @@ git commit -m "test: separate plugin legacy compatibility runtime contract"
 - The authoritative human-readable inventory for remaining legacy consumers is `docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md`.
 ```
 
-- [ ] **Step 3: 在本计划文件底部回写完成状态模板**
+- [x] **Step 3: 在本计划文件底部回写完成状态模板**
 
 ```md
 ## Status Update 2026-04-21
@@ -467,7 +467,7 @@ git commit -m "test: separate plugin legacy compatibility runtime contract"
 - Source-contract, product-runtime, compatibility-runtime, and truth-source-runtime acceptance now protect the consumer-boundary model from drifting.
 ```
 
-- [ ] **Step 4: 运行整批 acceptance 命令**
+- [x] **Step 4: 运行整批 acceptance 命令**
 
 Run:
 
@@ -490,7 +490,7 @@ Expected:
 - `rg -n "loadPluginPolicy\\(|installPluginsFromDirectory\\(" main.cpp` 无输出
 - 第二条 `rg` 命令能在预期文件中搜到 `temporary_internal_compatibility_debt`、`plugin_legacy_compatibility_runtime_contract_test` 和 inventory 文案
 
-- [ ] **Step 5: 提交文档回写和 acceptance 状态**
+- [x] **Step 5: 提交文档回写和 acceptance 状态**
 
 ```powershell
 git add docs/current_status_and_project_overview.md docs/superpowers/tracking/platform-migration-decision-log.md docs/superpowers/tracking/platform-plugin-governance-matrix.md docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md docs/superpowers/plans/2026-04-21-plugin-legacy-consumer-governance-implementation.md
@@ -512,3 +512,13 @@ git commit -m "docs: record plugin legacy consumer governance acceptance"
   - inventory bucket 统一为 `forbidden_product_mainline`、`allowed_compatibility_surface`、`temporary_internal_compatibility_debt`
   - runtime 测试名统一为 `runtime_artifact_layout_test`、`plugin_legacy_compatibility_runtime_contract_test`、`plugin_truth_source_runtime_contract_test`
   - inventory 文档路径统一为 `docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md`
+
+## Status Update 2026-04-21
+
+- Completed Task 1 with commit `6b6f7c5` (`test: lock plugin legacy consumer inventory boundary`).
+- Completed Task 2 with commit `4aebe50` (`test: separate plugin legacy compatibility runtime contract`).
+- Completed Task 3 by aligning current status, decision log, governance matrix, and this implementation plan to the consumer-boundary model.
+- Final acceptance passed with:
+  - `cmake --build build_x64 --config Release --target medicalpro plugin_legacy_consumer_governance_contract_test plugin_truth_source_governance_contract_test`
+  - `ctest --test-dir build_x64 -C Release -R "^(plugin_legacy_consumer_governance_contract_test|plugin_truth_source_governance_contract_test|runtime_artifact_layout_test|plugin_legacy_compatibility_runtime_contract_test|plugin_truth_source_runtime_contract_test|platform_descriptor_runtime_layout_test)$" --output-on-failure`
+  - `rg -n "loadPluginPolicy\\(|installPluginsFromDirectory\\(" main.cpp` produced no output.

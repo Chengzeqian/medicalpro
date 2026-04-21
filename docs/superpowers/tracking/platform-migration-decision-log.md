@@ -2,6 +2,14 @@
 
 ## 2026-04-21
 
+- Decision: split default product runtime artifact acceptance from compatibility runtime artifact acceptance.
+- Rationale: `plugin_load_policy.json` is still a shipped compatibility artifact, but default product runtime verification must not keep implying that it is a universal runtime requirement.
+- Impact: `runtime_artifact_layout_test` now verifies product-mainline runtime artifacts only, while `plugin_legacy_compatibility_runtime_contract_test` owns legacy policy artifact shipping.
+
+- Decision: classify `CTKManager::policyForPlugin()` and `CTKManager::applyPolicyForPlugin()` as temporary internal compatibility debt.
+- Rationale: those helpers still preserve current internal deferred/on-demand behavior, but they are not product-mainline truth and should not be treated as approved long-term architecture.
+- Impact: the remaining legacy consumer set is now documented and test-protected without changing runtime behavior in this slice.
+
 - Decision: treat `plugin_load_policy.json` and CTK load-policy helpers as compatibility-only metadata rather than product startup truth.
 - Rationale: the product mainline already boots from `platform_runtime.json` plus descriptors, so leaving the legacy policy chain unnamed creates a false second truth source.
 - Impact: future product-mainline code must not call `loadPluginPolicy()` or `installPluginsFromDirectory()` to decide startup content, while the legacy helpers remain available for compatibility scenarios and are documented by the runtime sidecar note.

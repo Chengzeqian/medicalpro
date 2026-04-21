@@ -1,11 +1,25 @@
 ## Platform Kernel Governance
 
+### 2026-04-21 Plugin Legacy Consumer Governance Acceptance
+
+- Default product runtime artifact acceptance no longer requires `config/plugin_load_policy.json`.
+- Compatibility runtime artifact acceptance is now owned by `plugin_legacy_compatibility_runtime_contract_test`.
+- The remaining legacy-policy consumers are now inventoried in `docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md`.
+- `CTKManager::policyForPlugin()` and `CTKManager::applyPolicyForPlugin()` are now documented as `temporary_internal_compatibility_debt`, not product-mainline truth.
+- Executed command (build):
+  - `cmake --build build_x64 --config Release --target medicalpro plugin_legacy_consumer_governance_contract_test plugin_truth_source_governance_contract_test`
+- Executed command (ctest):
+  - `ctest --test-dir build_x64 -C Release -R "plugin_legacy_consumer_governance_contract_test|plugin_truth_source_governance_contract_test|runtime_artifact_layout_test|plugin_legacy_compatibility_runtime_contract_test|plugin_truth_source_runtime_contract_test|platform_descriptor_runtime_layout_test" --output-on-failure`
+- Expected outcomes alignment and actual results:
+  - Runtime artifact boundary suite: PASS.
+  - Product/compatibility acceptance split: PASS.
+
 ### 2026-04-21 Plugin Truth Source Governance Acceptance
 
 - Product startup truth is now explicitly locked to `config/platform_runtime.json + plugins/descriptors/*.json + PlatformDescriptorLoader`.
 - `config/plugin_load_policy.json` now ships only as compatibility-only metadata for legacy CTK helper paths, with `config/plugin_load_policy_compatibility.md` as its runtime sidecar note.
 - `main.cpp` does not call `CTKManager::loadPluginPolicy()` or `CTKManager::installPluginsFromDirectory()` in the product startup path.
-- Runtime acceptance now includes `plugin_truth_source_governance_contract_test` and `plugin_truth_source_runtime_contract_test`.
+- Runtime acceptance now includes `plugin_truth_source_governance_contract_test`, `plugin_truth_source_runtime_contract_test`, and the separated compatibility check `plugin_legacy_compatibility_runtime_contract_test`.
 - Executed command (build):
   - `cmake --build build_x64 --config Release --target medicalpro plugin_truth_source_governance_contract_test platform_descriptor_loader_test`
 - Executed command (ctest):
