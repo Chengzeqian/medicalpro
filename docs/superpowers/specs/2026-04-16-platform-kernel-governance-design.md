@@ -1,5 +1,11 @@
 # Platform Kernel Governance Design
 
+## Plugin Chain Remediation Phase 2 Follow-up (2026-04-21)
+
+- `RegistrationCore` and `OpticalTracking` now enter through governed on-demand activation.
+- `ensureReady()` now follows strict `descriptor -> install/start -> service_ready -> health_check` semantics.
+- Startup scope and governed scope are now separated, so on-demand failures no longer rewrite Phase 1 startup readiness.
+
 ## Plugin Chain Remediation Follow-up (2026-04-20)
 
 - The default runtime mode is now `facade_mode` for the product startup path.

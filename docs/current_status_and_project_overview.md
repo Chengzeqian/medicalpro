@@ -1,5 +1,12 @@
 ## Platform Kernel Governance
 
+### 2026-04-21 Plugin Chain Remediation Phase 2 Acceptance
+
+- `RegistrationCore` and `OpticalTracking` now enter through governed on-demand activation instead of direct CTK start shortcuts.
+- `ensureReady(plugin_id)` now uses strict `descriptor -> install/start -> service_ready -> health_check` semantics.
+- `platformReady` remains bound to the Phase 1 startup scope, while on-demand plugins now belong to governed scope and diagnostics.
+- `observe_only`, `facade_mode`, and `orchestrate_core` now report consistent on-demand activation semantics.
+
 ### 2026-04-20 Plugin Chain Remediation Phase 1 Acceptance
 
 - Default runtime mode is now `facade_mode` for the product startup path.

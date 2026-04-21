@@ -6,12 +6,16 @@
 #include "Framework/Platform/Kernel/PlatformDescriptorLoader.h"
 #include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
 #include "Framework/Platform/Kernel/PlatformManagedPluginPlan.h"
+#include "Framework/Platform/Kernel/PlatformOnDemandActivationService.h"
 #include "Framework/Platform/Kernel/PlatformRuntimeConfig.h"
 #include "Framework/Platform/Kernel/PlatformStartupCoordinator.h"
 #include "Framework/Platform/Kernel/PlatformWarmupCoordinator.h"
+#include "Framework/Platform/LegacyAdapters/LegacyNavigationAdapter.h"
+#include "Framework/Registration/RegistrationService.h"
 #include "Framework/StartupOrchestrator.h"
 #include "Framework/VTKGlobalInitializer.h"
 #include "Framework/VTKWidgetPool.h"
+#include "Plugins/OpticalTracking/OpticalTrackingService.h"
 
 #include <QApplication>
 #include <QEvent>
@@ -371,6 +375,8 @@ struct StartupRuntimeContext
     PlatformStartupCoordinator startupCoordinator;
     std::unique_ptr<PlatformWarmupCoordinator> warmupCoordinator;
     PlatformStateStore* stateStore = nullptr;
+    std::shared_ptr<PlatformOnDemandActivationService> onDemandActivationService;
+    std::unique_ptr<LegacyNavigationAdapter> navigationAdapter;
     QHash<QString, PlatformPluginDescriptor> descriptorsByPluginId;
     QHash<QString, QString> pluginIdByCtkSymbolicName;
     mutable QMutex bridgeMutex;
@@ -519,6 +525,13 @@ int main(int argc, char* argv[])
         qDebug() << "[main] Managed startup plugin ids:" << managedPlan.managedPluginIds;
         auto orchestrator = StartupOrchestrator::instance();
         orchestrator->setRuntimeMode(runtimeConfig.runtimeMode);
+        auto startupContext = std::make_shared<StartupRuntimeContext>(
+            runtimeConfig,
+            ctkManager,
+            platformPluginIdToCtkSymbolicName,
+            descriptors);
+        startupContext->managedPlan = managedPlan;
+        startupContext->warmupCoordinator = std::make_unique<PlatformWarmupCoordinator>(&startupContext->lifecycleRecorder);
 
         qDebug() << "[Phase 1] Completed\n";
 
@@ -535,12 +548,85 @@ int main(int argc, char* argv[])
         // ========================================
         qDebug() << "[Phase 4] Creating main interface";
         qDebug() << "----------------------------------------";
-        QPointer<MainInterfaceWidget> mainInterface = new MainInterfaceWidget(nullptr);
+        const PlatformOnDemandProbeSet onDemandProbes {
+            [startupContext](const QString& pluginId) {
+                if (!startupContext->stateStore) return PlatformPluginState::Discovered;
+
+                for (const auto& snapshot : startupContext->stateStore->pluginSnapshots()) {
+                    if (snapshot.pluginId == pluginId) return snapshot.state;
+                }
+
+                return PlatformPluginState::Discovered;
+            },
+            [ctkManager](const QStringList& requiredServices) {
+                return ctkManager->getMissingServices(requiredServices);
+            },
+            [startupContext, ctkManager](const QString& pluginId) {
+                return startupContext->missingRequiredPlugins(pluginId, ctkManager);
+            },
+            [startupContext, ctkManager](const QString& pluginId) {
+                return startupContext->missingRequiredCapabilities(pluginId, ctkManager);
+            },
+            [ctkManager](const QString&, const QStringList& healthChecks) {
+                QVector<PlatformHealthCheckResult> results;
+
+                for (const auto& healthCheck : healthChecks) {
+                    PlatformHealthCheckResult result;
+                    result.name = healthCheck;
+
+                    if (healthCheck == QStringLiteral("service_registered")) {
+                        result.passed = true;
+                        result.detail = QStringLiteral("Required services were registered");
+                    } else if (healthCheck == QStringLiteral("core_binary_accessible")) {
+                        result.passed = ctkManager->getService<RegistrationService>() != nullptr;
+                        result.detail = result.passed
+                            ? QStringLiteral("RegistrationService is available")
+                            : QStringLiteral("RegistrationService is not available");
+                    } else if (healthCheck == QStringLiteral("tracking_adapter_accessible")) {
+                        result.passed = ctkManager->getService<OpticalTrackingService>() != nullptr;
+                        result.detail = result.passed
+                            ? QStringLiteral("OpticalTrackingService is available")
+                            : QStringLiteral("OpticalTrackingService is not available");
+                    } else {
+                        result.passed = false;
+                        result.detail = QStringLiteral("Unknown health check");
+                    }
+
+                    results.append(result);
+                }
+
+                return results;
+            }
+        };
+        startupContext->onDemandActivationService = std::make_shared<PlatformOnDemandActivationService>(
+            descriptors,
+            pluginsPath,
+            &startupContext->startupCoordinator,
+            nullptr,
+            [ctkManager](const PlatformOnDemandActivationPlanEntry& entry) {
+                return ctkManager->installPlugin(entry.bundleFilePath, false, nullptr);
+            },
+            onDemandProbes);
+        startupContext->navigationAdapter = std::make_unique<LegacyNavigationAdapter>(
+            [service = startupContext->onDemandActivationService](const QString& pluginId) {
+                return service->ensureReady(pluginId);
+            });
+        QPointer<MainInterfaceWidget> mainInterface = new MainInterfaceWidget(startupContext->navigationAdapter.get(), nullptr);
         mainInterface->platformStateStore()->replaceDescriptors(descriptors);
         mainInterface->platformStateStore()->setRuntimeMode(runtimeConfig.runtimeMode);
-        mainInterface->platformStateStore()->setManagedPluginIds(managedPlan.managedPluginIds);
+        mainInterface->platformStateStore()->setStartupScopePluginIds(managedPlan.managedPluginIds);
+        QStringList governedPluginIds = managedPlan.managedPluginIds;
+        if (!governedPluginIds.contains(QStringLiteral("org.medicalpro.registration_core"))) {
+            governedPluginIds.append(QStringLiteral("org.medicalpro.registration_core"));
+        }
+        if (!governedPluginIds.contains(QStringLiteral("org.medicalpro.optical_tracking"))) {
+            governedPluginIds.append(QStringLiteral("org.medicalpro.optical_tracking"));
+        }
+        mainInterface->platformStateStore()->setGovernedPluginIds(governedPluginIds);
         qDebug() << "[main] Creating main interface window...";
         mainInterface->setAttribute(Qt::WA_DeleteOnClose, true);
+        startupContext->stateStore = mainInterface->platformStateStore();
+        startupContext->onDemandActivationService->setStateStore(startupContext->stateStore);
         mainInterface->show();
         mainInterface->raise();
         mainInterface->activateWindow();
@@ -552,15 +638,6 @@ int main(int argc, char* argv[])
         // ========================================
         qDebug() << "[Phase 5] Launching background startup tasks";
         qDebug() << "----------------------------------------";
-
-        auto startupContext = std::make_shared<StartupRuntimeContext>(
-            runtimeConfig,
-            ctkManager,
-            platformPluginIdToCtkSymbolicName,
-            descriptors);
-        startupContext->managedPlan = managedPlan;
-        startupContext->warmupCoordinator = std::make_unique<PlatformWarmupCoordinator>(&startupContext->lifecycleRecorder);
-        startupContext->stateStore = mainInterface->platformStateStore();
         orchestrator->setLifecycleRecorder(&startupContext->lifecycleRecorder);
         QObject::connect(&app, &QCoreApplication::aboutToQuit, &app, [startupContext]() {
             startupContext->shutdownRequested.store(true);

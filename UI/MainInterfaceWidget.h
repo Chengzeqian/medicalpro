@@ -26,7 +26,7 @@ class PlatformDiagnosticsPage;
 class LegacyCoreUiRuntimeAdapter;
 class LegacyUserManagementAdapter;
 class LegacyImagingAdapter;
-class LegacyNavigationAdapter;
+class INavigationFacadePort;
 class IdentityAppService;
 class ImagingAppService;
 class NavigationAppService;
@@ -45,7 +45,7 @@ class MainInterfaceWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit MainInterfaceWidget(QWidget* parent = nullptr);
+    explicit MainInterfaceWidget(INavigationFacadePort* navigationPort, QWidget* parent = nullptr);
     ~MainInterfaceWidget() override;
     PlatformStateStore* platformStateStore();
     PlatformLifecycleTraceRecorder* lifecycleTraceRecorder();
@@ -112,7 +112,7 @@ private:
     CoreUiRuntimeStatusProvider* m_coreUiRuntimeStatusProvider;
     LegacyUserManagementAdapter* m_identityAdapter;
     LegacyImagingAdapter* m_imagingAdapter;
-    LegacyNavigationAdapter* m_navigationAdapter;
+    INavigationFacadePort* m_navigationPort;
     IdentityAppService* m_identityAppService;
     ImagingAppService* m_imagingAppService;
     NavigationAppService* m_navigationAppService;

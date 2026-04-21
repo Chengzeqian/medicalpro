@@ -87,8 +87,8 @@ private slots:
     void identityFacade_lists_surgeries_from_port();
     void imagingFacade_lists_studies_by_patient_from_port();
     void navigationFacade_forwards_ensure_ready_to_port();
-    void navigationLegacyAdapter_maps_platform_plugin_id_to_ctk_symbolic_name();
-    void navigationLegacyAdapter_returns_false_when_mapping_missing();
+    void navigationLegacyAdapter_delegates_to_governed_activation_service();
+    void navigationLegacyAdapter_returns_false_when_activation_service_is_missing();
 };
 
 void PlatformFacadesTest::identityFacade_authenticates_with_port()
@@ -227,38 +227,26 @@ void PlatformFacadesTest::navigationFacade_forwards_ensure_ready_to_port()
     QCOMPARE(port.lastPluginId, QStringLiteral("org.medicalpro.registration_core"));
 }
 
-void PlatformFacadesTest::navigationLegacyAdapter_maps_platform_plugin_id_to_ctk_symbolic_name()
+void PlatformFacadesTest::navigationLegacyAdapter_delegates_to_governed_activation_service()
 {
-    QString startedPluginName;
+    QString ensuredPluginId;
     LegacyNavigationAdapter adapter(
-        [&startedPluginName](const QString& pluginName) {
-            startedPluginName = pluginName;
+        [&ensuredPluginId](const QString& pluginId) {
+            ensuredPluginId = pluginId;
             return true;
-        },
-        QHash<QString, QString> {
-            { QStringLiteral("org.medicalpro.registration_core"), QStringLiteral("RegistrationCore") }
         });
     NavigationAppService service(&adapter);
 
     QVERIFY(service.ensureReady(QStringLiteral("org.medicalpro.registration_core")));
-    QCOMPARE(startedPluginName, QStringLiteral("RegistrationCore"));
+    QCOMPARE(ensuredPluginId, QStringLiteral("org.medicalpro.registration_core"));
 }
 
-void PlatformFacadesTest::navigationLegacyAdapter_returns_false_when_mapping_missing()
+void PlatformFacadesTest::navigationLegacyAdapter_returns_false_when_activation_service_is_missing()
 {
-    bool startCalled = false;
-    LegacyNavigationAdapter adapter(
-        [&startCalled](const QString&) {
-            startCalled = true;
-            return true;
-        },
-        QHash<QString, QString> {
-            { QStringLiteral("org.medicalpro.registration_core"), QStringLiteral("RegistrationCore") }
-        });
+    LegacyNavigationAdapter adapter;
     NavigationAppService service(&adapter);
 
     QVERIFY(!service.ensureReady(QStringLiteral("org.medicalpro.optical_tracking")));
-    QVERIFY(!startCalled);
 }
 
 QTEST_APPLESS_MAIN(PlatformFacadesTest)

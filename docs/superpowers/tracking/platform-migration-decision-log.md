@@ -1,5 +1,11 @@
 # Platform Migration Decision Log
 
+## 2026-04-21
+
+- Decision: move `ensureReady()` onto the governed on-demand activation path for `RegistrationCore` and `OpticalTracking`.
+- Rationale: the old `plugin id -> CTK symbolic name -> direct start` path bypassed descriptor validation, service-ready gating, and diagnostics.
+- Impact: on-demand activation is now descriptor-driven and diagnosable, but Phase 1 startup readiness remains scoped to the cold-start core set.
+
 ## 2026-04-20
 
 - Decision: switch the product default runtime mode to `facade_mode` for plugin-chain remediation Phase 1.

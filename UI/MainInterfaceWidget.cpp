@@ -5,7 +5,6 @@
 #include "Framework/Platform/Facades/NavigationAppService.h"
 #include "Framework/Platform/LegacyAdapters/LegacyCoreUiRuntimeAdapter.h"
 #include "Framework/Platform/LegacyAdapters/LegacyImagingAdapter.h"
-#include "Framework/Platform/LegacyAdapters/LegacyNavigationAdapter.h"
 #include "Framework/Platform/LegacyAdapters/LegacyUserManagementAdapter.h"
 #include "NewPages/BasePage.h"
 #include "NewPages/DashboardPage.h"
@@ -33,7 +32,7 @@
 #include "Plugins/UserManagement/UserDataStructures.h"
 #endif
 
-MainInterfaceWidget::MainInterfaceWidget(QWidget* parent)
+MainInterfaceWidget::MainInterfaceWidget(INavigationFacadePort* navigationPort, QWidget* parent)
     : QWidget(parent)
     , m_stackedWidget(nullptr)
     , m_welcomePage(nullptr)
@@ -49,13 +48,14 @@ MainInterfaceWidget::MainInterfaceWidget(QWidget* parent)
     , m_coreUiRuntimeStatusProvider(nullptr)
     , m_identityAdapter(nullptr)
     , m_imagingAdapter(nullptr)
-    , m_navigationAdapter(nullptr)
+    , m_navigationPort(navigationPort)
     , m_identityAppService(nullptr)
     , m_imagingAppService(nullptr)
     , m_navigationAppService(nullptr)
     , m_currentPatientId(-1)
     , m_isLoggedIn(false)
 {
+    Q_ASSERT(m_navigationPort);
     qDebug() << "[MainInterfaceWidget] create";
 
     setWindowTitle(QStringLiteral("MedicalPro - \u533b\u7597\u5bfc\u822a\u7cfb\u7edf"));
@@ -75,7 +75,6 @@ MainInterfaceWidget::~MainInterfaceWidget()
     delete m_navigationAppService;
     delete m_imagingAppService;
     delete m_identityAppService;
-    delete m_navigationAdapter;
     delete m_imagingAdapter;
     delete m_identityAdapter;
     delete m_coreUiRuntimeStatusProvider;
@@ -219,7 +218,6 @@ void MainInterfaceWidget::setupUI()
 
     if (!m_identityAdapter) m_identityAdapter = new LegacyUserManagementAdapter();
     if (!m_imagingAdapter) m_imagingAdapter = new LegacyImagingAdapter();
-    if (!m_navigationAdapter) m_navigationAdapter = new LegacyNavigationAdapter();
     if (!m_coreUiRuntimeAdapter) m_coreUiRuntimeAdapter = new LegacyCoreUiRuntimeAdapter();
     if (!m_coreUiRuntimeStatusProvider) {
         m_coreUiRuntimeStatusProvider = new CoreUiRuntimeStatusProvider(
@@ -228,7 +226,7 @@ void MainInterfaceWidget::setupUI()
     }
     if (!m_identityAppService) m_identityAppService = new IdentityAppService(m_identityAdapter);
     if (!m_imagingAppService) m_imagingAppService = new ImagingAppService(m_imagingAdapter);
-    if (!m_navigationAppService) m_navigationAppService = new NavigationAppService(m_navigationAdapter);
+    if (!m_navigationAppService) m_navigationAppService = new NavigationAppService(m_navigationPort);
 
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);

@@ -993,7 +993,7 @@ git commit -m "feat: split startup and governed plugin scopes"
 - Modify: `main.cpp`
 - Modify: `tests/unit/PlatformFacadesTest.cpp`
 
-- [ ] **Step 1: 先补 facade RED 测试，锁定 adapter 不再自己 CTK 直启**
+- [x] **Step 1: 先补 facade RED 测试，锁定 adapter 不再自己 CTK 直启**
 
 ```cpp
 // tests/unit/PlatformFacadesTest.cpp
@@ -1032,7 +1032,7 @@ void PlatformFacadesTest::navigationLegacyAdapter_returns_false_when_activation_
 }
 ```
 
-- [ ] **Step 2: 运行 facade 测试，确认现有 adapter 语义与新 RED 测试冲突**
+- [x] **Step 2: 运行 facade 测试，确认现有 adapter 语义与新 RED 测试冲突**
 
 Run:
 
@@ -1045,7 +1045,7 @@ Expected:
 
 - `platform_facades_test` 编译失败或断言失败，因为 `LegacyNavigationAdapter` 还在用旧的 CTK 直启构造函数
 
-- [ ] **Step 3: 新增 on-demand activation service，并把 adapter 改为治理链代理**
+- [x] **Step 3: 新增 on-demand activation service，并把 adapter 改为治理链代理**
 
 ```cpp
 // Framework/Platform/Kernel/PlatformOnDemandActivationService.h
@@ -1164,7 +1164,7 @@ bool LegacyNavigationAdapter::ensureReady(const QString& pluginId)
 }
 ```
 
-- [ ] **Step 4: 修改 `MainInterfaceWidget` 与 `main.cpp`，由主治理上下文注入导航 port**
+- [x] **Step 4: 修改 `MainInterfaceWidget` 与 `main.cpp`，由主治理上下文注入导航 port**
 
 ```diff
 # UI/MainInterfaceWidget.h
@@ -1300,7 +1300,7 @@ startupContext->stateStore->setGovernedPluginIds(QStringList{
 startupContext->onDemandActivationService->setStateStore(startupContext->stateStore);
 ```
 
-- [ ] **Step 5: 跑 facade/build 验收并提交 adapter 注入链**
+- [x] **Step 5: 跑 facade/build 验收并提交 adapter 注入链**
 
 Run:
 
@@ -1330,7 +1330,7 @@ git commit -m "refactor: route navigation ensureReady through platform governanc
 - Modify: `docs/superpowers/specs/2026-04-16-platform-kernel-governance-design.md`
 - Modify: `docs/superpowers/plans/2026-04-21-plugin-chain-remediation-phase2-implementation.md`
 
-- [ ] **Step 1: 回写文档，明确 Phase 2 landed scope 与严格 `ensureReady()` 口径**
+- [x] **Step 1: 回写文档，明确 Phase 2 landed scope 与严格 `ensureReady()` 口径**
 
 ```md
 <!-- docs/current_status_and_project_overview.md -->
@@ -1360,7 +1360,7 @@ git commit -m "refactor: route navigation ensureReady through platform governanc
 - Startup scope and governed scope are now separated, so on-demand failures no longer rewrite Phase 1 startup readiness.
 ```
 
-- [ ] **Step 2: 运行完整验收命令**
+- [x] **Step 2: 运行完整验收命令**
 
 Run:
 
@@ -1381,7 +1381,7 @@ Expected:
 - `platform_descriptor_runtime_layout_test` PASS
 - `rg` 对目标文件无输出
 
-- [ ] **Step 3: 回写实施计划状态并提交文档收口**
+- [x] **Step 3: 回写实施计划状态并提交文档收口**
 
 ```md
 <!-- docs/superpowers/plans/2026-04-21-plugin-chain-remediation-phase2-implementation.md -->
@@ -1396,6 +1396,12 @@ Status update 2026-04-21:
 git add docs/current_status_and_project_overview.md docs/superpowers/tracking/platform-migration-decision-log.md docs/superpowers/specs/2026-04-16-platform-kernel-governance-design.md docs/superpowers/plans/2026-04-21-plugin-chain-remediation-phase2-implementation.md
 git commit -m "docs: record plugin chain remediation phase 2 acceptance"
 ```
+
+Status update 2026-04-21:
+
+- Completed. Phase 2 now routes `RegistrationCore` and `OpticalTracking` through governed on-demand activation.
+- Acceptance rerun passed on `build_x64` for build, unit tests, runtime descriptor layout, and legacy-entry scan.
+- `platformReady` remains limited to Phase 1 startup scope, while on-demand plugins now appear inside governed diagnostics.
 
 ## Self-Review
 
