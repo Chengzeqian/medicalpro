@@ -1,6 +1,6 @@
 # Platform Plugin Governance Matrix
 
-Updated: 2026-04-20
+Updated: 2026-04-21
 
 ## Core Plugin Governance Matrix
 
@@ -33,7 +33,10 @@ Updated: 2026-04-20
 ## Current Implementation Notes
 
 - `config/platform_runtime.json` stores platform descriptor ids, not CTK symbolic names.
+- Product startup truth is explicitly `platform_runtime.json + plugins/descriptors/*.json + PlatformDescriptorLoader`.
 - The main startup chain in `main.cpp` reads runtime config first, then resolves CTK symbolic names through `PlatformRuntimeConfig::resolveCoreCtkPluginNames()`.
+- `plugin_load_policy.json` and `PluginLoadPolicy` are compatibility-only metadata for legacy CTK helper paths.
+- `CTKManager::loadPluginPolicy()` and `CTKManager::installPluginsFromDirectory()` remain available but are not part of `main.cpp` product assembly.
 - `CriticalPluginStart` now starts only the core startup set declared in runtime config.
 - `DeferredPluginStart` now goes through `CTKManager::startDeferredPlugins(false)` instead of maintaining a hard-coded plugin list in `main.cpp`.
 - Descriptor governance now includes a dedicated `diagnostics` block with `required_services`, `service_ready_timeout_ms`, `warmup_tasks`, `warmup_timeout_ms`, `warmup_impacts_ready`, and `degrade_on`.

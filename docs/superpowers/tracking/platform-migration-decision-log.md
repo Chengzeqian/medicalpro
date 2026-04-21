@@ -2,6 +2,10 @@
 
 ## 2026-04-21
 
+- Decision: treat `plugin_load_policy.json` and CTK load-policy helpers as compatibility-only metadata rather than product startup truth.
+- Rationale: the product mainline already boots from `platform_runtime.json` plus descriptors, so leaving the legacy policy chain unnamed creates a false second truth source.
+- Impact: future product-mainline code must not call `loadPluginPolicy()` or `installPluginsFromDirectory()` to decide startup content, while the legacy helpers remain available for compatibility scenarios and are documented by the runtime sidecar note.
+
 - Decision: withdraw `StartupShell` from the visible product entry path and restore the in-app `MainInterfaceWidget` welcome page as the only user-facing welcome surface.
 - Rationale: runtime feedback showed the visible shell-first path degraded the actual experience in two ways: it rendered shell snapshot state instead of the `CoreUiRuntimeStatusProvider` truth the user preferred, and it moved `MainInterfaceWidget` construction onto the `Enter System` click path, introducing a noticeable transition hitch.
 - Impact: `main.cpp` now pre-creates `MainInterfaceWidget` directly, logout stays inside the in-app welcome flow, `MainInterfaceWidget/MainInterfaceFactory` no longer expose the retired external-shell switch in their public API, and `StartupShell` remains non-visible groundwork until a future cold-start path can preserve the original welcome experience without stale state or handoff lag.

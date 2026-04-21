@@ -1,5 +1,22 @@
 ## Platform Kernel Governance
 
+### 2026-04-21 Plugin Truth Source Governance Acceptance
+
+- Product startup truth is now explicitly locked to `config/platform_runtime.json + plugins/descriptors/*.json + PlatformDescriptorLoader`.
+- `config/plugin_load_policy.json` now ships only as compatibility-only metadata for legacy CTK helper paths, with `config/plugin_load_policy_compatibility.md` as its runtime sidecar note.
+- `main.cpp` does not call `CTKManager::loadPluginPolicy()` or `CTKManager::installPluginsFromDirectory()` in the product startup path.
+- Runtime acceptance now includes `plugin_truth_source_governance_contract_test` and `plugin_truth_source_runtime_contract_test`.
+- Executed command (build):
+  - `cmake --build build_x64 --config Release --target medicalpro plugin_truth_source_governance_contract_test platform_descriptor_loader_test`
+- Executed command (ctest):
+  - `ctest --test-dir build_x64 -C Release -R "plugin_truth_source_governance_contract_test|plugin_truth_source_runtime_contract_test|platform_descriptor_loader_test|platform_descriptor_runtime_layout_test" --output-on-failure`
+- Executed command (legacy-entry scan):
+  - `rg -n "loadPluginPolicy\\(|installPluginsFromDirectory\\(" main.cpp`
+- Expected outcomes alignment and actual results:
+  - `medicalpro` build target: PASS.
+  - Plugin truth-source acceptance suite: `4/4 PASS`.
+  - Legacy entry scan: no output.
+
 ### 2026-04-21 Welcome Entry Rollback Acceptance
 
 - The product entry has been restored to the in-app `MainInterfaceWidget` welcome page, which is the welcome surface backed by `CoreUiRuntimeStatusProvider` and the real runtime status chain.
@@ -138,7 +155,7 @@
 
 # MedicalPro 当前状态与项目说明
 
-更新时间：2026-04-16
+更新时间：2026-04-21
 
 ## 1. 当前已完成工作
 
@@ -161,7 +178,8 @@
   - `Dashboard -> Navigation / Welcome / Management`
 
 ### 1.4 插件框架与服务加载修复
-- `RegistrationCore` 已加入 `config/plugin_load_policy.json`，策略为 `deferred`。
+- `config/plugin_load_policy.json` 现仅保留为兼容层策略元数据，不再作为产品启动主链真相源。
+- `RegistrationCore` 与 `OpticalTracking` 的产品级识别和治理均由 `platform_runtime.json + plugins/descriptors/*.json` 驱动。
 - `DicomViewer` 已移除不存在的 `org.medicalpro.medicalimagecore` 依赖。
 - `Release/plugins` 中遗留的 `SlicerBridge`、`Segmentation`、`SegmentationCore` 文件已清理。
 - `Debug` 与 `Release` 目录的 `config` 已补齐并同步。
