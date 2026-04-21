@@ -6,6 +6,10 @@
 - Rationale: the old `plugin id -> CTK symbolic name -> direct start` path bypassed descriptor validation, service-ready gating, and diagnostics.
 - Impact: on-demand activation is now descriptor-driven and diagnosable, but Phase 1 startup readiness remains scoped to the cold-start core set.
 
+- Decision: keep kernel startup semantics and shared plugin macros unchanged for the `UserManagement` remediation slice, but correct Phase 1 managed-core descriptor service truth where runtime evidence proves drift.
+- Rationale: red-test and startup-log evidence showed `UserManagement` was already installable and startable; the real blocker was `Service ready timeout: "org.medicalpro.user_management"` because descriptor `diagnostics.required_services` did not match the actual CTK registered service class names. The same mismatch existed in `DicomViewer` and `FourViewDisplay`.
+- Impact: `UserManagement` packaging remains a local fix, while `UserManagement`, `DicomViewer`, and `FourViewDisplay` now align their `required_services` and `provides.services` contracts to runtime truth so `service_ready` gating is reliable instead of guess-based.
+
 ## 2026-04-20
 
 - Decision: switch the product default runtime mode to `facade_mode` for plugin-chain remediation Phase 1.

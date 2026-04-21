@@ -11,7 +11,7 @@
     "entry_capability": "imaging.data"
   },
   "diagnostics": {
-    "required_services": ["imaging.study_query", "imaging.study_reader"],
+    "required_services": ["org.medicalpro.DicomViewerService"],
     "service_ready_timeout_ms": 8000,
     "warmup_tasks": [],
     "warmup_timeout_ms": 0,
@@ -19,7 +19,7 @@
     "degrade_on": []
   },
   "provides": {
-    "services": ["imaging.study_query", "imaging.study_reader"],
+    "services": ["org.medicalpro.DicomViewerService"],
     "capabilities": ["imaging.data"]
   },
   "requires": {

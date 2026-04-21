@@ -29,25 +29,41 @@ if(CTK_FOUND)
     # Plugin sources
     set(PLUGIN_SOURCES
         # CTK框架必需文件
-        UserManagementActivator.h
         UserManagementActivator.cpp
         
         # 服务接口和实现
-        UserManagementService.h
-        UserManagementServiceImpl.h
         UserManagementServiceImpl.cpp
         
         # 数据结构
-        UserDataStructures.h
         UserDataStructures.cpp
         
         # 资源文件
+    )
+
+    set(PLUGIN_HEADERS
+        UserManagementActivator.h
+        UserManagementService.h
+        UserManagementServiceImpl.h
+        UserDataStructures.h
+    )
+
+    set(PLUGIN_RESOURCES
         UserManagement.qrc
     )
-    
+
     add_medical_plugin(UserManagement
         SOURCES ${PLUGIN_SOURCES}
+        HEADERS ${PLUGIN_HEADERS}
+        RESOURCES ${PLUGIN_RESOURCES}
         DEPENDENCIES Qt${QT_VERSION_MAJOR}::Sql
+    )
+
+    add_custom_command(TARGET UserManagement POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/MANIFEST.MF"
+            "$<TARGET_FILE_DIR:UserManagement>/UserManagement.manifest"
+        COMMENT "Copying UserManagement manifest sidecar for runtime contract verification"
+        VERBATIM
     )
     
     message(STATUS "UserManagement plugin configured as MODULE library")

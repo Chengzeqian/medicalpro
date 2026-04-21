@@ -1,5 +1,23 @@
 ## Platform Kernel Governance
 
+### 2026-04-21 UserManagement Runtime Artifact Remediation Acceptance
+
+- `UserManagement.manifest` now lands at `build_x64/Release/plugins/UserManagement.manifest`, while `UserManagement.dll` and `plugins/descriptors/UserManagement.json` remain stable under the Release runtime layout.
+- Runtime acceptance now includes `user_management_runtime_artifact_contract_test` and `user_management_startup_smoke_test`.
+- `verify_user_management_startup.ps1` now waits for `Executing phase: Startup complete`, reads active log files with `FileShare.ReadWrite`, and fails on real startup blockers instead of fixed-delay false greens.
+- The previous `Plugin handle not found for UserManagement` hypothesis was retired by red-test evidence. The actual blocker was `Service ready timeout: "org.medicalpro.user_management"` caused by descriptor `diagnostics.required_services` drifting away from the real CTK service class registration.
+- To keep the Phase 1 managed startup chain truthful, descriptor service contracts were corrected for `UserManagement`, `DicomViewer`, and `FourViewDisplay` without changing kernel startup semantics or shared plugin macros.
+- Executed command (build):
+  - `cmake --build build_x64 --config Release --target UserManagement medicalpro`
+- Executed command (ctest):
+  - `ctest --test-dir build_x64 -C Release -R "runtime_artifact_layout_test|platform_descriptor_runtime_layout_test|user_management_runtime_artifact_contract_test|user_management_startup_smoke_test" --output-on-failure`
+- Executed command (manual startup check):
+  - direct `build_x64/Release/medicalpro.exe` launch with stdout/stderr polling for `Executing phase: Startup complete`
+- Expected outcomes alignment and actual results:
+  - Release build and runtime artifact copy: PASS.
+  - Runtime artifact and startup smoke suite: `4/4 PASS`.
+  - Manual startup log check: PASS; no `Plugin handle not found for UserManagement`, no `Critical plugin start failed: "UserManagement"`, and no `Service ready timeout: "org.medicalpro.user_management"`.
+
 ### 2026-04-21 Plugin Chain Remediation Phase 2 Acceptance
 
 - `RegistrationCore` and `OpticalTracking` now enter through governed on-demand activation instead of direct CTK start shortcuts.

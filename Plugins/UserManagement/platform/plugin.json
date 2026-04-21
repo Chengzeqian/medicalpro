@@ -11,7 +11,7 @@
     "entry_capability": "identity.core"
   },
   "diagnostics": {
-    "required_services": ["identity.user_query", "identity.session"],
+    "required_services": ["medical.UserManagementService"],
     "service_ready_timeout_ms": 5000,
     "warmup_tasks": [],
     "warmup_timeout_ms": 0,
@@ -19,7 +19,7 @@
     "degrade_on": []
   },
   "provides": {
-    "services": ["identity.user_query", "identity.session"],
+    "services": ["medical.UserManagementService"],
     "capabilities": ["identity.core"]
   },
   "requires": {

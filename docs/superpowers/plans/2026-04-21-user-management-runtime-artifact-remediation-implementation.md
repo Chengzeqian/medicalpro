@@ -8,6 +8,15 @@
 
 **Tech Stack:** CMake, CTest, PowerShell, Qt 6, CTK plugin framework, existing runtime verification scripts under `tests/runtime`
 
+## Status Update 2026-04-21
+
+- Completed through Task 3 Step 4. No commit has been created for this slice yet.
+- The original red hypothesis `Plugin handle not found for UserManagement` was retired after the smoke test was corrected to observe the real startup lifecycle.
+- The actual startup blocker was `Service ready timeout: "org.medicalpro.user_management"`, caused by descriptor `diagnostics.required_services` drifting away from the real CTK service class registration.
+- `UserManagement` runtime packaging is now stable under `build_x64/Release`, including delivery of `build_x64/Release/plugins/UserManagement.manifest`.
+- To keep the Phase 1 managed startup chain consistent with runtime truth, `UserManagement`, `DicomViewer`, and `FourViewDisplay` descriptors were corrected to their actual CTK registered service class names.
+- Verified with `cmake --build build_x64 --config Release --target UserManagement medicalpro`, `ctest --test-dir build_x64 -C Release -R "runtime_artifact_layout_test|platform_descriptor_runtime_layout_test|user_management_runtime_artifact_contract_test|user_management_startup_smoke_test" --output-on-failure`, and a direct startup log poll of `build_x64/Release/medicalpro.exe`.
+
 ---
 
 ## Files And Responsibilities
@@ -36,7 +45,7 @@
 - Modify: `tests/runtime/verify_runtime_artifacts.cmake`
 - Create: `tests/runtime/verify_user_management_startup.ps1`
 
-- [ ] **Step 1: Add a dedicated runtime contract CTest entry for `UserManagement`**
+- [x] **Step 1: Add a dedicated runtime contract CTest entry for `UserManagement`**
 
 ```cmake
 # tests/CMakeLists.txt
@@ -94,7 +103,7 @@ if(TARGET medicalpro AND TARGET UserManagement)
 endif()
 ```
 
-- [ ] **Step 2: Extend the runtime artifact script with a strict `UserManagement` contract**
+- [x] **Step 2: Extend the runtime artifact script with a strict `UserManagement` contract**
 
 ```cmake
 # tests/runtime/verify_runtime_artifacts.cmake
@@ -217,7 +226,7 @@ endif()
 message(STATUS "Runtime artifacts are available in ${runtime_dir}")
 ```
 
-- [ ] **Step 3: Add a dedicated startup smoke script that captures the current `UserManagement` failure**
+- [x] **Step 3: Add a dedicated startup smoke script that captures the current `UserManagement` failure**
 
 ```powershell
 # tests/runtime/verify_user_management_startup.ps1
@@ -270,7 +279,7 @@ if ($combinedOutput -match 'Critical plugin start failed:\s+"?UserManagement"?')
 Write-Host 'UserManagement startup smoke passed'
 ```
 
-- [ ] **Step 4: Run the new runtime tests and verify they fail before the local fix**
+- [x] **Step 4: Run the new runtime tests and verify they fail before the local fix**
 
 Run:
 
@@ -291,7 +300,7 @@ Expected:
 **Files:**
 - Modify: `Plugins/UserManagement/CMakeLists.txt`
 
-- [ ] **Step 1: Normalize `UserManagement` to the same packaging shape as the working core plugins**
+- [x] **Step 1: Normalize `UserManagement` to the same packaging shape as the working core plugins**
 
 ```cmake
 # Plugins/UserManagement/CMakeLists.txt
@@ -353,7 +362,7 @@ else()
 endif()
 ```
 
-- [ ] **Step 2: Rebuild `UserManagement` and `medicalpro` with the local packaging fix**
+- [x] **Step 2: Rebuild `UserManagement` and `medicalpro` with the local packaging fix**
 
 Run:
 
@@ -367,7 +376,7 @@ Expected:
 - `build_x64/Release/plugins/UserManagement.dll` exists
 - `build_x64/Release/plugins/UserManagement.manifest` exists
 
-- [ ] **Step 3: Rerun the runtime contract and startup smoke tests**
+- [x] **Step 3: Rerun the runtime contract and startup smoke tests**
 
 Run:
 
@@ -395,7 +404,7 @@ git commit -m "fix: stabilize user management runtime artifacts"
 - Modify: `docs/superpowers/tracking/platform-migration-decision-log.md`
 - Modify: `docs/superpowers/plans/2026-04-21-user-management-runtime-artifact-remediation-implementation.md`
 
-- [ ] **Step 1: Write the current-status acceptance entry**
+- [x] **Step 1: Write the current-status acceptance entry**
 
 ```md
 <!-- docs/current_status_and_project_overview.md -->
@@ -410,7 +419,7 @@ git commit -m "fix: stabilize user management runtime artifacts"
 - Real startup no longer reports `Critical plugin start failed: "UserManagement"`.
 ```
 
-- [ ] **Step 2: Write the decision-log entry**
+- [x] **Step 2: Write the decision-log entry**
 
 ```md
 <!-- docs/superpowers/tracking/platform-migration-decision-log.md -->
@@ -421,7 +430,7 @@ git commit -m "fix: stabilize user management runtime artifacts"
 - Impact: `UserManagement` now has dedicated runtime artifact verification and startup smoke acceptance under `build_x64/Release`.
 ```
 
-- [ ] **Step 3: Mark the implementation plan status at the end of this plan file**
+- [x] **Step 3: Mark the implementation plan status at the end of this plan file**
 
 ```md
 <!-- docs/superpowers/plans/2026-04-21-user-management-runtime-artifact-remediation-implementation.md -->
@@ -432,7 +441,7 @@ Status update 2026-04-21:
 - The remediation remained local to `UserManagement` and did not widen into shared plugin-macro refactoring.
 ```
 
-- [ ] **Step 4: Run the full acceptance commands**
+- [x] **Step 4: Run the full acceptance commands**
 
 Run:
 
@@ -455,7 +464,7 @@ Expected:
   - `Plugin handle not found for UserManagement`
   - nor `Critical plugin start failed: "UserManagement"`
 
-- [ ] **Step 5: Commit the doc write-back and acceptance state**
+- [x] **Step 5: Commit the doc write-back and acceptance state**
 
 ```powershell
 git add docs/current_status_and_project_overview.md docs/superpowers/tracking/platform-migration-decision-log.md docs/superpowers/plans/2026-04-21-user-management-runtime-artifact-remediation-implementation.md

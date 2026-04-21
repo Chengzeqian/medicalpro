@@ -15,6 +15,13 @@
 - Latest completed implementation plan: `docs/superpowers/plans/2026-04-21-plugin-chain-remediation-phase2-implementation.md`
 - Decision log: `docs/superpowers/tracking/platform-migration-decision-log.md`
 
+## Implementation Status Note 2026-04-21
+
+- Red-test evidence retired the original `Plugin handle not found for UserManagement` hypothesis for this slice.
+- After stabilizing the startup smoke test and `UserManagement.manifest` runtime artifact delivery, the real blocking failure was `Service ready timeout: "org.medicalpro.user_management"`.
+- The root cause was descriptor `diagnostics.required_services` drifting away from the real CTK registered service class names.
+- Because the same descriptor-service drift also existed in `DicomViewer` and `FourViewDisplay`, the landed implementation kept kernel semantics and shared plugin macros unchanged, but also corrected those Phase 1 managed-core descriptors so the startup chain could close on one consistent runtime truth.
+
 Date: 2026-04-21  
 Scope: `medicalpro` follow-up remediation for `UserManagement` runtime artifact delivery  
 Goal: constrain the `UserManagement` path from source plugin to `build_x64/Release` runtime artifacts, descriptor truth, and install preconditions into one stable, verifiable, regression-safe path without expanding into a broader global plugin refactor.

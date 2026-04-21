@@ -26,3 +26,27 @@ if(TARGET medicalpro)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_runtime_artifacts.cmake
     )
 endif()
+
+if(TARGET medicalpro AND TARGET UserManagement)
+    add_test(
+        NAME user_management_runtime_artifact_contract_test
+        COMMAND ${CMAKE_COMMAND}
+            -Druntime_dir=$<TARGET_FILE_DIR:medicalpro>
+            -Duser_management_plugin=$<TARGET_FILE:UserManagement>
+            -Dverify_user_management_runtime_contract=ON
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_runtime_artifacts.cmake
+    )
+
+    if(WIN32)
+        find_program(POWERSHELL_EXECUTABLE NAMES pwsh powershell REQUIRED)
+        add_test(
+            NAME user_management_startup_smoke_test
+            COMMAND ${POWERSHELL_EXECUTABLE}
+                -NoProfile
+                -ExecutionPolicy Bypass
+                -File ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_user_management_startup.ps1
+                -ExePath $<TARGET_FILE:medicalpro>
+                -WorkingDirectory $<TARGET_FILE_DIR:medicalpro>
+        )
+    endif()
+endif()
