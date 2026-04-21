@@ -2,6 +2,10 @@
 
 ## 2026-04-21
 
+- Decision: land cold-start UX remediation through a shell-first startup host plus `PlatformStateStore` handoff, not by pushing external state-store ownership directly into `MainInterfaceWidget`.
+- Rationale: the old startup path coupled first paint to `MainInterfaceWidget` construction, but forcing pointer-owned runtime state into that legacy widget would enlarge the refactor surface and risk destabilizing existing page wiring.
+- Impact: `Welcome` can appear before CTK and managed-core completion, `Enter System` remains gated by the existing Phase 1 `platformReady` truth, and the runtime state bridge now swaps from bootstrap store to main-interface store only when the user actually enters the system.
+
 - Decision: move `ensureReady()` onto the governed on-demand activation path for `RegistrationCore` and `OpticalTracking`.
 - Rationale: the old `plugin id -> CTK symbolic name -> direct start` path bypassed descriptor validation, service-ready gating, and diagnostics.
 - Impact: on-demand activation is now descriptor-driven and diagnosable, but Phase 1 startup readiness remains scoped to the cold-start core set.

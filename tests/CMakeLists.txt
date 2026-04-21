@@ -25,6 +25,19 @@ if(TARGET medicalpro)
             -Drequire_platform_descriptors=ON
             -P ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_runtime_artifacts.cmake
     )
+
+    if(WIN32)
+        find_program(POWERSHELL_EXECUTABLE NAMES pwsh powershell REQUIRED)
+        add_test(
+            NAME cold_start_welcome_shell_smoke_test
+            COMMAND ${POWERSHELL_EXECUTABLE}
+                -NoProfile
+                -ExecutionPolicy Bypass
+                -File ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_cold_start_welcome_shell.ps1
+                -ExePath $<TARGET_FILE:medicalpro>
+                -WorkingDirectory $<TARGET_FILE_DIR:medicalpro>
+        )
+    endif()
 endif()
 
 if(TARGET medicalpro AND TARGET UserManagement)

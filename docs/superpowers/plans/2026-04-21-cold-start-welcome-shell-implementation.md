@@ -17,11 +17,17 @@
 - Additional verified commands:
   - `cmake --build build_x64 --config Release --target startup_bootstrap_controller_test welcome_page_bootstrap_state_test medicalpro`
   - `ctest --test-dir build_x64 -C Release -R "startup_bootstrap_controller_test|welcome_page_bootstrap_state_test|welcome_page_runtime_refresh_test" --output-on-failure`
+- Runtime verification:
+  - `cmake --build build_x64 --config Release --target medicalpro platform_state_store_handoff_test startup_bootstrap_controller_test welcome_page_bootstrap_state_test welcome_page_runtime_refresh_test startup_orchestrator_lifecycle_test`
+  - `ctest --test-dir build_x64 -C Release -R "platform_state_store_handoff_test|startup_bootstrap_controller_test|welcome_page_bootstrap_state_test|welcome_page_runtime_refresh_test|startup_orchestrator_lifecycle_test" --output-on-failure`
+  - direct `build_x64/Release/medicalpro.exe` launch with stdout/stderr polling for `[StartupShell] shown`, `[StartupShell] enter enabled`, and `Executing phase: Startup complete`
 - Current checkpoint:
   - `StartupShellSnapshot` contract is added.
   - `WelcomePageNew` can consume shell bootstrap snapshots without being overwritten by its legacy runtime refresh path.
   - `StartupBootstrapController` and `StartupShell` are now compiled into the framework/app targets.
-  - Task 3 and later tasks are still pending.
+  - `MainInterfaceWidget` creation is now deferred until user entry, and cold-start state is handed off through `PlatformStateStoreHandoff + MainInterfaceFactory`.
+  - Runtime evidence now proves `[StartupShell] shown` appears before `Startup complete`, and `Enter System` is enabled before startup completion.
+  - Runtime smoke, governance write-back, and focused acceptance are complete.
 
 ---
 
@@ -656,6 +662,12 @@ git commit -m "feat: add startup welcome shell controller"
 - Modify: `UI/MainInterfaceWidget.cpp`
 - Modify: `main.cpp`
 
+Implementation note 2026-04-21:
+
+- The landed path keeps `MainInterfaceWidget` ownership stable and avoids the planned external pointer injection.
+- Instead, `main.cpp` now uses a bootstrap `PlatformStateStore`, `PlatformStateStoreHandoff`, and `MainInterfaceFactory` to defer main-interface creation until the user enters the system.
+- This preserves the existing widget internals while still achieving shell-first first paint, `platformReady` enter gating, and runtime state continuity.
+
 - [ ] **Step 1: Add a red lifecycle test for deferred main-interface creation**
 
 ```cpp
@@ -937,7 +949,7 @@ git commit -m "feat: defer main interface until shell startup is ready"
 - Modify: `docs/superpowers/tracking/platform-migration-decision-log.md`
 - Modify: `docs/superpowers/plans/2026-04-21-cold-start-welcome-shell-implementation.md`
 
-- [ ] **Step 1: Register a runtime smoke test for shell-first cold start**
+- [x] **Step 1: Register a runtime smoke test for shell-first cold start**
 
 ```cmake
 # tests/CMakeLists.txt
@@ -1046,7 +1058,7 @@ finally {
 }
 ```
 
-- [ ] **Step 2: Run the new runtime smoke and full focused acceptance**
+- [x] **Step 2: Run the new runtime smoke and full focused acceptance**
 
 Run:
 
@@ -1060,7 +1072,7 @@ Expected:
 - all listed tests PASS
 - the runtime smoke proves the shell appears before `Startup complete`
 
-- [ ] **Step 3: Write back current status, decision log, and plan completion state**
+- [x] **Step 3: Write back current status, decision log, and plan completion state**
 
 ```md
 <!-- docs/current_status_and_project_overview.md -->
@@ -1090,7 +1102,7 @@ Status update 2026-04-21:
 - Runtime smoke and focused governance acceptance passed.
 ```
 
-- [ ] **Step 4: Commit runtime smoke and governance write-back**
+- [x] **Step 4: Commit runtime smoke and governance write-back**
 
 ```powershell
 git add tests/CMakeLists.txt tests/runtime/verify_cold_start_welcome_shell.ps1 docs/current_status_and_project_overview.md docs/superpowers/tracking/platform-migration-decision-log.md docs/superpowers/plans/2026-04-21-cold-start-welcome-shell-implementation.md

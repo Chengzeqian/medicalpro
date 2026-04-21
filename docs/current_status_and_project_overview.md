@@ -1,5 +1,12 @@
 ## Platform Kernel Governance
 
+### 2026-04-21 Cold Start Welcome Shell Acceptance
+
+- `Welcome` now renders through `StartupShell` before the heavy `MainInterfaceWidget` is constructed.
+- `Enter System` now stays disabled until the Phase 1 managed startup scope reaches the existing `platformReady` gate.
+- `MainInterfaceWidget` is now created lazily on user entry through `MainInterfaceFactory`, with platform state handed off from a bootstrap store instead of forcing new external ownership into `MainInterfaceWidget`.
+- Runtime verification now includes `cold_start_welcome_shell_smoke_test`, and the current runtime probe shows `[StartupShell] shown` before `Executing phase: Startup complete`, with `[StartupShell] enter enabled` already emitted before startup completion.
+
 ### 2026-04-21 UserManagement Runtime Artifact Remediation Acceptance
 
 - `UserManagement.manifest` now lands at `build_x64/Release/plugins/UserManagement.manifest`, while `UserManagement.dll` and `plugins/descriptors/UserManagement.json` remain stable under the Release runtime layout.
