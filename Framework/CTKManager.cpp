@@ -1017,6 +1017,10 @@ QStringList CTKManager::parseManifestDependencies(const QString& manifestPath) c
     return dependencies;
 }
 
+// temporary_internal_compatibility_debt:
+// These helpers still read legacy load-policy metadata to preserve existing
+// deferred/on-demand and safe-mode behavior inside CTKManager.
+// Product startup truth remains descriptor-driven and must not route through this path.
 LoadPolicy CTKManager::policyForPlugin(const QString& pluginName)
 {
     PluginLoadPolicy* policyMgr = PluginLoadPolicy::instance();

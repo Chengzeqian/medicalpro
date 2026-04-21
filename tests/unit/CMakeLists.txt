@@ -735,6 +735,28 @@ add_test(
     COMMAND plugin_truth_source_governance_contract_test
 )
 
+add_executable(plugin_legacy_consumer_governance_contract_test
+    PluginLegacyConsumerGovernanceContractTest.cpp
+)
+
+target_include_directories(plugin_legacy_consumer_governance_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(plugin_legacy_consumer_governance_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(plugin_legacy_consumer_governance_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME plugin_legacy_consumer_governance_contract_test
+    COMMAND plugin_legacy_consumer_governance_contract_test
+)
+
 add_executable(platform_ui_bridge_test
     PlatformUiBridgeTest.cpp
 )

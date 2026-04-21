@@ -1,0 +1,21 @@
+# Platform Plugin Legacy Consumer Inventory
+
+Updated: 2026-04-21
+
+## Current Consumers
+
+| Consumer | Bucket | Status | Notes | Next Step |
+| --- | --- | --- | --- | --- |
+| `main.cpp` | `forbidden_product_mainline` | enforced | Product startup must remain descriptor-driven and must not call legacy load-policy helpers. | Protected by source contract tests. |
+| `config/plugin_load_policy.json` | `allowed_compatibility_surface` | retained | Compatibility-only runtime metadata. | Covered by dedicated compatibility runtime contract. |
+| `config/plugin_load_policy_compatibility.md` | `allowed_compatibility_surface` | retained | Sidecar note that explains the compatibility-only boundary. | Covered by dedicated compatibility runtime contract. |
+| `CTKManager::loadPluginPolicy()` | `allowed_compatibility_surface` | retained | Compatibility entry for legacy policy metadata loading. | Must not be called by product mainline. |
+| `CTKManager::installPluginsFromDirectory()` | `allowed_compatibility_surface` | retained | Compatibility directory-scan helper. | Must not be called by product mainline. |
+| `CTKManager::policyForPlugin()` | `temporary_internal_compatibility_debt` | retained | Internal legacy policy lookup still feeds current deferred/on-demand compatibility behavior. | Future cleanup slice should replace it with descriptor/runtime facts. |
+| `CTKManager::applyPolicyForPlugin()` | `temporary_internal_compatibility_debt` | retained | Internal legacy policy application still populates deferred/on-demand buckets and safe-mode branching. | Future cleanup slice should replace it with descriptor/runtime facts. |
+
+## Forbidden New Usage
+
+- No new product-mainline code may call `loadPluginPolicy()` or `installPluginsFromDirectory()`.
+- No new product-mainline code may read `plugin_load_policy.json` to decide startup content.
+- Any newly discovered legacy consumer must be added to this inventory before it can be considered acceptable.
