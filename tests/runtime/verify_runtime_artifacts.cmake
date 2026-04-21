@@ -59,7 +59,6 @@ set(required_files
     "${dicom_viewer_plugin}"
     "${four_view_display_plugin}"
     "${meshgpu_runtime_dll}"
-    "${plugin_policy_file}"
 )
 
 set(missing_artifacts)
@@ -91,12 +90,8 @@ endif()
 
 if(verify_plugin_truth_source_runtime_contract)
     set(platform_runtime_file "${runtime_dir}/config/platform_runtime.json")
-    set(plugin_policy_file "${runtime_dir}/config/plugin_load_policy.json")
-    set(plugin_policy_note_file "${runtime_dir}/config/plugin_load_policy_compatibility.md")
 
     append_missing_artifact("${platform_runtime_file}")
-    append_missing_artifact("${plugin_policy_file}")
-    append_missing_artifact("${plugin_policy_note_file}")
 
     set(platform_descriptor_files
         "${runtime_dir}/plugins/descriptors/UserManagement.json"
@@ -121,14 +116,27 @@ if(verify_plugin_truth_source_runtime_contract)
         "plugins/descriptors"
         "platform_descriptor_directory_mismatch"
     )
+endif()
+
+if(verify_plugin_legacy_compatibility_runtime_contract)
+    set(plugin_policy_file "${runtime_dir}/config/plugin_load_policy.json")
+    set(plugin_policy_note_file "${runtime_dir}/config/plugin_load_policy_compatibility.md")
+
+    append_missing_artifact("${plugin_policy_file}")
+    append_missing_artifact("${plugin_policy_note_file}")
+
+    if(missing_artifacts)
+        string(JOIN "\n - " missing_report ${missing_artifacts})
+        message(FATAL_ERROR "plugin_legacy_compatibility_runtime_layout_mismatch:\n - ${missing_report}")
+    endif()
 
     file(READ "${plugin_policy_note_file}" plugin_policy_note_text)
     if(NOT plugin_policy_note_text MATCHES "compatibility-only")
         message(FATAL_ERROR "plugin_policy_note_missing_compatibility_only: ${plugin_policy_note_file}")
     endif()
 
-    if(NOT plugin_policy_note_text MATCHES "platform_runtime.json")
-        message(FATAL_ERROR "plugin_policy_note_missing_runtime_truth_reference: ${plugin_policy_note_file}")
+    if(NOT plugin_policy_note_text MATCHES "must not define the product mainline")
+        message(FATAL_ERROR "plugin_policy_note_missing_mainline_boundary: ${plugin_policy_note_file}")
     endif()
 endif()
 

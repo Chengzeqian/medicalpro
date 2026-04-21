@@ -11,7 +11,6 @@ if(TARGET medicalpro AND TARGET UserManagement AND TARGET DicomViewer AND TARGET
             -Ddicom_viewer_plugin=$<TARGET_FILE:DicomViewer>
             -Dfour_view_display_plugin=$<TARGET_FILE:FourViewDisplay>
             -Dmeshgpu_runtime_dll=$<TARGET_FILE_DIR:medicalpro>/MeshGPULib.dll
-            -Dplugin_policy_file=$<TARGET_FILE_DIR:medicalpro>/config/plugin_load_policy.json
             -Ddata_dir=$<TARGET_FILE_DIR:medicalpro>/data
             -P ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_runtime_artifacts.cmake
     )
@@ -31,6 +30,14 @@ if(TARGET medicalpro)
         COMMAND ${CMAKE_COMMAND}
             -Druntime_dir=$<TARGET_FILE_DIR:medicalpro>
             -Dverify_plugin_truth_source_runtime_contract=ON
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_runtime_artifacts.cmake
+    )
+
+    add_test(
+        NAME plugin_legacy_compatibility_runtime_contract_test
+        COMMAND ${CMAKE_COMMAND}
+            -Druntime_dir=$<TARGET_FILE_DIR:medicalpro>
+            -Dverify_plugin_legacy_compatibility_runtime_contract=ON
             -P ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_runtime_artifacts.cmake
     )
 

@@ -13,6 +13,8 @@ Updated: 2026-04-21
 | `CTKManager::installPluginsFromDirectory()` | `allowed_compatibility_surface` | retained | Compatibility directory-scan helper. | Must not be called by product mainline. |
 | `CTKManager::policyForPlugin()` | `temporary_internal_compatibility_debt` | retained | Internal legacy policy lookup still feeds current deferred/on-demand compatibility behavior. | Future cleanup slice should replace it with descriptor/runtime facts. |
 | `CTKManager::applyPolicyForPlugin()` | `temporary_internal_compatibility_debt` | retained | Internal legacy policy application still populates deferred/on-demand buckets and safe-mode branching. | Future cleanup slice should replace it with descriptor/runtime facts. |
+| `runtime_artifact_layout_test` | `forbidden_product_mainline` | enforced | Default runtime artifact acceptance must validate product artifacts only. | Must not require `plugin_load_policy.json`. |
+| `plugin_legacy_compatibility_runtime_contract_test` | `allowed_compatibility_surface` | retained | Dedicated runtime acceptance for compatibility-only artifacts. | Keep it separate from product runtime layout acceptance. |
 
 ## Forbidden New Usage
 
