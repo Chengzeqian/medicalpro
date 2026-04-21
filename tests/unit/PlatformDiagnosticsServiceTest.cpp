@@ -67,6 +67,7 @@ private slots:
     void buildSnapshot_does_not_report_mismatch_when_platform_state_is_ready();
     void buildSnapshot_deduplicates_and_sorts_problems_after_mismatch_append();
     void buildSnapshot_reports_managed_scope_and_excluded_plugins();
+    void buildSnapshot_reports_governed_scope_without_polluting_startup_ready();
     void stateStore_supports_cross_thread_read_write();
 };
 
@@ -344,18 +345,48 @@ void PlatformDiagnosticsServiceTest::buildSnapshot_reports_managed_scope_and_exc
             PlatformBootstrapLevel::Deferred,
             PlatformStartupPolicy::OnDemand)
     });
-    store.setManagedPluginIds(QStringList{QStringLiteral("org.medicalpro.user_management")});
+    store.setStartupScopePluginIds(QStringList{QStringLiteral("org.medicalpro.user_management")});
+    store.setGovernedPluginIds(QStringList{QStringLiteral("org.medicalpro.user_management")});
     store.setRuntimeMode(PlatformRuntimeMode::FacadeMode);
     store.setPluginState(QStringLiteral("org.medicalpro.user_management"), PlatformPluginState::Ready);
 
     PlatformDiagnosticsService service(&store);
     const auto snapshot = service.buildSnapshot({});
 
-    QCOMPARE(snapshot.managedPluginIds, (QStringList{QStringLiteral("org.medicalpro.user_management")}));
+    QCOMPARE(snapshot.startupScopePluginIds, (QStringList{QStringLiteral("org.medicalpro.user_management")}));
+    QCOMPARE(snapshot.governedPluginIds, (QStringList{QStringLiteral("org.medicalpro.user_management")}));
     QCOMPARE(snapshot.excludedPluginIds, (QStringList{QStringLiteral("org.medicalpro.registration_core")}));
     QVERIFY(std::any_of(snapshot.problems.begin(), snapshot.problems.end(), [](const PlatformDiagnosticProblem& problem) {
-        return problem.reasonCode == QStringLiteral("excluded_from_managed_startup");
+        return problem.reasonCode == QStringLiteral("excluded_from_governed_scope");
     }));
+}
+
+void PlatformDiagnosticsServiceTest::buildSnapshot_reports_governed_scope_without_polluting_startup_ready()
+{
+    PlatformStateStore store;
+    store.replaceDescriptors({
+        makeDescriptor(QStringLiteral("org.medicalpro.user_management"), QStringLiteral("UserManagement")),
+        makeDescriptor(
+            QStringLiteral("org.medicalpro.registration_core"),
+            QStringLiteral("RegistrationCore"),
+            PlatformBootstrapLevel::Deferred,
+            PlatformStartupPolicy::OnDemand)
+    });
+    store.setStartupScopePluginIds(QStringList{QStringLiteral("org.medicalpro.user_management")});
+    store.setGovernedPluginIds(QStringList{
+        QStringLiteral("org.medicalpro.user_management"),
+        QStringLiteral("org.medicalpro.registration_core")
+    });
+    store.setRuntimeMode(PlatformRuntimeMode::FacadeMode);
+    store.setPluginState(QStringLiteral("org.medicalpro.user_management"), PlatformPluginState::Ready);
+    store.setPluginState(QStringLiteral("org.medicalpro.registration_core"), PlatformPluginState::Failed);
+
+    PlatformDiagnosticsService service(&store);
+    const auto snapshot = service.buildSnapshot({});
+
+    QVERIFY(snapshot.summary.platformReady);
+    QCOMPARE(snapshot.startupScopePluginIds, (QStringList{QStringLiteral("org.medicalpro.user_management")}));
+    QVERIFY(snapshot.governedPluginIds.contains(QStringLiteral("org.medicalpro.registration_core")));
 }
 
 void PlatformDiagnosticsServiceTest::stateStore_supports_cross_thread_read_write()

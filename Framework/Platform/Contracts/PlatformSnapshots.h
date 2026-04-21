@@ -108,6 +108,8 @@ struct PlatformCapabilitySnapshot
     QStringList unlockedCapabilities;
     QStringList lockedCapabilities;
     QStringList degradedPlugins;
+    QStringList startupScopePluginIds;
+    QStringList governedPluginIds;
 };
 
 struct PlatformDiagnosticSummary
@@ -146,6 +148,8 @@ struct PlatformDiagnosticSnapshot
     QVector<PlatformStartupTraceEntry> startupTrace;
     QVector<PlatformDiagnosticProblem> problems;
     QStringList recoveryHints;
+    QStringList startupScopePluginIds;
+    QStringList governedPluginIds;
     QStringList managedPluginIds;
     QStringList excludedPluginIds;
 

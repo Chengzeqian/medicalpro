@@ -76,32 +76,36 @@ PlatformDiagnosticSnapshot PlatformDiagnosticsService::buildSnapshot(const Platf
     snapshot.frameworkReady = observation.frameworkReady;
 
     QVector<PlatformPluginDescriptor> descriptors;
-    QStringList managedPluginIds;
+    QStringList startupScopePluginIds;
+    QStringList governedPluginIds;
     if (m_stateStore) {
         descriptors = m_stateStore->descriptors();
-        managedPluginIds = m_stateStore->managedPluginIds();
+        startupScopePluginIds = m_stateStore->startupScopePluginIds();
+        governedPluginIds = m_stateStore->governedPluginIds();
         snapshot.plugins = m_stateStore->pluginSnapshots();
         snapshot.capabilitySnapshot = m_stateStore->capabilitySnapshot();
         snapshot.runtimeMode = snapshot.capabilitySnapshot.runtimeMode;
     }
 
-    if (managedPluginIds.isEmpty()) {
+    if (governedPluginIds.isEmpty()) {
         for (const auto& descriptor : descriptors) {
-            managedPluginIds.append(descriptor.id);
+            governedPluginIds.append(descriptor.id);
         }
     }
 
-    snapshot.managedPluginIds = managedPluginIds;
+    snapshot.startupScopePluginIds = startupScopePluginIds;
+    snapshot.governedPluginIds = governedPluginIds;
+    snapshot.managedPluginIds = startupScopePluginIds;
     for (const auto& descriptor : descriptors) {
-        if (managedPluginIds.contains(descriptor.id)) continue;
+        if (governedPluginIds.contains(descriptor.id)) continue;
 
         snapshot.excludedPluginIds.append(descriptor.id);
 
         PlatformDiagnosticProblem problem;
         problem.severity = PlatformDiagnosticSeverity::Info;
         problem.pluginId = descriptor.id;
-        problem.reasonCode = QStringLiteral("excluded_from_managed_startup");
-        problem.detail = QStringLiteral("Plugin is available in descriptors but excluded from the current managed startup scope");
+        problem.reasonCode = QStringLiteral("excluded_from_governed_scope");
+        problem.detail = QStringLiteral("Plugin is available in descriptors but excluded from the current governed scope");
         snapshot.problems.append(problem);
     }
 

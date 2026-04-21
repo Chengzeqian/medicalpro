@@ -743,7 +743,7 @@ git commit -m "feat: execute governed on-demand activation"
 - Modify: `tests/unit/PlatformDependencyGraphTest.cpp`
 - Modify: `tests/unit/PlatformDiagnosticsServiceTest.cpp`
 
-- [ ] **Step 1: 先写 failing tests，锁定 Phase 1 `platformReady` 不受 on-demand 插件污染**
+- [x] **Step 1: 先写 failing tests，锁定 Phase 1 `platformReady` 不受 on-demand 插件污染**
 
 ```cpp
 // tests/unit/PlatformDependencyGraphTest.cpp
@@ -811,7 +811,7 @@ void PlatformDiagnosticsServiceTest::buildSnapshot_reports_governed_scope_withou
 }
 ```
 
-- [ ] **Step 2: 运行 dependency/diagnostics 测试，确认先失败**
+- [x] **Step 2: 运行 dependency/diagnostics 测试，确认先失败**
 
 Run:
 
@@ -824,7 +824,7 @@ Expected:
 
 - 现有编译或断言失败，因为 `PlatformStateStore` 还没有 `startupScope`/`governedScope` 概念
 
-- [ ] **Step 3: 实现 scope 拆分，并把 diagnostics 改为 governed scope 解释**
+- [x] **Step 3: 实现 scope 拆分，并把 diagnostics 改为 governed scope 解释**
 
 ```cpp
 // Framework/Platform/Contracts/PlatformSnapshots.h
@@ -959,7 +959,7 @@ PlatformCapabilitySnapshot PlatformStateStore::capabilitySnapshot() const
      }
 ```
 
-- [ ] **Step 4: 重新运行 scope/diagnostics 测试**
+- [x] **Step 4: 重新运行 scope/diagnostics 测试**
 
 Run:
 
@@ -973,7 +973,7 @@ Expected:
 - `platform_dependency_graph_test` PASS
 - `platform_diagnostics_service_test` PASS
 
-- [ ] **Step 5: 提交 scope split 与 diagnostics 收口**
+- [x] **Step 5: 提交 scope split 与 diagnostics 收口**
 
 ```powershell
 git add Framework/Platform/Contracts/PlatformSnapshots.h Framework/Platform/Kernel/PlatformStateStore.h Framework/Platform/Kernel/PlatformStateStore.cpp Framework/Platform/Diagnostics/PlatformDiagnosticsService.cpp tests/unit/PlatformDependencyGraphTest.cpp tests/unit/PlatformDiagnosticsServiceTest.cpp

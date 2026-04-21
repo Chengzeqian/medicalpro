@@ -38,6 +38,7 @@ private slots:
     void capabilitySnapshot_keeps_capabilities_locked_until_plugin_ready();
     void capabilitySnapshot_unlocks_ready_capabilities();
     void capabilitySnapshot_ignores_unmanaged_descriptors_for_platform_ready();
+    void capabilitySnapshot_keeps_platform_ready_bound_to_startup_scope();
 };
 
 void PlatformDependencyGraphTest::build_rejects_core_dependency_on_on_demand_plugin()
@@ -174,6 +175,38 @@ void PlatformDependencyGraphTest::capabilitySnapshot_ignores_unmanaged_descripto
     QVERIFY(snapshot.platformReady);
     QCOMPARE(snapshot.unlockedCapabilities, (QStringList{QStringLiteral("identity.core")}));
     QVERIFY(!snapshot.unlockedCapabilities.contains(QStringLiteral("registration.core")));
+}
+
+void PlatformDependencyGraphTest::capabilitySnapshot_keeps_platform_ready_bound_to_startup_scope()
+{
+    PlatformStateStore store;
+    store.setRuntimeMode(PlatformRuntimeMode::FacadeMode);
+    store.replaceDescriptors({
+        makeDescriptor(
+            QStringLiteral("org.medicalpro.user_management"),
+            QStringLiteral("UserManagement"),
+            PlatformBootstrapLevel::Core,
+            PlatformStartupPolicy::Eager,
+            {QStringLiteral("identity.core")}),
+        makeDescriptor(
+            QStringLiteral("org.medicalpro.registration_core"),
+            QStringLiteral("RegistrationCore"),
+            PlatformBootstrapLevel::Deferred,
+            PlatformStartupPolicy::OnDemand,
+            {QStringLiteral("navigation.registration")})
+    });
+    store.setStartupScopePluginIds(QStringList{QStringLiteral("org.medicalpro.user_management")});
+    store.setGovernedPluginIds(QStringList{
+        QStringLiteral("org.medicalpro.user_management"),
+        QStringLiteral("org.medicalpro.registration_core")
+    });
+    store.setPluginState(QStringLiteral("org.medicalpro.user_management"), PlatformPluginState::Ready);
+
+    const auto snapshot = store.capabilitySnapshot();
+    QVERIFY(snapshot.platformReady);
+    QVERIFY(snapshot.lockedCapabilities.contains(QStringLiteral("navigation.registration")));
+    QCOMPARE(snapshot.startupScopePluginIds, (QStringList{QStringLiteral("org.medicalpro.user_management")}));
+    QVERIFY(snapshot.governedPluginIds.contains(QStringLiteral("org.medicalpro.registration_core")));
 }
 
 QTEST_APPLESS_MAIN(PlatformDependencyGraphTest)

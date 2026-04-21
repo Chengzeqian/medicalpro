@@ -30,25 +30,56 @@ void PlatformStateStore::setRuntimeMode(PlatformRuntimeMode runtimeMode)
     m_runtimeMode = runtimeMode;
 }
 
-void PlatformStateStore::setManagedPluginIds(const QStringList& pluginIds)
+void PlatformStateStore::setStartupScopePluginIds(const QStringList& pluginIds)
 {
     QWriteLocker locker(&m_lock);
-    m_managedPluginIds.clear();
+    m_startupScopePluginIds.clear();
 
     for (const auto& pluginId : pluginIds) {
         const auto normalizedPluginId = pluginId.trimmed();
         if (normalizedPluginId.isEmpty()) continue;
-        if (m_managedPluginIds.contains(normalizedPluginId)) continue;
-        m_managedPluginIds.append(normalizedPluginId);
+        if (m_startupScopePluginIds.contains(normalizedPluginId)) continue;
+        m_startupScopePluginIds.append(normalizedPluginId);
     }
 
     refreshSnapshots();
 }
 
-QStringList PlatformStateStore::managedPluginIds() const
+QStringList PlatformStateStore::startupScopePluginIds() const
 {
     QReadLocker locker(&m_lock);
-    return m_managedPluginIds;
+    return m_startupScopePluginIds;
+}
+
+void PlatformStateStore::setGovernedPluginIds(const QStringList& pluginIds)
+{
+    QWriteLocker locker(&m_lock);
+    m_governedPluginIds.clear();
+
+    for (const auto& pluginId : pluginIds) {
+        const auto normalizedPluginId = pluginId.trimmed();
+        if (normalizedPluginId.isEmpty()) continue;
+        if (m_governedPluginIds.contains(normalizedPluginId)) continue;
+        m_governedPluginIds.append(normalizedPluginId);
+    }
+
+    refreshSnapshots();
+}
+
+QStringList PlatformStateStore::governedPluginIds() const
+{
+    QReadLocker locker(&m_lock);
+    return m_governedPluginIds;
+}
+
+void PlatformStateStore::setManagedPluginIds(const QStringList& pluginIds)
+{
+    setStartupScopePluginIds(pluginIds);
+}
+
+QStringList PlatformStateStore::managedPluginIds() const
+{
+    return startupScopePluginIds();
 }
 
 void PlatformStateStore::setPluginState(const QString& pluginId, PlatformPluginState state)
@@ -81,26 +112,37 @@ PlatformCapabilitySnapshot PlatformStateStore::capabilitySnapshot() const
     QReadLocker locker(&m_lock);
     PlatformCapabilitySnapshot snapshot;
     snapshot.runtimeMode = m_runtimeMode;
+    snapshot.startupScopePluginIds = m_startupScopePluginIds;
+    snapshot.governedPluginIds = m_governedPluginIds;
+
+    QStringList startupLockedCapabilities;
+    QStringList startupDegradedPlugins;
 
     for (const auto& pluginId : m_descriptorOrder) {
-        if (!isManagedPlugin(pluginId)) continue;
+        if (!isGovernedPlugin(pluginId)) continue;
 
         const auto descriptor = m_descriptors.value(pluginId);
         const auto pluginSnapshot = m_snapshots.value(pluginId);
         const bool ready = pluginSnapshot.state == PlatformPluginState::Ready;
 
-        if (pluginSnapshot.state == PlatformPluginState::Degraded
-            || pluginSnapshot.state == PlatformPluginState::Failed) {
-            snapshot.degradedPlugins.append(pluginId);
-        }
-
         for (const auto& capability : descriptor.provides.capabilities) {
             if (ready) snapshot.unlockedCapabilities.append(capability);
             else snapshot.lockedCapabilities.append(capability);
         }
+
+        if (!isStartupScopePlugin(pluginId)) continue;
+        if (pluginSnapshot.state == PlatformPluginState::Degraded
+            || pluginSnapshot.state == PlatformPluginState::Failed) {
+            startupDegradedPlugins.append(pluginId);
+            snapshot.degradedPlugins.append(pluginId);
+        }
+
+        if (!ready) {
+            startupLockedCapabilities.append(descriptor.provides.capabilities);
+        }
     }
 
-    snapshot.platformReady = snapshot.lockedCapabilities.isEmpty() && snapshot.degradedPlugins.isEmpty();
+    snapshot.platformReady = startupLockedCapabilities.isEmpty() && startupDegradedPlugins.isEmpty();
     return snapshot;
 }
 
@@ -117,15 +159,20 @@ QVector<PlatformPluginRuntimeSnapshot> PlatformStateStore::pluginSnapshots() con
     return snapshots;
 }
 
-bool PlatformStateStore::isManagedPlugin(const QString& pluginId) const
+bool PlatformStateStore::isStartupScopePlugin(const QString& pluginId) const
 {
-    return m_managedPluginIds.isEmpty() || m_managedPluginIds.contains(pluginId);
+    return m_startupScopePluginIds.isEmpty() || m_startupScopePluginIds.contains(pluginId);
+}
+
+bool PlatformStateStore::isGovernedPlugin(const QString& pluginId) const
+{
+    return m_governedPluginIds.isEmpty() || m_governedPluginIds.contains(pluginId);
 }
 
 bool PlatformStateStore::isCapabilityUnlocked(const QString& capability) const
 {
     for (const auto& pluginId : m_descriptorOrder) {
-        if (!isManagedPlugin(pluginId)) continue;
+        if (!isGovernedPlugin(pluginId)) continue;
 
         const auto descriptor = m_descriptors.value(pluginId);
         if (!descriptor.provides.capabilities.contains(capability)) continue;
