@@ -89,6 +89,49 @@ if(require_platform_descriptors)
     endforeach()
 endif()
 
+if(verify_plugin_truth_source_runtime_contract)
+    set(platform_runtime_file "${runtime_dir}/config/platform_runtime.json")
+    set(plugin_policy_file "${runtime_dir}/config/plugin_load_policy.json")
+    set(plugin_policy_note_file "${runtime_dir}/config/plugin_load_policy_compatibility.md")
+
+    append_missing_artifact("${platform_runtime_file}")
+    append_missing_artifact("${plugin_policy_file}")
+    append_missing_artifact("${plugin_policy_note_file}")
+
+    set(platform_descriptor_files
+        "${runtime_dir}/plugins/descriptors/UserManagement.json"
+        "${runtime_dir}/plugins/descriptors/DicomViewer.json"
+        "${runtime_dir}/plugins/descriptors/FourViewDisplay.json"
+        "${runtime_dir}/plugins/descriptors/RegistrationCore.json"
+        "${runtime_dir}/plugins/descriptors/OpticalTracking.json"
+    )
+
+    foreach(descriptor_file IN LISTS platform_descriptor_files)
+        append_missing_artifact("${descriptor_file}")
+    endforeach()
+
+    if(missing_artifacts)
+        string(JOIN "\n - " missing_report ${missing_artifacts})
+        message(FATAL_ERROR "plugin_truth_source_runtime_layout_mismatch:\n - ${missing_report}")
+    endif()
+
+    require_json_field_value(
+        "${platform_runtime_file}"
+        "descriptor_directory"
+        "plugins/descriptors"
+        "platform_descriptor_directory_mismatch"
+    )
+
+    file(READ "${plugin_policy_note_file}" plugin_policy_note_text)
+    if(NOT plugin_policy_note_text MATCHES "compatibility-only")
+        message(FATAL_ERROR "plugin_policy_note_missing_compatibility_only: ${plugin_policy_note_file}")
+    endif()
+
+    if(NOT plugin_policy_note_text MATCHES "platform_runtime.json")
+        message(FATAL_ERROR "plugin_policy_note_missing_runtime_truth_reference: ${plugin_policy_note_file}")
+    endif()
+endif()
+
 if(verify_user_management_runtime_contract)
     set(user_management_runtime_bundle "${runtime_dir}/plugins/UserManagement.dll")
     set(user_management_runtime_descriptor "${runtime_dir}/plugins/descriptors/UserManagement.json")

@@ -26,6 +26,14 @@ if(TARGET medicalpro)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_runtime_artifacts.cmake
     )
 
+    add_test(
+        NAME plugin_truth_source_runtime_contract_test
+        COMMAND ${CMAKE_COMMAND}
+            -Druntime_dir=$<TARGET_FILE_DIR:medicalpro>
+            -Dverify_plugin_truth_source_runtime_contract=ON
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_runtime_artifacts.cmake
+    )
+
     if(WIN32)
         find_program(POWERSHELL_EXECUTABLE NAMES pwsh powershell REQUIRED)
         add_test(
