@@ -278,6 +278,8 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Kernel/PlatformRuntimeConfig.cpp
     Framework/Platform/Kernel/PlatformStartupCoordinator.h
     Framework/Platform/Kernel/PlatformStartupCoordinator.cpp
+    Framework/Platform/Kernel/PlatformOnDemandActivationPlan.h
+    Framework/Platform/Kernel/PlatformOnDemandActivationPlan.cpp
     Framework/Platform/Kernel/PlatformWarmupCoordinator.h
     Framework/Platform/Kernel/PlatformWarmupCoordinator.cpp
     Framework/Platform/Kernel/PlatformStateStore.h

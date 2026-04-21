@@ -10,8 +10,16 @@
     "bootstrap_level": "deferred",
     "entry_capability": "navigation.tracking"
   },
+  "diagnostics": {
+    "required_services": ["OpticalTrackingService", "navigation.tracking"],
+    "service_ready_timeout_ms": 5000,
+    "warmup_tasks": [],
+    "warmup_timeout_ms": 0,
+    "warmup_impacts_ready": false,
+    "degrade_on": []
+  },
   "provides": {
-    "services": ["navigation.tracking"],
+    "services": ["OpticalTrackingService", "navigation.tracking"],
     "capabilities": ["navigation.tracking"]
   },
   "requires": {

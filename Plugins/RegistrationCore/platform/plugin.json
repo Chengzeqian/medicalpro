@@ -10,8 +10,16 @@
     "bootstrap_level": "deferred",
     "entry_capability": "navigation.registration"
   },
+  "diagnostics": {
+    "required_services": ["RegistrationService"],
+    "service_ready_timeout_ms": 5000,
+    "warmup_tasks": [],
+    "warmup_timeout_ms": 0,
+    "warmup_impacts_ready": false,
+    "degrade_on": []
+  },
   "provides": {
-    "services": ["navigation.registration"],
+    "services": ["RegistrationService", "navigation.registration"],
     "capabilities": ["navigation.registration"]
   },
   "requires": {

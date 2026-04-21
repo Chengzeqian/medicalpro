@@ -71,7 +71,7 @@
 - Modify: `tests/unit/CMakeLists.txt`
 - Create: `tests/unit/PlatformOnDemandActivationPlanTest.cpp`
 
-- [ ] **Step 1: 先注册 failing test target，并写 RED 用例锁定 on-demand plan 契约**
+- [x] **Step 1: 先注册 failing test target，并写 RED 用例锁定 on-demand plan 契约**
 
 ```cmake
 # tests/unit/CMakeLists.txt
@@ -256,7 +256,7 @@ QTEST_APPLESS_MAIN(PlatformOnDemandActivationPlanTest)
 #include "PlatformOnDemandActivationPlanTest.moc"
 ```
 
-- [ ] **Step 2: 运行新测试，确认当前先红灯**
+- [x] **Step 2: 运行新测试，确认当前先红灯**
 
 Run:
 
@@ -269,7 +269,7 @@ Expected:
 
 - `platform_on_demand_activation_plan_test` 编译失败，因为 `PlatformOnDemandActivationPlanBuilder` 还不存在
 
-- [ ] **Step 3: 实现 on-demand plan builder，并接入 Framework 编译**
+- [x] **Step 3: 实现 on-demand plan builder，并接入 Framework 编译**
 
 ```cpp
 // Framework/Platform/Kernel/PlatformOnDemandActivationPlan.h
@@ -364,7 +364,7 @@ bool hasStrictOnDemandContract(const PlatformPluginDescriptor& descriptor, QStri
      Framework/Platform/Kernel/PlatformWarmupCoordinator.cpp
 ```
 
-- [ ] **Step 4: 补齐 `RegistrationCore` 与 `OpticalTracking` descriptor 的 diagnostics 契约**
+- [x] **Step 4: 补齐 `RegistrationCore` 与 `OpticalTracking` descriptor 的 diagnostics 契约**
 
 ```json
 // Plugins/RegistrationCore/platform/plugin.json
@@ -446,7 +446,7 @@ bool hasStrictOnDemandContract(const PlatformPluginDescriptor& descriptor, QStri
 }
 ```
 
-- [ ] **Step 5: 重新运行 plan builder 测试并提交**
+- [x] **Step 5: 重新运行 plan builder 测试并提交**
 
 Run:
 
