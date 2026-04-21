@@ -3,6 +3,7 @@
 
 #include "BasePage.h"
 #include "PageIndex.h"
+#include "Framework/Platform/Contracts/StartupShellSnapshot.h"
 
 #include <QFrame>
 #include <QLabel>
@@ -38,6 +39,7 @@ public:
     ~WelcomePageNew();
 
     void onActivated() override;
+    void applyStartupShellSnapshot(const StartupShellSnapshot& snapshot);
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
@@ -55,6 +57,7 @@ private:
     void applyBranding();
     void refreshRuntimeStatus();
     void updateResponsiveLayout();
+    void applyShellDecisionState(const StartupShellSnapshot& snapshot);
     RuntimeStatusSnapshot collectRuntimeStatus() const;
     void applySummaryPanel(const RuntimeStatusSnapshot& snapshot);
     void applyQuickStat(
@@ -77,6 +80,7 @@ private:
     Ui::WelcomePage* ui;
     RuntimeStatusProvider m_runtimeStatusProvider;
     QTimer* m_runtimeStatusRefreshTimer;
+    bool m_shellSnapshotActive = false;
 };
 
 #endif // WELCOMEPAGE_NEW_H

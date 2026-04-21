@@ -120,6 +120,29 @@ void WelcomePageNew::onActivated()
     refreshRuntimeStatus();
 }
 
+void WelcomePageNew::applyStartupShellSnapshot(const StartupShellSnapshot& snapshot)
+{
+    m_shellSnapshotActive = true;
+    applyShellDecisionState(snapshot);
+
+    if (ui->enterButton) {
+        ui->enterButton->setEnabled(snapshot.canEnterSystem);
+    }
+
+    if (!snapshot.failureReason.isEmpty()) {
+        QString summary = snapshot.failureReason;
+        if (!snapshot.recoveryHints.isEmpty()) {
+            summary += QStringLiteral("\n") + snapshot.recoveryHints.join(QStringLiteral("\n"));
+        }
+        ui->runtimeSummaryTextLabel->setText(summary);
+        return;
+    }
+
+    if (!snapshot.statusText.isEmpty()) {
+        ui->runtimeSummaryTextLabel->setText(snapshot.statusText);
+    }
+}
+
 WelcomePageNew::RuntimeStatusSnapshot WelcomePageNew::collectRuntimeStatus() const
 {
     if (m_runtimeStatusProvider) {
@@ -239,6 +262,10 @@ void WelcomePageNew::applySummaryPanel(const RuntimeStatusSnapshot& snapshot)
 
 void WelcomePageNew::refreshRuntimeStatus()
 {
+    if (m_shellSnapshotActive) {
+        return;
+    }
+
     const RuntimeStatusSnapshot snapshot = collectRuntimeStatus();
     applySummaryPanel(snapshot);
 
@@ -277,6 +304,39 @@ void WelcomePageNew::refreshRuntimeStatus()
             QStringLiteral("data")),
         QStringLiteral("Debug / Release 配置已同步，检测路径：%1")
             .arg(QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/data")));
+}
+
+void WelcomePageNew::applyShellDecisionState(const StartupShellSnapshot& snapshot)
+{
+    QString badgeText = snapshot.statusText;
+    QString badgeTone = QStringLiteral("warning");
+
+    switch (snapshot.state) {
+    case StartupShellState::Booting:
+        if (badgeText.isEmpty()) {
+            badgeText = QStringLiteral("系统初始化中");
+        }
+        badgeTone = QStringLiteral("warning");
+        break;
+    case StartupShellState::Ready:
+        if (badgeText.isEmpty()) {
+            badgeText = QStringLiteral("主流程可进入");
+        }
+        badgeTone = QStringLiteral("ok");
+        break;
+    case StartupShellState::Failed:
+        if (badgeText.isEmpty()) {
+            badgeText = QStringLiteral("初始化失败");
+        }
+        badgeTone = QStringLiteral("danger");
+        break;
+    }
+
+    ui->runtimeDecisionBadge->setText(badgeText);
+    ui->runtimeDecisionBadge->setProperty("statusTone", badgeTone);
+    ui->runtimeDecisionBadge->style()->unpolish(ui->runtimeDecisionBadge);
+    ui->runtimeDecisionBadge->style()->polish(ui->runtimeDecisionBadge);
+    ui->runtimeDecisionBadge->update();
 }
 
 void WelcomePageNew::scheduleRuntimeStatusRefresh()
