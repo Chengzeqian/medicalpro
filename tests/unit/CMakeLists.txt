@@ -713,6 +713,28 @@ add_test(
     COMMAND startup_welcome_entry_source_contract_test
 )
 
+add_executable(plugin_truth_source_governance_contract_test
+    PluginTruthSourceGovernanceContractTest.cpp
+)
+
+target_include_directories(plugin_truth_source_governance_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(plugin_truth_source_governance_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(plugin_truth_source_governance_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME plugin_truth_source_governance_contract_test
+    COMMAND plugin_truth_source_governance_contract_test
+)
+
 add_executable(platform_ui_bridge_test
     PlatformUiBridgeTest.cpp
 )

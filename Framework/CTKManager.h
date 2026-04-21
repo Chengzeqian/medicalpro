@@ -86,9 +86,10 @@ public:
     bool loadPlugin(const QString& pluginPath, bool autoStart = true);
     
     /**
-     * @brief 安装指定目录下的插件但不启动
+     * @brief compatibility-only helper that installs plugins from a directory without starting them.
      * @param pluginDir 插件目录
      * @return 成功安装的插件数量
+     * @note Product startup mainline must use platform_runtime.json + descriptors instead.
      */
     int installPluginsFromDirectory(const QString& pluginDir);
 
@@ -123,8 +124,9 @@ public:
     bool startDeferredPlugins(bool stopOnFailure = false);
     
     /**
-     * @brief 设置插件加载策略配置路径并加载
+     * @brief compatibility-only helper that loads legacy plugin policy metadata.
      * @param configPath 配置文件路径
+     * @note Product startup mainline must not use this API as a truth source.
      */
     void loadPluginPolicy(const QString& configPath);
     

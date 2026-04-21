@@ -24,8 +24,10 @@ struct PluginConfig {
 };
 
 /**
- * @brief 插件加载策略管理器
+ * @brief compatibility-only legacy plugin policy store.
  *
+ * Product startup truth comes from platform_runtime.json + plugins/descriptors/*.json.
+ * This type only preserves old CTK load-policy metadata for compatibility paths.
  * 使用SingletonManager模式管理单例生命周期（需求6.1-6.5）
  */
 class FRAMEWORK_EXPORT PluginLoadPolicy : public QObject, public SingletonManager<PluginLoadPolicy>

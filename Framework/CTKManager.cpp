@@ -426,7 +426,9 @@ int CTKManager::installPluginsFromDirectory(const QString& pluginDir)
         return 0;
     }
 
-    LOG_INFO("CTKManager", QString("Installing plugins from directory (no auto start): %1").arg(pluginDir));
+    LOG_INFO(
+        "CTKManager",
+        QString("Installing plugins from compatibility-only directory scan (no auto start): %1").arg(pluginDir));
 
 #ifdef CTK_PLUGIN_FRAMEWORK
     QHash<QString, QString> pluginCandidates;
@@ -623,6 +625,9 @@ void CTKManager::loadPluginPolicy(const QString& configPath)
     if (configPath.isEmpty()) {
         return;
     }
+    LOG_INFO(
+        "CTKManager",
+        QString("Loading compatibility-only plugin policy metadata from %1").arg(configPath));
     PluginLoadPolicy::instance()->loadConfig(configPath);
 }
 

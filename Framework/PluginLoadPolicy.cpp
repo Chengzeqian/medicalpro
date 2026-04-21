@@ -21,7 +21,9 @@ void PluginLoadPolicy::loadConfig(const QString& configFilePath)
 {
     QFile file(configFilePath);
     if (!file.exists()) {
-        LOG_WARNING("PluginLoadPolicy", QString("Config file not found: %1").arg(configFilePath));
+        LOG_WARNING(
+            "PluginLoadPolicy",
+            QString("Compatibility-only config file not found: %1").arg(configFilePath));
         QMutexLocker locker(&m_mutex);
         clearPolicies();
         m_configPath.clear();
@@ -120,7 +122,9 @@ void PluginLoadPolicy::loadConfig(const QString& configFilePath)
 
     emit policyReloaded();
 
-    LOG_INFO("PluginLoadPolicy", QString("Loaded plugin policy configuration from %1").arg(configFilePath));
+    LOG_INFO(
+        "PluginLoadPolicy",
+        QString("Loaded compatibility-only plugin policy configuration from %1").arg(configFilePath));
 }
 
 LoadPolicy PluginLoadPolicy::getLoadPolicy(const QString& pluginName) const
