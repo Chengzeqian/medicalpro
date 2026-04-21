@@ -5,8 +5,6 @@
 
 #include <QWidget>
 
-class QLabel;
-class QPushButton;
 class WelcomePageNew;
 
 class StartupShell : public QWidget
@@ -26,9 +24,6 @@ signals:
 
 private:
     WelcomePageNew* m_welcomePage = nullptr;
-    QLabel* m_failureLabel = nullptr;
-    QPushButton* m_retryButton = nullptr;
-    QPushButton* m_viewDiagnosticsButton = nullptr;
 };
 
 #endif // STARTUPSHELL_H

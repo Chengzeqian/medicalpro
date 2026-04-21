@@ -2,9 +2,21 @@
 
 ## 2026-04-21
 
+- Decision: withdraw `StartupShell` from the visible product entry path and restore the in-app `MainInterfaceWidget` welcome page as the only user-facing welcome surface.
+- Rationale: runtime feedback showed the visible shell-first path degraded the actual experience in two ways: it rendered shell snapshot state instead of the `CoreUiRuntimeStatusProvider` truth the user preferred, and it moved `MainInterfaceWidget` construction onto the `Enter System` click path, introducing a noticeable transition hitch.
+- Impact: `main.cpp` now pre-creates `MainInterfaceWidget` directly, logout stays inside the in-app welcome flow, `MainInterfaceWidget/MainInterfaceFactory` no longer expose the retired external-shell switch in their public API, and `StartupShell` remains non-visible groundwork until a future cold-start path can preserve the original welcome experience without stale state or handoff lag.
+
 - Decision: land cold-start UX remediation through a shell-first startup host plus `PlatformStateStore` handoff, not by pushing external state-store ownership directly into `MainInterfaceWidget`.
 - Rationale: the old startup path coupled first paint to `MainInterfaceWidget` construction, but forcing pointer-owned runtime state into that legacy widget would enlarge the refactor surface and risk destabilizing existing page wiring.
 - Impact: `Welcome` can appear before CTK and managed-core completion, `Enter System` remains gated by the existing Phase 1 `platformReady` truth, and the runtime state bridge now swaps from bootstrap store to main-interface store only when the user actually enters the system.
+
+- Decision: keep the original themed `WelcomePageNew` as the only user-facing welcome surface after the shell-first rollout.
+- Rationale: the cold-start shell already reuses the original welcome page, so showing the embedded main-interface welcome again after `Enter System` created duplicate welcome perception and diluted the intended startup improvement.
+- Impact: startup still paints early through `StartupShell`, but shell entry now lands on `ModuleSelectionPage`, and logout returns to the shell-hosted welcome surface instead of re-showing an in-app welcome step.
+
+- Decision: collapse shell failure recovery back into the original welcome-page CTA instead of rendering separate shell controls outside the page.
+- Rationale: the extra retry/diagnostics controls made the shell-hosted welcome look like a second gray startup page even though the product requirement is to preserve the original themed welcome as the only visible welcome surface.
+- Impact: `StartupShell` is now a thin host around `WelcomePageNew`, booting/ready/failure states stay on the same themed page, and failure recovery routes through the welcome primary action (`重试启动`).
 
 - Decision: move `ensureReady()` onto the governed on-demand activation path for `RegistrationCore` and `OpticalTracking`.
 - Rationale: the old `plugin id -> CTK symbolic name -> direct start` path bypassed descriptor validation, service-ready gating, and diagnostics.

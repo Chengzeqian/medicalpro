@@ -8,6 +8,18 @@
 
 **Tech Stack:** Qt 6, Qt Widgets, QtTest, CMake, CTest, PowerShell, existing `Framework/Platform` governance layer, `WelcomePageNew`, `MainInterfaceWidget`
 
+**Rollback Update 2026-04-21**
+
+- The visible shell-first entry path in `main.cpp` is no longer the accepted product path.
+- User runtime feedback confirmed that the preferred welcome experience is the deeper-blue in-app welcome page backed by `CoreUiRuntimeStatusProvider`, not the shell snapshot variant.
+- The lazy `MainInterfaceWidget` creation experiment also introduced a visible hitch during the `Welcome -> ModuleSelection` transition, so `main.cpp` now pre-creates `MainInterfaceWidget` again and shows it directly through the in-app welcome path.
+- As a follow-up cleanup, `MainInterfaceWidget/MainInterfaceFactory` no longer expose `useExternalWelcomeShell` in their public API, and the old external-shell entry test has been retired.
+- `StartupShell`, `StartupShellSnapshot`, and `StartupBootstrapController` remain landed as groundwork, but they are currently not user-visible until a future cold-start design can preserve the original welcome appearance and real status truth simultaneously.
+- Verified rollback commands:
+  - `cmake --build build_x64 --config Release --target startup_welcome_entry_source_contract_test medicalpro`
+  - `ctest --test-dir build_x64 -C Release -R "startup_welcome_entry_source_contract_test|welcome_page_bootstrap_state_test" --output-on-failure`
+  - direct `build_x64/Release/medicalpro.exe` launch with redirected logs until `Executing phase: Startup complete`
+
 **Progress Update 2026-04-21**
 
 - Task 1 code and verification completed.
@@ -25,9 +37,11 @@
   - `StartupShellSnapshot` contract is added.
   - `WelcomePageNew` can consume shell bootstrap snapshots without being overwritten by its legacy runtime refresh path.
   - `StartupBootstrapController` and `StartupShell` are now compiled into the framework/app targets.
-  - `MainInterfaceWidget` creation is now deferred until user entry, and cold-start state is handed off through `PlatformStateStoreHandoff + MainInterfaceFactory`.
-  - Runtime evidence now proves `[StartupShell] shown` appears before `Startup complete`, and `Enter System` is enabled before startup completion.
-  - Runtime smoke, governance write-back, and focused acceptance are complete.
+  - `PlatformStateStoreHandoff + MainInterfaceFactory` remains landed, but the lazy visible-entry experiment has been rolled back from `main.cpp`.
+  - The current product path shows the original themed in-app welcome page directly, and `MainInterfaceWidget` is pre-created during startup again.
+  - `StartupShell` is now a thin host only; it no longer renders extra shell buttons/labels outside the themed welcome page, and failure recovery reuses the welcome primary CTA as `重试启动`.
+  - Runtime evidence for the accepted path now proves the app reaches `Startup complete` while keeping the in-app welcome entry active.
+  - Runtime smoke, rollback verification, governance write-back, and focused acceptance are complete.
 
 ---
 
@@ -42,7 +56,7 @@
   - Own shell bootstrap session state, readiness gating, failure publication, and retry semantics
 - Create: `UI/StartupShell.h`
 - Create: `UI/StartupShell.cpp`
-  - Host `WelcomePageNew` and expose `Enter System / Retry Startup / View Diagnostics`
+  - Host `WelcomePageNew` as a thin shell surface and forward `Enter System / Retry Startup`
 - Create: `UI/MainInterfaceFactory.h`
 - Create: `UI/MainInterfaceFactory.cpp`
   - Build `MainInterfaceWidget` only after readiness with the prepared runtime bindings
@@ -51,7 +65,7 @@
   - Accept handed-off runtime bindings instead of being the cold-start owner of bootstrap truth
 - Modify: `UI/NewPages/WelcomePage.h`
 - Modify: `UI/NewPages/WelcomePage.cpp`
-  - Consume shell snapshot updates for button gating and shell-first status rendering
+  - Consume shell snapshot updates for button gating, shell-first status rendering, and failed-state retry CTA reuse
 - Modify: `main.cpp`
   - Replace direct cold-start `MainInterfaceWidget` creation with shell-first startup orchestration
 - Modify: `tests/unit/CMakeLists.txt`
@@ -1081,7 +1095,7 @@ Expected:
 - `Welcome` now renders through a lightweight startup shell before the heavy main interface is created.
 - `Enter System` stays disabled until the existing Phase 1 managed startup scope reaches `platformReady`.
 - `MainInterfaceWidget` is now created lazily after readiness and only when the user chooses to enter the system.
-- Shell failure handling now keeps `Welcome` visible and exposes retry plus diagnostics.
+- Shell failure handling now keeps `Welcome` visible and reuses the existing welcome primary CTA for retry instead of rendering extra shell controls outside the page.
 ```
 
 ```md
@@ -1098,7 +1112,10 @@ Expected:
 Status update 2026-04-21:
 
 - Completed. Cold start now shows `Welcome` before `Startup complete`.
+- The original themed `WelcomePageNew` remains the only user-facing welcome surface after the shell-first rollout.
 - `Enter System` remains locked until Phase 1 managed readiness is achieved.
+- Shell entry now lands on `ModuleSelectionPage`, and logout returns to the shell-hosted welcome surface instead of re-showing an in-app welcome step.
+- `StartupShell` now stays visually thin: no extra shell buttons/labels are rendered outside `WelcomePageNew`, and failed startup recovery routes through the welcome primary CTA (`重试启动`).
 - Runtime smoke and focused governance acceptance passed.
 ```
 

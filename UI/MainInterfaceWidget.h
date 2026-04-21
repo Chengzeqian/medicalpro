@@ -45,7 +45,9 @@ class MainInterfaceWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit MainInterfaceWidget(INavigationFacadePort* navigationPort, QWidget* parent = nullptr);
+    explicit MainInterfaceWidget(
+        INavigationFacadePort* navigationPort,
+        QWidget* parent = nullptr);
     ~MainInterfaceWidget() override;
     PlatformStateStore* platformStateStore();
     PlatformLifecycleTraceRecorder* lifecycleTraceRecorder();
@@ -91,6 +93,7 @@ private:
     void setupUI();
     void setupConnections();
     void navigateToPage(int pageIndex);
+    void prepareGuestModuleSelectionEntry();
     void enterSurgicalNavigationSystem(int patientId);
     void exitSurgicalNavigationSystem();
     QString getProjectPath() const;

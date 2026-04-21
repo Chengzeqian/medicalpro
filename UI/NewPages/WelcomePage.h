@@ -46,6 +46,7 @@ protected:
 
 signals:
     void enterSystemRequested();
+    void retryStartupRequested();
 
 private slots:
     void on_enterButton_clicked();
@@ -81,6 +82,7 @@ private:
     RuntimeStatusProvider m_runtimeStatusProvider;
     QTimer* m_runtimeStatusRefreshTimer;
     bool m_shellSnapshotActive = false;
+    StartupShellState m_shellState = StartupShellState::Booting;
 };
 
 #endif // WELCOMEPAGE_NEW_H

@@ -32,7 +32,9 @@
 #include "Plugins/UserManagement/UserDataStructures.h"
 #endif
 
-MainInterfaceWidget::MainInterfaceWidget(INavigationFacadePort* navigationPort, QWidget* parent)
+MainInterfaceWidget::MainInterfaceWidget(
+    INavigationFacadePort* navigationPort,
+    QWidget* parent)
     : QWidget(parent)
     , m_stackedWidget(nullptr)
     , m_welcomePage(nullptr)
@@ -95,12 +97,7 @@ PlatformLifecycleTraceRecorder* MainInterfaceWidget::lifecycleTraceRecorder()
 void MainInterfaceWidget::onWelcomeEnterSystem()
 {
     qDebug() << "[MainInterfaceWidget] welcome -> module selection";
-    m_isLoggedIn = true;
-    m_currentUser = QStringLiteral("\u8bbf\u5ba2");
-    if (m_moduleSelectionPage) {
-        m_moduleSelectionPage->setCurrentUser(m_currentUser);
-    }
-    navigateToPage(PAGE_MODULE_SELECTION);
+    prepareGuestModuleSelectionEntry();
 }
 
 void MainInterfaceWidget::onLoginSuccess(const QString& username)
@@ -298,6 +295,16 @@ void MainInterfaceWidget::setupUI()
     m_stackedWidget->addWidget(m_dashboardPage);
     m_stackedWidget->addWidget(m_surgicalNavigationPage);
     m_stackedWidget->addWidget(m_platformDiagnosticsPage);
+}
+
+void MainInterfaceWidget::prepareGuestModuleSelectionEntry()
+{
+    m_isLoggedIn = true;
+    m_currentUser = QStringLiteral("\u8bbf\u5ba2");
+    if (m_moduleSelectionPage) {
+        m_moduleSelectionPage->setCurrentUser(m_currentUser);
+    }
+    navigateToPage(PAGE_MODULE_SELECTION);
 }
 
 void MainInterfaceWidget::enterSurgicalNavigationSystem(int patientId)

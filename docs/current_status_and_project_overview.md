@@ -1,10 +1,35 @@
 ## Platform Kernel Governance
 
+### 2026-04-21 Welcome Entry Rollback Acceptance
+
+- The product entry has been restored to the in-app `MainInterfaceWidget` welcome page, which is the welcome surface backed by `CoreUiRuntimeStatusProvider` and the real runtime status chain.
+- `main.cpp` no longer shows `StartupShell` as a visible cold-start host, and logout no longer routes back to an external welcome shell.
+- `MainInterfaceWidget` is again created during startup instead of being deferred until `Enter System`, removing the welcome-to-module-selection hitch introduced by lazy construction.
+- `MainInterfaceWidget` and `MainInterfaceFactory` no longer expose the retired `useExternalWelcomeShell` mode in their public entry API.
+- The shell/bootstrap-controller infrastructure remains in the codebase as implementation groundwork, but it is not the current user-visible entry path.
+- Runtime acceptance now includes `startup_welcome_entry_source_contract_test` to lock the visible entry away from `createMainInterface(..., true)` and `startupShell->showFullScreen()`.
+- Executed command (build):
+  - `cmake --build build_x64 --config Release --target startup_welcome_entry_source_contract_test medicalpro`
+- Executed command (ctest):
+  - `ctest --test-dir build_x64 -C Release -R "startup_welcome_entry_source_contract_test|welcome_page_bootstrap_state_test" --output-on-failure`
+- Executed command (manual startup smoke):
+  - direct `build_x64/Release/medicalpro.exe` launch with redirected logs and forced shutdown after `Executing phase: Startup complete`
+- Expected outcomes alignment and actual results:
+  - Entry-source contract test: PASS.
+  - Welcome bootstrap regression test: PASS.
+  - Release build: PASS.
+  - Manual startup smoke: PASS; startup reached `Executing phase: Startup complete`, and the in-app welcome path stayed active.
+
 ### 2026-04-21 Cold Start Welcome Shell Acceptance
 
+- Note: the user-visible shell-first route below is now historical rollout context. The current product entry has been rolled back to the in-app welcome page described in `2026-04-21 Welcome Entry Rollback Acceptance`.
+
 - `Welcome` now renders through `StartupShell` before the heavy `MainInterfaceWidget` is constructed.
+- `StartupShell` continues to host the original `WelcomePageNew`, so the themed welcome experience remains the single user-facing welcome surface.
+- `StartupShell` no longer renders extra shell labels or gray action buttons outside `WelcomePageNew`; failed-state recovery now reuses the welcome page primary CTA as `重试启动`.
 - `Enter System` now stays disabled until the Phase 1 managed startup scope reaches the existing `platformReady` gate.
 - `MainInterfaceWidget` is now created lazily on user entry through `MainInterfaceFactory`, with platform state handed off from a bootstrap store instead of forcing new external ownership into `MainInterfaceWidget`.
+- Entering from the startup shell now lands directly on `ModuleSelectionPage`, and logout returns to the shell-hosted welcome surface instead of showing a second in-app welcome step.
 - Runtime verification now includes `cold_start_welcome_shell_smoke_test`, and the current runtime probe shows `[StartupShell] shown` before `Executing phase: Startup complete`, with `[StartupShell] enter enabled` already emitted before startup completion.
 
 ### 2026-04-21 UserManagement Runtime Artifact Remediation Acceptance

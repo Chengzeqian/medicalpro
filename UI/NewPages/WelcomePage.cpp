@@ -123,10 +123,24 @@ void WelcomePageNew::onActivated()
 void WelcomePageNew::applyStartupShellSnapshot(const StartupShellSnapshot& snapshot)
 {
     m_shellSnapshotActive = true;
+    m_shellState = snapshot.state;
     applyShellDecisionState(snapshot);
 
     if (ui->enterButton) {
-        ui->enterButton->setEnabled(snapshot.canEnterSystem);
+        switch (snapshot.state) {
+        case StartupShellState::Booting:
+            ui->enterButton->setText(QStringLiteral("系统初始化中"));
+            ui->enterButton->setEnabled(false);
+            break;
+        case StartupShellState::Ready:
+            ui->enterButton->setText(QStringLiteral("进入系统"));
+            ui->enterButton->setEnabled(snapshot.canEnterSystem);
+            break;
+        case StartupShellState::Failed:
+            ui->enterButton->setText(QStringLiteral("重试启动"));
+            ui->enterButton->setEnabled(true);
+            break;
+        }
     }
 
     if (!snapshot.failureReason.isEmpty()) {
@@ -417,6 +431,11 @@ void WelcomePageNew::resizeEvent(QResizeEvent* event)
 
 void WelcomePageNew::on_enterButton_clicked()
 {
+    if (m_shellSnapshotActive && m_shellState == StartupShellState::Failed) {
+        emit retryStartupRequested();
+        return;
+    }
+
     emit enterSystemRequested();
     emit navigateTo(toInt(PageIndex::ModuleSelection));
 }

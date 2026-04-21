@@ -212,6 +212,52 @@ set_tests_properties(platform_state_store_handoff_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_state_store_handoff_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
+add_executable(startup_shell_surface_contract_test
+    StartupShellSurfaceContractTest.cpp
+    ${CMAKE_SOURCE_DIR}/UI/StartupShell.h
+    ${CMAKE_SOURCE_DIR}/UI/StartupShell.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/BasePage.h
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/WelcomePage.h
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/WelcomePage.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/ThreePagePresentationUtils.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/WelcomeBrandingUtils.cpp
+    ${CMAKE_SOURCE_DIR}/UI/Forms/WelcomePage.ui
+)
+
+set_target_properties(startup_shell_surface_contract_test PROPERTIES
+    AUTOUIC_SEARCH_PATHS "${CMAKE_SOURCE_DIR}/UI/Forms"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo"
+)
+
+target_include_directories(startup_shell_surface_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/UI/NewPages
+    ${CMAKE_SOURCE_DIR}/UI/Forms
+)
+
+target_link_libraries(startup_shell_surface_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+if(MSVC)
+    target_compile_options(startup_shell_surface_contract_test PRIVATE /utf-8)
+endif()
+
+add_test(
+    NAME startup_shell_surface_contract_test
+    COMMAND startup_shell_surface_contract_test
+)
+
+set_tests_properties(startup_shell_surface_contract_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:startup_shell_surface_contract_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
 add_executable(platform_descriptor_loader_test
     PlatformDescriptorLoaderTest.cpp
 )
@@ -621,6 +667,50 @@ target_link_libraries(ui_ctk_decoupling_acceptance_test PRIVATE
 add_test(
     NAME ui_ctk_decoupling_acceptance_test
     COMMAND ui_ctk_decoupling_acceptance_test
+)
+
+add_executable(main_interface_entry_api_contract_test
+    MainInterfaceEntryApiContractTest.cpp
+)
+
+target_include_directories(main_interface_entry_api_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(main_interface_entry_api_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(main_interface_entry_api_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME main_interface_entry_api_contract_test
+    COMMAND main_interface_entry_api_contract_test
+)
+
+add_executable(startup_welcome_entry_source_contract_test
+    StartupWelcomeEntrySourceContractTest.cpp
+)
+
+target_include_directories(startup_welcome_entry_source_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(startup_welcome_entry_source_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(startup_welcome_entry_source_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME startup_welcome_entry_source_contract_test
+    COMMAND startup_welcome_entry_source_contract_test
 )
 
 add_executable(platform_ui_bridge_test
