@@ -327,6 +327,29 @@ set_tests_properties(platform_on_demand_activation_plan_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_on_demand_activation_plan_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
+add_executable(platform_ctk_policy_bridge_test
+    PlatformCtkPolicyBridgeTest.cpp
+)
+
+target_include_directories(platform_ctk_policy_bridge_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_ctk_policy_bridge_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_ctk_policy_bridge_test
+    COMMAND platform_ctk_policy_bridge_test
+)
+
+set_tests_properties(platform_ctk_policy_bridge_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_ctk_policy_bridge_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
 add_executable(platform_startup_trace_recorder_test
     PlatformStartupTraceRecorderTest.cpp
 )
