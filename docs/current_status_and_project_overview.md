@@ -1,11 +1,28 @@
 ## Platform Kernel Governance
 
+### 2026-04-22 CTK Descriptor Policy Bridge Acceptance
+
+- `CTKManager runtime bucket classification now resolves through PlatformCtkPolicyBridge`.
+- `main.cpp` performs explicit runtime descriptor handoff through `setDescriptorPolicyContext(runtimeConfig, descriptors)`.
+- Safe mode criticality truth now follows `platform_runtime.json.core_plugin_ids`.
+- `PluginLoadPolicy` is retained as compatibility-only metadata surface (`loadPluginPolicy()` and compatibility runtime artifact checks), not runtime truth for product startup or CTK runtime classification.
+- Executed command (build):
+  - `cmake --build build_x64 --config Release --target medicalpro platform_ctk_policy_bridge_test plugin_legacy_consumer_governance_contract_test plugin_truth_source_governance_contract_test`
+- Executed command (ctest):
+  - `ctest --test-dir build_x64 -C Release -R "platform_ctk_policy_bridge_test|plugin_legacy_consumer_governance_contract_test|plugin_truth_source_governance_contract_test|runtime_artifact_layout_test|plugin_legacy_compatibility_runtime_contract_test|plugin_truth_source_runtime_contract_test|platform_descriptor_runtime_layout_test" --output-on-failure`
+- Executed command (governance rg):
+  - `rg -n "PlatformCtkPolicyBridge|setDescriptorPolicyContext\\(|core_plugin_ids" docs/current_status_and_project_overview.md docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md docs/superpowers/tracking/platform-plugin-governance-matrix.md docs/superpowers/tracking/platform-migration-decision-log.md`
+- Expected outcomes alignment and actual results:
+  - Build target chain: PASS.
+  - Governance/runtime contract suite: PASS.
+  - Governance rg scan: `PlatformCtkPolicyBridge` / `setDescriptorPolicyContext(` / `core_plugin_ids` matched in governance documents.
+
 ### 2026-04-21 Plugin Legacy Consumer Governance Acceptance
 
 - Default product runtime artifact acceptance no longer requires `config/plugin_load_policy.json`.
 - Compatibility runtime artifact acceptance is now owned by `plugin_legacy_compatibility_runtime_contract_test`.
 - The remaining legacy-policy consumers are now inventoried in `docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md`.
-- `CTKManager::policyForPlugin()` and `CTKManager::applyPolicyForPlugin()` are now documented as `temporary_internal_compatibility_debt`, not product-mainline truth.
+- At that point the remaining `CTKManager::policyForPlugin()` and `applyPolicyForPlugin()` legacy-policy consumers were still tracked in governance inventory as internal compatibility debt rather than product-mainline truth.
 - Executed command (build):
   - `cmake --build build_x64 --config Release --target medicalpro plugin_legacy_consumer_governance_contract_test plugin_truth_source_governance_contract_test`
 - Executed command (ctest):

@@ -277,6 +277,8 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Kernel/PlatformManagedPluginPlan.cpp
     Framework/Platform/Kernel/PlatformRuntimeConfig.h
     Framework/Platform/Kernel/PlatformRuntimeConfig.cpp
+    Framework/Platform/Kernel/PlatformCtkPolicyBridge.h
+    Framework/Platform/Kernel/PlatformCtkPolicyBridge.cpp
     Framework/Platform/Kernel/PlatformStartupCoordinator.h
     Framework/Platform/Kernel/PlatformStartupCoordinator.cpp
     Framework/Platform/Kernel/PlatformOnDemandActivationPlan.h

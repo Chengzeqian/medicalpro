@@ -1,5 +1,15 @@
 # Platform Migration Decision Log
 
+## 2026-04-22
+
+- Decision: switch `CTKManager` runtime bucket classification to `PlatformCtkPolicyBridge` with explicit descriptor policy context handoff.
+- Rationale: runtime classification must follow the same governed descriptor/runtime facts as product startup truth rather than internal legacy policy lookup.
+- Impact: `main.cpp` now hands runtime descriptors into `CTKManager` through `setDescriptorPolicyContext(...)`, and fallback diagnostics are explicit when context is missing.
+
+- Decision: safe mode criticality follows platform_runtime.json.core_plugin_ids.
+- Rationale: safe mode should evaluate plugin criticality from the same runtime truth source that governs managed core startup.
+- Impact: safe mode skip behavior now tracks descriptor/runtime governance and no longer depends on `PluginLoadPolicy` runtime criticality metadata.
+
 ## 2026-04-21
 
 - Decision: split default product runtime artifact acceptance from compatibility runtime artifact acceptance.

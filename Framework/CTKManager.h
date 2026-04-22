@@ -11,7 +11,8 @@
 #include <QHash>
 #include <QVector>
 #include <QtGlobal>
-#include "PluginLoadPolicy.h"
+#include "Framework/Platform/Contracts/PlatformPluginDescriptor.h"
+#include "Framework/Platform/Kernel/PlatformRuntimeConfig.h"
 #include "FrameworkExport.h"
 #include "ResourceManagement/SingletonManager.h"
 
@@ -39,6 +40,7 @@ class FRAMEWORK_EXPORT CTKManager : public QObject, public SingletonManager<CTKM
 {
     Q_OBJECT
     friend class SingletonManager<CTKManager>;
+    friend class CtkManagerDescriptorPolicyContextTest;
 
 public:
     /**
@@ -129,6 +131,9 @@ public:
      * @note Product startup mainline must not use this API as a truth source.
      */
     void loadPluginPolicy(const QString& configPath);
+    void setDescriptorPolicyContext(
+        const PlatformRuntimeConfig& runtimeConfig,
+        const QVector<PlatformPluginDescriptor>& descriptors);
     
     /**
      * @brief 检查CTK框架是否可用
@@ -313,7 +318,6 @@ private:
     QStringList manifestDependenciesForPlugin(const QString& pluginName) const;
     QString locateManifestForPlugin(const QString& pluginName) const;
     QStringList parseManifestDependencies(const QString& manifestPath) const;
-    LoadPolicy policyForPlugin(const QString& pluginName);
     bool applyPolicyForPlugin(const QString& pluginName, bool allowStart, bool forceStart = false);
 #endif
     
@@ -322,7 +326,9 @@ private:
     bool m_safeMode;
     QStringList m_loadedPlugins;
     QStringList m_pluginLoadOrder;
-    QString m_pluginPolicyPath;
+    bool m_descriptorPolicyContextInitialized = false;
+    PlatformRuntimeConfig m_descriptorPolicyRuntimeConfig;
+    QVector<PlatformPluginDescriptor> m_descriptorPolicyDescriptors;
     
     void logMessage(const QString& message);
     QString getPluginStateString(int state) const;

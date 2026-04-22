@@ -327,6 +327,29 @@ set_tests_properties(platform_on_demand_activation_plan_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_on_demand_activation_plan_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
+add_executable(platform_ctk_policy_bridge_test
+    PlatformCtkPolicyBridgeTest.cpp
+)
+
+target_include_directories(platform_ctk_policy_bridge_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_ctk_policy_bridge_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_ctk_policy_bridge_test
+    COMMAND platform_ctk_policy_bridge_test
+)
+
+set_tests_properties(platform_ctk_policy_bridge_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_ctk_policy_bridge_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
 add_executable(platform_startup_trace_recorder_test
     PlatformStartupTraceRecorderTest.cpp
 )
@@ -755,6 +778,29 @@ target_link_libraries(plugin_legacy_consumer_governance_contract_test PRIVATE
 add_test(
     NAME plugin_legacy_consumer_governance_contract_test
     COMMAND plugin_legacy_consumer_governance_contract_test
+)
+
+add_executable(ctk_manager_descriptor_policy_context_test
+    CtkManagerDescriptorPolicyContextTest.cpp
+)
+
+target_include_directories(ctk_manager_descriptor_policy_context_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(ctk_manager_descriptor_policy_context_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME ctk_manager_descriptor_policy_context_test
+    COMMAND ctk_manager_descriptor_policy_context_test
+)
+
+set_tests_properties(ctk_manager_descriptor_policy_context_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:ctk_manager_descriptor_policy_context_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
 add_executable(platform_ui_bridge_test

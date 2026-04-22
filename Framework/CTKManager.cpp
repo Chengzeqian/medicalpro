@@ -3,6 +3,7 @@
 #include "PluginLoadPolicy.h"
 #include "StartupOrchestrator.h"
 #include "ErrorHandler.h"
+#include "Framework/Platform/Kernel/PlatformCtkPolicyBridge.h"
 
 #ifdef CTK_PLUGIN_FRAMEWORK
 #include <ctkException.h>
@@ -20,6 +21,35 @@
 #include <QSqlError>
 #include <algorithm>
 #include <QScopedValueRollback>
+
+namespace
+{
+QString resolutionStatusToString(PlatformCtkPolicyResolutionStatus status)
+{
+    switch (status) {
+    case PlatformCtkPolicyResolutionStatus::ResolvedFromDescriptor:
+        return QStringLiteral("resolved_from_descriptor");
+    case PlatformCtkPolicyResolutionStatus::DescriptorMissingFallback:
+        return QStringLiteral("descriptor_missing_fallback");
+    }
+
+    return QStringLiteral("unknown");
+}
+
+QString loadBucketToString(PlatformCtkLoadBucket bucket)
+{
+    switch (bucket) {
+    case PlatformCtkLoadBucket::Immediate:
+        return QStringLiteral("immediate");
+    case PlatformCtkLoadBucket::Deferred:
+        return QStringLiteral("deferred");
+    case PlatformCtkLoadBucket::OnDemand:
+        return QStringLiteral("on_demand");
+    }
+
+    return QStringLiteral("unknown");
+}
+}
 
 // 鍗曚緥鐢盨ingletonManager绠＄悊锛屼笉鍐嶉渶瑕侀潤鎬佹垚鍛樺拰鎵嬪姩instance()瀹炵幇
 
@@ -302,6 +332,10 @@ void CTKManager::stopPlugins()
 
 void CTKManager::stopFramework()
 {
+    m_descriptorPolicyContextInitialized = false;
+    m_descriptorPolicyRuntimeConfig = PlatformRuntimeConfig {};
+    m_descriptorPolicyDescriptors.clear();
+
     if (!m_started) {
         return;
     }
@@ -621,14 +655,28 @@ bool CTKManager::startDeferredPlugins(bool stopOnFailure)
 
 void CTKManager::loadPluginPolicy(const QString& configPath)
 {
-    m_pluginPolicyPath = configPath;
     if (configPath.isEmpty()) {
         return;
     }
     LOG_INFO(
         "CTKManager",
-        QString("Loading compatibility-only plugin policy metadata from %1").arg(configPath));
+        QString("Loading compatibility-only plugin policy metadata from: %1").arg(configPath));
     PluginLoadPolicy::instance()->loadConfig(configPath);
+}
+
+void CTKManager::setDescriptorPolicyContext(
+    const PlatformRuntimeConfig& runtimeConfig,
+    const QVector<PlatformPluginDescriptor>& descriptors)
+{
+    m_descriptorPolicyRuntimeConfig = runtimeConfig;
+    m_descriptorPolicyDescriptors = descriptors;
+    m_descriptorPolicyContextInitialized = true;
+    LOG_INFO_F(
+        "CTKManager",
+        "Descriptor policy context updated (runtimeMode=%1, descriptors=%2, corePlugins=%3)",
+        static_cast<int>(runtimeConfig.runtimeMode),
+        descriptors.size(),
+        runtimeConfig.corePluginIds.size());
 }
 
 QStringList CTKManager::getLoadedPlugins() const
@@ -1017,49 +1065,67 @@ QStringList CTKManager::parseManifestDependencies(const QString& manifestPath) c
     return dependencies;
 }
 
-// temporary_internal_compatibility_debt:
-// These helpers still read legacy load-policy metadata to preserve existing
-// deferred/on-demand and safe-mode behavior inside CTKManager.
-// Product startup truth remains descriptor-driven and must not route through this path.
-LoadPolicy CTKManager::policyForPlugin(const QString& pluginName)
-{
-    PluginLoadPolicy* policyMgr = PluginLoadPolicy::instance();
-    if (!m_pluginPolicyPath.isEmpty()) {
-        if (policyMgr->configPath() != m_pluginPolicyPath || !policyMgr->hasValidConfig()) {
-            policyMgr->loadConfig(m_pluginPolicyPath);
-        }
-    }
-
-    if (!policyMgr->hasValidConfig()) {
-        return LoadPolicy::OnDemand;
-    }
-
-    return policyMgr->getLoadPolicy(pluginName);
-}
-
 bool CTKManager::applyPolicyForPlugin(const QString& pluginName, bool allowStart, bool forceStart)
 {
     m_deferredPlugins.remove(pluginName);
     m_onDemandPlugins.remove(pluginName);
 
-    LoadPolicy policy = policyForPlugin(pluginName);
+    PlatformCtkPolicyBridgeResult resolved;
+    QString resolutionStatus = QStringLiteral("descriptor_policy_context_missing");
+    bool shouldLogFallbackWarning = false;
 
-    bool pluginCritical = PluginLoadPolicy::instance()->hasValidConfig() && PluginLoadPolicy::instance()->isCriticalPlugin(pluginName);
-
-    if (m_safeMode && !pluginCritical) {
-        LOG_INFO_F("CTKManager", "Safe mode active, skipping optional plugin: %1", pluginName);
+    if (!m_descriptorPolicyContextInitialized) {
+        resolved.ctkSymbolicName = pluginName.trimmed();
+        resolved.loadBucket = PlatformCtkLoadBucket::OnDemand;
+        resolved.isCritical = false;
+        resolved.diagnosticCode = QStringLiteral("descriptor_policy_context_missing_for_ctk_manager");
         QVariantMap context;
         context.insert(QStringLiteral("plugin"), pluginName);
-        context.insert(QStringLiteral("policy"), static_cast<int>(policy));
+        context.insert(QStringLiteral("diagnostic_code"), resolved.diagnosticCode);
+        context.insert(QStringLiteral("resolution_status"), resolutionStatus);
+        context.insert(QStringLiteral("load_bucket"), loadBucketToString(resolved.loadBucket));
+        StartupOrchestrator::instance()->logDiagnostic(
+            ErrorHandler::ErrorLevel::Warning,
+            QStringLiteral("Descriptor policy context missing for CTKManager runtime classification: %1").arg(pluginName),
+            context);
+    } else {
+        resolved = PlatformCtkPolicyBridge::resolve(
+            m_descriptorPolicyRuntimeConfig,
+            m_descriptorPolicyDescriptors,
+            pluginName);
+        resolutionStatus = resolutionStatusToString(resolved.resolutionStatus);
+        shouldLogFallbackWarning =
+            resolved.resolutionStatus == PlatformCtkPolicyResolutionStatus::DescriptorMissingFallback;
+    }
+
+    if (shouldLogFallbackWarning) {
+        QVariantMap context;
+        context.insert(QStringLiteral("plugin"), pluginName);
+        context.insert(QStringLiteral("diagnostic_code"), resolved.diagnosticCode);
+        context.insert(QStringLiteral("resolution_status"), resolutionStatus);
+        context.insert(QStringLiteral("load_bucket"), loadBucketToString(resolved.loadBucket));
+        StartupOrchestrator::instance()->logDiagnostic(
+            ErrorHandler::ErrorLevel::Warning,
+            QStringLiteral("Descriptor policy bridge fallback applied for CTK plugin: %1").arg(pluginName),
+            context);
+    }
+
+    if (m_safeMode && !resolved.isCritical) {
+        LOG_INFO_F("CTKManager", "Safe mode skipped non-core plugin: %1", pluginName);
+        QVariantMap context;
+        context.insert(QStringLiteral("plugin"), pluginName);
+        context.insert(QStringLiteral("diagnostic_code"), QStringLiteral("safe_mode_skipped_non_core_plugin"));
+        context.insert(QStringLiteral("resolution_status"), resolutionStatus);
+        context.insert(QStringLiteral("load_bucket"), loadBucketToString(resolved.loadBucket));
         StartupOrchestrator::instance()->logDiagnostic(
             ErrorHandler::ErrorLevel::Info,
-            QStringLiteral("瀹夊叏妯″紡宸茶烦杩囧彲閫夋彃浠?%1").arg(pluginName),
+            QStringLiteral("Safe mode skipped non-core plugin: %1").arg(pluginName),
             context);
         return true;
     }
 
-    switch (policy) {
-    case LoadPolicy::Immediate: {
+    switch (resolved.loadBucket) {
+    case PlatformCtkLoadBucket::Immediate: {
         if (!m_startedPluginNames.contains(pluginName)) {
             if (forceStart) {
                 allowStart = true;
@@ -1073,12 +1139,12 @@ bool CTKManager::applyPolicyForPlugin(const QString& pluginName, bool allowStart
         }
         return true;
     }
-    case LoadPolicy::Deferred:
+    case PlatformCtkLoadBucket::Deferred:
         if (!m_startedPluginNames.contains(pluginName)) {
             m_deferredPlugins.insert(pluginName);
         }
         return true;
-    case LoadPolicy::OnDemand:
+    case PlatformCtkLoadBucket::OnDemand:
     default:
         if (!m_startedPluginNames.contains(pluginName)) {
             m_onDemandPlugins.insert(pluginName);
