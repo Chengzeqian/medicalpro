@@ -332,6 +332,10 @@ void CTKManager::stopPlugins()
 
 void CTKManager::stopFramework()
 {
+    m_descriptorPolicyContextInitialized = false;
+    m_descriptorPolicyRuntimeConfig = PlatformRuntimeConfig {};
+    m_descriptorPolicyDescriptors.clear();
+
     if (!m_started) {
         return;
     }

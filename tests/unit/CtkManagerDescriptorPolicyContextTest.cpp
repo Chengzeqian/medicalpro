@@ -13,6 +13,7 @@ class CtkManagerDescriptorPolicyContextTest : public QObject
 private slots:
     void apply_policy_without_descriptor_context_emits_contract_break_diagnostic();
     void set_descriptor_policy_context_marks_initialized();
+    void stop_framework_clears_descriptor_policy_context_and_restores_missing_context_path();
 };
 
 void CtkManagerDescriptorPolicyContextTest::apply_policy_without_descriptor_context_emits_contract_break_diagnostic()
@@ -65,6 +66,51 @@ void CtkManagerDescriptorPolicyContextTest::set_descriptor_policy_context_marks_
     ctkManager->setDescriptorPolicyContext(runtimeConfig, {descriptor});
 
     QVERIFY(ctkManager->m_descriptorPolicyContextInitialized);
+#endif
+}
+
+void CtkManagerDescriptorPolicyContextTest::stop_framework_clears_descriptor_policy_context_and_restores_missing_context_path()
+{
+#ifndef CTK_PLUGIN_FRAMEWORK
+    QSKIP("CTK plugin framework not enabled");
+#else
+    auto* ctkManager = CTKManager::instance();
+    auto* orchestrator = StartupOrchestrator::instance();
+    ctkManager->setSafeMode(false);
+
+    PlatformRuntimeConfig runtimeConfig;
+    runtimeConfig.runtimeMode = PlatformRuntimeMode::FacadeMode;
+    runtimeConfig.corePluginIds = QStringList {QStringLiteral("org.medicalpro.user_management")};
+
+    PlatformPluginDescriptor descriptor;
+    descriptor.id = QStringLiteral("org.medicalpro.user_management");
+    descriptor.runtime.ctkSymbolicName = QStringLiteral("UserManagement");
+    descriptor.runtime.startupPolicy = PlatformStartupPolicy::Eager;
+
+    ctkManager->setDescriptorPolicyContext(runtimeConfig, {descriptor});
+    QVERIFY(ctkManager->m_descriptorPolicyContextInitialized);
+
+    ctkManager->stopFramework();
+    QVERIFY(!ctkManager->m_descriptorPolicyContextInitialized);
+
+    const QString pluginName = QStringLiteral("UserManagement");
+    ctkManager->m_startedPluginNames.remove(pluginName);
+    ctkManager->m_deferredPlugins.remove(pluginName);
+    ctkManager->m_onDemandPlugins.remove(pluginName);
+
+    QSignalSpy reportSpy(orchestrator, &StartupOrchestrator::diagnosticReportUpdated);
+
+    QVERIFY(ctkManager->applyPolicyForPlugin(pluginName, false, false));
+    QVERIFY(ctkManager->m_onDemandPlugins.contains(pluginName));
+    QVERIFY2(!ctkManager->m_deferredPlugins.contains(pluginName),
+        "stale descriptor context appears to be reused: plugin was classified as deferred");
+
+    QVERIFY2(reportSpy.count() > 0, "applyPolicyForPlugin() did not emit diagnosticReportUpdated after stopFramework()");
+    const QString report = reportSpy.takeLast().value(0).toString();
+    QVERIFY2(report.contains(QStringLiteral("diagnostic_code=descriptor_policy_context_missing_for_ctk_manager")),
+        "After stopFramework(), missing descriptor policy context did not emit the expected diagnostic code");
+    QVERIFY2(report.contains(QStringLiteral("resolution_status=descriptor_policy_context_missing")),
+        "After stopFramework(), missing descriptor policy context did not emit the expected resolution status");
 #endif
 }
 
