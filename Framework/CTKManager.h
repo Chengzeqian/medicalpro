@@ -40,6 +40,7 @@ class FRAMEWORK_EXPORT CTKManager : public QObject, public SingletonManager<CTKM
 {
     Q_OBJECT
     friend class SingletonManager<CTKManager>;
+    friend class CtkManagerDescriptorPolicyContextTest;
 
 public:
     /**
@@ -325,6 +326,7 @@ private:
     bool m_safeMode;
     QStringList m_loadedPlugins;
     QStringList m_pluginLoadOrder;
+    bool m_descriptorPolicyContextInitialized = false;
     PlatformRuntimeConfig m_descriptorPolicyRuntimeConfig;
     QVector<PlatformPluginDescriptor> m_descriptorPolicyDescriptors;
     

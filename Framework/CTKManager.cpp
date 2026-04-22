@@ -666,6 +666,7 @@ void CTKManager::setDescriptorPolicyContext(
 {
     m_descriptorPolicyRuntimeConfig = runtimeConfig;
     m_descriptorPolicyDescriptors = descriptors;
+    m_descriptorPolicyContextInitialized = true;
     LOG_INFO_F(
         "CTKManager",
         "Descriptor policy context updated (runtimeMode=%1, descriptors=%2, corePlugins=%3)",
@@ -1065,16 +1066,39 @@ bool CTKManager::applyPolicyForPlugin(const QString& pluginName, bool allowStart
     m_deferredPlugins.remove(pluginName);
     m_onDemandPlugins.remove(pluginName);
 
-    const auto resolved = PlatformCtkPolicyBridge::resolve(
-        m_descriptorPolicyRuntimeConfig,
-        m_descriptorPolicyDescriptors,
-        pluginName);
+    PlatformCtkPolicyBridgeResult resolved;
+    QString resolutionStatus = QStringLiteral("descriptor_policy_context_missing");
+    bool shouldLogFallbackWarning = false;
 
-    if (resolved.resolutionStatus == PlatformCtkPolicyResolutionStatus::DescriptorMissingFallback) {
+    if (!m_descriptorPolicyContextInitialized) {
+        resolved.ctkSymbolicName = pluginName.trimmed();
+        resolved.loadBucket = PlatformCtkLoadBucket::OnDemand;
+        resolved.isCritical = false;
+        resolved.diagnosticCode = QStringLiteral("descriptor_policy_context_missing_for_ctk_manager");
         QVariantMap context;
         context.insert(QStringLiteral("plugin"), pluginName);
         context.insert(QStringLiteral("diagnostic_code"), resolved.diagnosticCode);
-        context.insert(QStringLiteral("resolution_status"), resolutionStatusToString(resolved.resolutionStatus));
+        context.insert(QStringLiteral("resolution_status"), resolutionStatus);
+        context.insert(QStringLiteral("load_bucket"), loadBucketToString(resolved.loadBucket));
+        StartupOrchestrator::instance()->logDiagnostic(
+            ErrorHandler::ErrorLevel::Warning,
+            QStringLiteral("Descriptor policy context missing for CTKManager runtime classification: %1").arg(pluginName),
+            context);
+    } else {
+        resolved = PlatformCtkPolicyBridge::resolve(
+            m_descriptorPolicyRuntimeConfig,
+            m_descriptorPolicyDescriptors,
+            pluginName);
+        resolutionStatus = resolutionStatusToString(resolved.resolutionStatus);
+        shouldLogFallbackWarning =
+            resolved.resolutionStatus == PlatformCtkPolicyResolutionStatus::DescriptorMissingFallback;
+    }
+
+    if (shouldLogFallbackWarning) {
+        QVariantMap context;
+        context.insert(QStringLiteral("plugin"), pluginName);
+        context.insert(QStringLiteral("diagnostic_code"), resolved.diagnosticCode);
+        context.insert(QStringLiteral("resolution_status"), resolutionStatus);
         context.insert(QStringLiteral("load_bucket"), loadBucketToString(resolved.loadBucket));
         StartupOrchestrator::instance()->logDiagnostic(
             ErrorHandler::ErrorLevel::Warning,
@@ -1087,7 +1111,7 @@ bool CTKManager::applyPolicyForPlugin(const QString& pluginName, bool allowStart
         QVariantMap context;
         context.insert(QStringLiteral("plugin"), pluginName);
         context.insert(QStringLiteral("diagnostic_code"), QStringLiteral("safe_mode_skipped_non_core_plugin"));
-        context.insert(QStringLiteral("resolution_status"), resolutionStatusToString(resolved.resolutionStatus));
+        context.insert(QStringLiteral("resolution_status"), resolutionStatus);
         context.insert(QStringLiteral("load_bucket"), loadBucketToString(resolved.loadBucket));
         StartupOrchestrator::instance()->logDiagnostic(
             ErrorHandler::ErrorLevel::Info,

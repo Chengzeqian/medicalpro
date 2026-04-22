@@ -780,6 +780,29 @@ add_test(
     COMMAND plugin_legacy_consumer_governance_contract_test
 )
 
+add_executable(ctk_manager_descriptor_policy_context_test
+    CtkManagerDescriptorPolicyContextTest.cpp
+)
+
+target_include_directories(ctk_manager_descriptor_policy_context_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(ctk_manager_descriptor_policy_context_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME ctk_manager_descriptor_policy_context_test
+    COMMAND ctk_manager_descriptor_policy_context_test
+)
+
+set_tests_properties(ctk_manager_descriptor_policy_context_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:ctk_manager_descriptor_policy_context_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
 add_executable(platform_ui_bridge_test
     PlatformUiBridgeTest.cpp
 )

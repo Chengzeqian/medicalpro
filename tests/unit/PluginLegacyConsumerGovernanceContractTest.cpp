@@ -67,6 +67,12 @@ void PluginLegacyConsumerGovernanceContractTest::ctk_manager_uses_descriptor_pol
         "CTKManager.h still exposes the internal policyForPlugin helper");
     QVERIFY2(ctkManagerHeader.contains(QStringLiteral("setDescriptorPolicyContext(")),
         "CTKManager.h does not expose setDescriptorPolicyContext");
+    QVERIFY2(ctkManagerHeader.contains(QStringLiteral("m_descriptorPolicyContextInitialized")),
+        "CTKManager.h does not persist explicit descriptor policy context initialization state");
+    QVERIFY2(ctkManagerSource.contains(QStringLiteral("descriptor_policy_context_missing_for_ctk_manager")),
+        "CTKManager.cpp does not emit descriptor_policy_context_missing_for_ctk_manager when context is absent");
+    QVERIFY2(ctkManagerSource.contains(QStringLiteral("descriptor_policy_context_missing")),
+        "CTKManager.cpp does not use dedicated resolution_status for missing descriptor policy context");
 }
 
 void PluginLegacyConsumerGovernanceContractTest::main_cpp_hands_descriptor_policy_context_into_ctk_manager()
