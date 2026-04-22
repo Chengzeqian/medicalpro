@@ -10,7 +10,8 @@ class PluginLegacyConsumerGovernanceContractTest : public QObject
 private slots:
     void main_cpp_remains_forbidden_product_mainline_consumer();
     void legacy_consumer_inventory_classifies_current_consumers();
-    void ctk_manager_internal_policy_helpers_are_marked_as_temporary_internal_compatibility_debt();
+    void ctk_manager_uses_descriptor_policy_bridge_for_runtime_classification();
+    void main_cpp_hands_descriptor_policy_context_into_ctk_manager();
     void runtime_acceptance_wiring_separates_product_and_compatibility_artifacts();
 
 private:
@@ -51,14 +52,29 @@ void PluginLegacyConsumerGovernanceContractTest::legacy_consumer_inventory_class
         "legacy consumer inventory does not classify CTKManager::applyPolicyForPlugin() as temporary_internal_compatibility_debt");
 }
 
-void PluginLegacyConsumerGovernanceContractTest::ctk_manager_internal_policy_helpers_are_marked_as_temporary_internal_compatibility_debt()
+void PluginLegacyConsumerGovernanceContractTest::ctk_manager_uses_descriptor_policy_bridge_for_runtime_classification()
 {
-    const QString source = readSource(QStringLiteral("Framework/CTKManager.cpp"));
+    const QString ctkManagerSource = readSource(QStringLiteral("Framework/CTKManager.cpp"));
+    const QString ctkManagerHeader = readSource(QStringLiteral("Framework/CTKManager.h"));
 
-    QVERIFY2(source.contains(QStringLiteral("temporary_internal_compatibility_debt")),
-        "CTKManager.cpp does not mark legacy policy internals as temporary_internal_compatibility_debt");
-    QVERIFY2(source.contains(QStringLiteral("Product startup truth remains descriptor-driven")),
-        "CTKManager.cpp does not explain that descriptor-driven startup remains the product truth source");
+    QVERIFY2(ctkManagerSource.contains(QStringLiteral("PlatformCtkPolicyBridge::resolve")),
+        "CTKManager.cpp does not resolve runtime classification via PlatformCtkPolicyBridge::resolve");
+    QVERIFY2(!ctkManagerSource.contains(QStringLiteral("PluginLoadPolicy::instance()->isCriticalPlugin(")),
+        "CTKManager.cpp still reads runtime criticality from PluginLoadPolicy::isCriticalPlugin");
+    QVERIFY2(!ctkManagerSource.contains(QStringLiteral("getLoadPolicy(")),
+        "CTKManager.cpp still reads runtime load bucket from PluginLoadPolicy::getLoadPolicy");
+    QVERIFY2(!ctkManagerHeader.contains(QStringLiteral("policyForPlugin(")),
+        "CTKManager.h still exposes the internal policyForPlugin helper");
+    QVERIFY2(ctkManagerHeader.contains(QStringLiteral("setDescriptorPolicyContext(")),
+        "CTKManager.h does not expose setDescriptorPolicyContext");
+}
+
+void PluginLegacyConsumerGovernanceContractTest::main_cpp_hands_descriptor_policy_context_into_ctk_manager()
+{
+    const QString mainSource = readSource(QStringLiteral("main.cpp"));
+
+    QVERIFY2(mainSource.contains(QStringLiteral("setDescriptorPolicyContext(runtimeConfig, descriptors)")),
+        "main.cpp does not hand descriptor policy context into CTKManager");
 }
 
 void PluginLegacyConsumerGovernanceContractTest::runtime_acceptance_wiring_separates_product_and_compatibility_artifacts()

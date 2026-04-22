@@ -500,6 +500,8 @@ int main(int argc, char* argv[])
                     .toStdString());
         }
 
+        ctkManager->setDescriptorPolicyContext(runtimeConfig, descriptors);
+
         QHash<QString, QString> platformPluginIdToCtkSymbolicName;
         platformPluginIdToCtkSymbolicName.reserve(descriptors.size());
         for (const auto& descriptor : descriptors) {
