@@ -22,7 +22,7 @@
 - Default product runtime artifact acceptance no longer requires `config/plugin_load_policy.json`.
 - Compatibility runtime artifact acceptance is now owned by `plugin_legacy_compatibility_runtime_contract_test`.
 - The remaining legacy-policy consumers are now inventoried in `docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md`.
-- `CTKManager::policyForPlugin()` has been retired from runtime classification ownership, and `applyPolicyForPlugin()` remains only as execution wiring over descriptor-bridge results.
+- At that point the remaining `CTKManager::policyForPlugin()` and `applyPolicyForPlugin()` legacy-policy consumers were still tracked in governance inventory as internal compatibility debt rather than product-mainline truth.
 - Executed command (build):
   - `cmake --build build_x64 --config Release --target medicalpro plugin_legacy_consumer_governance_contract_test plugin_truth_source_governance_contract_test`
 - Executed command (ctest):
