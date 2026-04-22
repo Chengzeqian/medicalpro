@@ -10,8 +10,10 @@ class PluginLegacyConsumerGovernanceContractTest : public QObject
 private slots:
     void main_cpp_remains_forbidden_product_mainline_consumer();
     void legacy_consumer_inventory_classifies_current_consumers();
+    void legacy_consumer_inventory_retires_internal_policy_debt();
     void ctk_manager_uses_descriptor_policy_bridge_for_runtime_classification();
     void main_cpp_hands_descriptor_policy_context_into_ctk_manager();
+    void governance_docs_record_descriptor_policy_bridge_ownership();
     void runtime_acceptance_wiring_separates_product_and_compatibility_artifacts();
 
 private:
@@ -46,10 +48,22 @@ void PluginLegacyConsumerGovernanceContractTest::legacy_consumer_inventory_class
         "legacy consumer inventory does not classify main.cpp as forbidden_product_mainline");
     QVERIFY2(inventory.contains(QStringLiteral("`config/plugin_load_policy.json` | `allowed_compatibility_surface`")),
         "legacy consumer inventory does not classify plugin_load_policy.json as allowed_compatibility_surface");
-    QVERIFY2(inventory.contains(QStringLiteral("`CTKManager::policyForPlugin()` | `temporary_internal_compatibility_debt`")),
-        "legacy consumer inventory does not classify CTKManager::policyForPlugin() as temporary_internal_compatibility_debt");
-    QVERIFY2(inventory.contains(QStringLiteral("`CTKManager::applyPolicyForPlugin()` | `temporary_internal_compatibility_debt`")),
-        "legacy consumer inventory does not classify CTKManager::applyPolicyForPlugin() as temporary_internal_compatibility_debt");
+    QVERIFY2(inventory.contains(QStringLiteral("`CTKManager::loadPluginPolicy()` | `allowed_compatibility_surface`")),
+        "legacy consumer inventory does not classify CTKManager::loadPluginPolicy() as allowed_compatibility_surface");
+    QVERIFY2(inventory.contains(QStringLiteral("`CTKManager::installPluginsFromDirectory()` | `allowed_compatibility_surface`")),
+        "legacy consumer inventory does not classify CTKManager::installPluginsFromDirectory() as allowed_compatibility_surface");
+}
+
+void PluginLegacyConsumerGovernanceContractTest::legacy_consumer_inventory_retires_internal_policy_debt()
+{
+    const QString inventory = readSource(QStringLiteral("docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md"));
+
+    QVERIFY2(!inventory.contains(QStringLiteral("`CTKManager::policyForPlugin()` | `temporary_internal_compatibility_debt`")),
+        "legacy consumer inventory still classifies CTKManager::policyForPlugin() as temporary_internal_compatibility_debt");
+    QVERIFY2(!inventory.contains(QStringLiteral("`CTKManager::applyPolicyForPlugin()` | `temporary_internal_compatibility_debt`")),
+        "legacy consumer inventory still classifies CTKManager::applyPolicyForPlugin() as temporary_internal_compatibility_debt");
+    QVERIFY2(inventory.contains(QStringLiteral("PlatformCtkPolicyBridge")),
+        "legacy consumer inventory does not record PlatformCtkPolicyBridge ownership for runtime classification");
 }
 
 void PluginLegacyConsumerGovernanceContractTest::ctk_manager_uses_descriptor_policy_bridge_for_runtime_classification()
@@ -81,6 +95,25 @@ void PluginLegacyConsumerGovernanceContractTest::main_cpp_hands_descriptor_polic
 
     QVERIFY2(mainSource.contains(QStringLiteral("setDescriptorPolicyContext(runtimeConfig, descriptors)")),
         "main.cpp does not hand descriptor policy context into CTKManager");
+}
+
+void PluginLegacyConsumerGovernanceContractTest::governance_docs_record_descriptor_policy_bridge_ownership()
+{
+    const QString governanceMatrix =
+        readSource(QStringLiteral("docs/superpowers/tracking/platform-plugin-governance-matrix.md"));
+    const QString decisionLog =
+        readSource(QStringLiteral("docs/superpowers/tracking/platform-migration-decision-log.md"));
+    const QString currentStatus = readSource(QStringLiteral("docs/current_status_and_project_overview.md"));
+
+    QVERIFY2(governanceMatrix.contains(QStringLiteral("PlatformCtkPolicyBridge")),
+        "governance matrix does not record PlatformCtkPolicyBridge ownership");
+    QVERIFY2(governanceMatrix.contains(QStringLiteral("setDescriptorPolicyContext()")),
+        "governance matrix does not record explicit setDescriptorPolicyContext() handoff");
+    QVERIFY2(decisionLog.contains(QStringLiteral("safe mode criticality follows platform_runtime.json.core_plugin_ids")),
+        "migration decision log does not record safe mode criticality truth on core_plugin_ids");
+    QVERIFY2(currentStatus.contains(
+                 QStringLiteral("CTKManager runtime bucket classification now resolves through PlatformCtkPolicyBridge")),
+        "current status does not record CTK descriptor policy bridge runtime classification acceptance");
 }
 
 void PluginLegacyConsumerGovernanceContractTest::runtime_acceptance_wiring_separates_product_and_compatibility_artifacts()
