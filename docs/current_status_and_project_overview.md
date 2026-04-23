@@ -1,5 +1,22 @@
 ## Platform Kernel Governance
 
+### 2026-04-23 Plugin Load Policy Compatibility Shell Deletion Acceptance
+
+- `PluginLoadPolicy`, `config/plugin_load_policy.json`, and `config/plugin_load_policy_compatibility.md` are deleted from the repository and runtime layout.
+- `CTKManager::loadPluginPolicy()`, `CTKManager::installPluginsFromDirectory()`, `setPluginLoadOrder()`, and `getRecommendedLoadOrder()` are removed.
+- Compatibility runtime and residue contracts are removed; descriptor/runtime truth contracts remain the acceptance owners.
+- Compatibility shell deletion is complete, while CTK runtime execution remains intact.
+- Executed command (configure):
+  - `cmake -S . -B build_x64 -DENABLE_PLUGIN_REGISTRATION_CORE=OFF -DBUILD_TESTING=ON`
+- Executed command (build):
+  - `cmake --build build_x64 --config Release --target medicalpro plugin_truth_source_governance_contract_test plugin_legacy_consumer_governance_contract_test`
+- Executed command (ctest):
+  - `ctest --test-dir build_x64 -C Release -R "plugin_truth_source_governance_contract_test|plugin_legacy_consumer_governance_contract_test|plugin_truth_source_runtime_contract_test|platform_descriptor_runtime_layout_test|runtime_artifact_layout_test" --output-on-failure`
+- Expected outcomes alignment and actual results:
+  - Build target chain: PASS.
+  - Governance contract suite: PASS.
+  - Runtime truth-source suite: PASS.
+
 ### 2026-04-23 Plugin Load Policy Compatibility Residue Minimization Acceptance
 
 - `PluginLoadPolicy` is now a minimal compatibility carrier and no longer exposes query-style policy APIs.

@@ -108,6 +108,7 @@ void PluginLegacyConsumerGovernanceContractTest::governance_docs_record_descript
         readSource(QStringLiteral("docs/superpowers/tracking/platform-plugin-governance-matrix.md"));
     const QString decisionLog =
         readSource(QStringLiteral("docs/superpowers/tracking/platform-migration-decision-log.md"));
+    const QString currentStatus = readSource(QStringLiteral("docs/current_status_and_project_overview.md"));
 
     QVERIFY2(governanceMatrix.contains(QStringLiteral("PlatformCtkPolicyBridge")),
         "governance matrix does not record PlatformCtkPolicyBridge ownership");
@@ -119,8 +120,10 @@ void PluginLegacyConsumerGovernanceContractTest::governance_docs_record_descript
         "decision log does not record the shell deletion decision");
     QVERIFY2(decisionLog.contains(QStringLiteral("delete adjacent dead legacy helpers")),
         "decision log does not record adjacent helper deletion");
-    QVERIFY2(!decisionLog.contains(QStringLiteral("keep `plugin_load_policy.json` as a minimal compatibility projection")),
-        "decision log still records plugin_load_policy.json retention");
+    QVERIFY2(currentStatus.contains(QStringLiteral("Plugin Load Policy Compatibility Shell Deletion Acceptance")),
+        "current status does not record shell deletion acceptance");
+    QVERIFY2(currentStatus.contains(QStringLiteral("compatibility shell deletion is complete"), Qt::CaseInsensitive),
+        "current status does not describe completed compatibility shell deletion");
 }
 
 void PluginLegacyConsumerGovernanceContractTest::runtime_acceptance_wiring_separates_product_and_compatibility_artifacts()
