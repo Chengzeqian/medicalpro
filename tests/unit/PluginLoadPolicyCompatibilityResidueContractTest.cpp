@@ -1,6 +1,9 @@
 #include <QtTest/QtTest>
 
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QString>
 
 class PluginLoadPolicyCompatibilityResidueContractTest : public QObject
@@ -9,9 +12,12 @@ class PluginLoadPolicyCompatibilityResidueContractTest : public QObject
 
 private slots:
     void plugin_load_policy_surface_is_minimal();
+    void plugin_load_policy_projection_contains_only_descriptor_governed_plugins();
+    void compatibility_note_describes_projection_boundary();
 
 private:
     QString readSource(const QString& relativePath) const;
+    QJsonDocument readJson(const QString& relativePath) const;
 };
 
 QString PluginLoadPolicyCompatibilityResidueContractTest::readSource(const QString& relativePath) const
@@ -22,6 +28,11 @@ QString PluginLoadPolicyCompatibilityResidueContractTest::readSource(const QStri
         return {};
     }
     return QString::fromUtf8(sourceFile.readAll());
+}
+
+QJsonDocument PluginLoadPolicyCompatibilityResidueContractTest::readJson(const QString& relativePath) const
+{
+    return QJsonDocument::fromJson(readSource(relativePath).toUtf8());
 }
 
 void PluginLoadPolicyCompatibilityResidueContractTest::plugin_load_policy_surface_is_minimal()
@@ -53,6 +64,53 @@ void PluginLoadPolicyCompatibilityResidueContractTest::plugin_load_policy_surfac
         "PluginLoadPolicy.cpp still implements isCriticalPlugin()");
     QVERIFY2(source.contains(QStringLiteral("compatibility-only")),
         "PluginLoadPolicy.cpp no longer logs compatibility-only language");
+}
+
+void PluginLoadPolicyCompatibilityResidueContractTest::plugin_load_policy_projection_contains_only_descriptor_governed_plugins()
+{
+    const QJsonDocument document = readJson(QStringLiteral("config/plugin_load_policy.json"));
+    const QJsonObject root = document.object();
+    const QJsonArray plugins = root.value(QStringLiteral("plugins")).toArray();
+    QStringList actualNames;
+    actualNames.reserve(plugins.size());
+
+    for (const QJsonValue& entry : plugins) {
+        actualNames.append(entry.toObject().value(QStringLiteral("name")).toString());
+    }
+
+    const QStringList expectedNames{
+        QStringLiteral("UserManagement"),
+        QStringLiteral("DicomViewer"),
+        QStringLiteral("FourViewDisplay"),
+        QStringLiteral("RegistrationCore"),
+        QStringLiteral("OpticalTracking")
+    };
+
+    QCOMPARE(actualNames, expectedNames);
+    QCOMPARE(root.value(QStringLiteral("projection_scope")).toString(),
+        QStringLiteral("descriptor_governed_ctk_plugin_set"));
+    QVERIFY2(!actualNames.contains(QStringLiteral("BoneSegmentation")),
+        "plugin_load_policy.json still contains BoneSegmentation");
+    QVERIFY2(!actualNames.contains(QStringLiteral("InstrumentManagement")),
+        "plugin_load_policy.json still contains InstrumentManagement");
+    QVERIFY2(!actualNames.contains(QStringLiteral("Registration2D3D")),
+        "plugin_load_policy.json still contains Registration2D3D");
+    QVERIFY2(!actualNames.contains(QStringLiteral("PointRegistration")),
+        "plugin_load_policy.json still contains PointRegistration");
+    QVERIFY2(!actualNames.contains(QStringLiteral("OpticalRegistration")),
+        "plugin_load_policy.json still contains OpticalRegistration");
+}
+
+void PluginLoadPolicyCompatibilityResidueContractTest::compatibility_note_describes_projection_boundary()
+{
+    const QString note = readSource(QStringLiteral("config/plugin_load_policy_compatibility.md"));
+
+    QVERIFY2(note.contains(QStringLiteral("compatibility-only runtime projection")),
+        "plugin_load_policy_compatibility.md does not describe the file as a projection");
+    QVERIFY2(note.contains(QStringLiteral("descriptor-governed CTK plugin set")),
+        "plugin_load_policy_compatibility.md does not describe the reduced projection scope");
+    QVERIFY2(note.contains(QStringLiteral("must not define the product mainline")),
+        "plugin_load_policy_compatibility.md lost the product-mainline boundary");
 }
 
 QTEST_APPLESS_MAIN(PluginLoadPolicyCompatibilityResidueContractTest)

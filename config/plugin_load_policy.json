@@ -1,72 +1,21 @@
 {
+  "projection_source": "config/platform_runtime.json + plugins/descriptors/*.json",
+  "projection_scope": "descriptor_governed_ctk_plugin_set",
   "plugins": [
     {
-      "name": "UserManagement",
-      "loadPolicy": "immediate",
-      "isCritical": true,
-      "dependencies": []
+      "name": "UserManagement"
     },
     {
-      "name": "BoneSegmentation",
-      "loadPolicy": "onDemand",
-      "isCritical": false,
-      "dependencies": [],
-      "description": "AI-powered bone segmentation using TotalSegmentator"
+      "name": "DicomViewer"
     },
     {
-      "name": "DicomViewer",
-      "loadPolicy": "deferred",
-      "isCritical": false,
-      "dependencies": []
+      "name": "FourViewDisplay"
     },
     {
-      "name": "InstrumentManagement",
-      "loadPolicy": "onDemand",
-      "isCritical": false,
-      "dependencies": []
+      "name": "RegistrationCore"
     },
     {
-      "name": "FourViewDisplay",
-      "loadPolicy": "deferred",
-      "isCritical": false,
-      "dependencies": []
-    },
-    {
-      "name": "OpticalTracking",
-      "loadPolicy": "onDemand",
-      "isCritical": false,
-      "dependencies": []
-    },
-    {
-      "name": "Registration2D3D",
-      "loadPolicy": "onDemand",
-      "isCritical": false,
-      "dependencies": [
-        "DicomViewer",
-        "FourViewDisplay"
-      ]
-    },
-    {
-      "name": "PointRegistration",
-      "loadPolicy": "deferred",
-      "isCritical": false,
-      "dependencies": [],
-      "description": "Point-based registration service for CT-physical space alignment"
-    },
-    {
-      "name": "OpticalRegistration",
-      "loadPolicy": "onDemand",
-      "isCritical": false,
-      "dependencies": [
-        "OpticalTracking"
-      ]
-    },
-    {
-      "name": "RegistrationCore",
-      "loadPolicy": "deferred",
-      "isCritical": false,
-      "dependencies": [],
-      "description": "Core registration algorithms including Landmark and ICP registration"
+      "name": "OpticalTracking"
     }
   ]
 }

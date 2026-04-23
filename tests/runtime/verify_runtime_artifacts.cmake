@@ -130,9 +130,47 @@ if(verify_plugin_legacy_compatibility_runtime_contract)
         message(FATAL_ERROR "plugin_legacy_compatibility_runtime_layout_mismatch:\n - ${missing_report}")
     endif()
 
+    file(READ "${plugin_policy_file}" plugin_policy_text)
+    string(FIND "${plugin_policy_text}" "\"projection_scope\": \"descriptor_governed_ctk_plugin_set\"" projection_scope_index)
+    if(projection_scope_index EQUAL -1)
+        message(FATAL_ERROR "plugin_policy_projection_scope_mismatch: ${plugin_policy_file}")
+    endif()
+
+    set(expected_projection_plugins
+        UserManagement
+        DicomViewer
+        FourViewDisplay
+        RegistrationCore
+        OpticalTracking
+    )
+
+    foreach(expected_name IN LISTS expected_projection_plugins)
+        if(NOT plugin_policy_text MATCHES "\"name\"[ \t\r\n]*:[ \t\r\n]*\"${expected_name}\"")
+            message(FATAL_ERROR "plugin_policy_missing_projection_entry: ${expected_name}")
+        endif()
+    endforeach()
+
+    set(forbidden_projection_plugins
+        BoneSegmentation
+        InstrumentManagement
+        Registration2D3D
+        PointRegistration
+        OpticalRegistration
+    )
+
+    foreach(forbidden_name IN LISTS forbidden_projection_plugins)
+        if(plugin_policy_text MATCHES "\"name\"[ \t\r\n]*:[ \t\r\n]*\"${forbidden_name}\"")
+            message(FATAL_ERROR "plugin_policy_contains_legacy_entry: ${forbidden_name}")
+        endif()
+    endforeach()
+
     file(READ "${plugin_policy_note_file}" plugin_policy_note_text)
-    if(NOT plugin_policy_note_text MATCHES "compatibility-only")
-        message(FATAL_ERROR "plugin_policy_note_missing_compatibility_only: ${plugin_policy_note_file}")
+    if(NOT plugin_policy_note_text MATCHES "compatibility-only runtime projection")
+        message(FATAL_ERROR "plugin_policy_note_missing_projection_boundary: ${plugin_policy_note_file}")
+    endif()
+
+    if(NOT plugin_policy_note_text MATCHES "descriptor-governed CTK plugin set")
+        message(FATAL_ERROR "plugin_policy_note_missing_projection_scope: ${plugin_policy_note_file}")
     endif()
 
     if(NOT plugin_policy_note_text MATCHES "must not define the product mainline")
