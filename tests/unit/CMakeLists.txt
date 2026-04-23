@@ -780,6 +780,28 @@ add_test(
     COMMAND plugin_legacy_consumer_governance_contract_test
 )
 
+add_executable(plugin_load_policy_compatibility_residue_contract_test
+    PluginLoadPolicyCompatibilityResidueContractTest.cpp
+)
+
+target_include_directories(plugin_load_policy_compatibility_residue_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(plugin_load_policy_compatibility_residue_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(plugin_load_policy_compatibility_residue_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME plugin_load_policy_compatibility_residue_contract_test
+    COMMAND plugin_load_policy_compatibility_residue_contract_test
+)
+
 add_executable(ctk_manager_descriptor_policy_context_test
     CtkManagerDescriptorPolicyContextTest.cpp
 )
