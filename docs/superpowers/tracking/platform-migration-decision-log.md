@@ -2,17 +2,17 @@
 
 ## 2026-04-23
 
-- Decision: reduce `PluginLoadPolicy` to a minimal compatibility metadata carrier.
-- Rationale: current product code no longer reads legacy policy facts for runtime behavior, so the remaining type must stop looking like a strategy query surface.
-- Impact: dead query APIs are removed, `CTKManager::loadPluginPolicy()` remains as the final compatibility entry, and compatibility metadata no longer implies runtime authority.
+- Decision: delete the final `plugin_load_policy` compatibility shell.
+- Rationale: repository-local scans show that the remaining shell is kept alive only by deployment, contracts, and documentation rather than live runtime consumers.
+- Impact: `PluginLoadPolicy`, `plugin_load_policy.json`, `plugin_load_policy_compatibility.md`, and `CTKManager::loadPluginPolicy()` are removed from the repository.
 
-- Decision: keep `plugin_load_policy.json` as a minimal compatibility projection limited to descriptor-governed CTK plugins.
-- Rationale: the file must stop presenting historical non-governed plugin entries as if it were still a general plugin policy table.
-- Impact: the projection now contains only `UserManagement`, `DicomViewer`, `FourViewDisplay`, `RegistrationCore`, and `OpticalTracking`, and it is documented as sourced from runtime config plus descriptors.
+- Decision: delete adjacent dead legacy helpers from the same compatibility-era loading path.
+- Rationale: keeping directory-scan and manual load-order helpers would preserve a half-dead legacy loading side path after shell deletion.
+- Impact: `CTKManager::installPluginsFromDirectory()`, `CTKManager::setPluginLoadOrder()`, and `CTKManager::getRecommendedLoadOrder()` are removed alongside the shell.
 
-- Decision: explicitly deploy compatibility config artifacts rather than relying on whole-directory config copying.
-- Rationale: compatibility artifact survival must be intentional, test-owned, and discoverable in the build graph.
-- Impact: `plugin_load_policy.json` and `plugin_load_policy_compatibility.md` are now named compatibility artifacts in `CMakeLists.txt`.
+- Decision: remove compatibility runtime acceptance for the deleted shell.
+- Rationale: repository contracts must protect shell absence rather than continue validating deleted compatibility artifacts.
+- Impact: compatibility runtime and residue contracts are deleted, while descriptor/runtime truth contracts remain in place.
 
 ## 2026-04-22
 

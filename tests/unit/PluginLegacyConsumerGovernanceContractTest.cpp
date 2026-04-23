@@ -47,18 +47,16 @@ void PluginLegacyConsumerGovernanceContractTest::legacy_consumer_inventory_class
 
     QVERIFY2(inventory.contains(QStringLiteral("`main.cpp` | `forbidden_product_mainline`")),
         "legacy consumer inventory does not classify main.cpp as forbidden_product_mainline");
-    QVERIFY2(inventory.contains(QStringLiteral("`config/plugin_load_policy.json` | `allowed_compatibility_surface`")),
-        "legacy consumer inventory does not classify plugin_load_policy.json as allowed_compatibility_surface");
-    QVERIFY2(inventory.contains(QStringLiteral("`PluginLoadPolicy` | `allowed_compatibility_surface` | shrunk")),
-        "legacy consumer inventory does not classify PluginLoadPolicy as a shrunk compatibility surface");
-    QVERIFY2(inventory.contains(QStringLiteral("minimal compatibility carrier"), Qt::CaseInsensitive),
-        "legacy consumer inventory does not describe PluginLoadPolicy as a minimal compatibility carrier");
-    QVERIFY2(inventory.contains(QStringLiteral("minimal compatibility projection"), Qt::CaseInsensitive),
-        "legacy consumer inventory does not describe plugin_load_policy.json as a minimal compatibility projection");
-    QVERIFY2(inventory.contains(QStringLiteral("`CTKManager::loadPluginPolicy()` | `allowed_compatibility_surface`")),
-        "legacy consumer inventory does not classify CTKManager::loadPluginPolicy() as allowed_compatibility_surface");
-    QVERIFY2(inventory.contains(QStringLiteral("`CTKManager::installPluginsFromDirectory()` | `allowed_compatibility_surface`")),
-        "legacy consumer inventory does not classify CTKManager::installPluginsFromDirectory() as allowed_compatibility_surface");
+    QVERIFY2(inventory.contains(QStringLiteral("## Deleted Compatibility Shell")),
+        "legacy consumer inventory does not record the deleted compatibility shell section");
+    QVERIFY2(inventory.contains(QStringLiteral("`PluginLoadPolicy`")),
+        "legacy consumer inventory does not record deleted PluginLoadPolicy");
+    QVERIFY2(inventory.contains(QStringLiteral("forbidden_reintroduction")),
+        "legacy consumer inventory does not mark shell reintroduction as forbidden");
+    QVERIFY2(!inventory.contains(QStringLiteral("`config/plugin_load_policy.json` | `allowed_compatibility_surface`")),
+        "legacy consumer inventory still classifies plugin_load_policy.json as allowed_compatibility_surface");
+    QVERIFY2(!inventory.contains(QStringLiteral("`CTKManager::loadPluginPolicy()` | `allowed_compatibility_surface`")),
+        "legacy consumer inventory still classifies CTKManager::loadPluginPolicy() as allowed_compatibility_surface");
 }
 
 void PluginLegacyConsumerGovernanceContractTest::legacy_consumer_inventory_retires_internal_policy_debt()
@@ -110,27 +108,19 @@ void PluginLegacyConsumerGovernanceContractTest::governance_docs_record_descript
         readSource(QStringLiteral("docs/superpowers/tracking/platform-plugin-governance-matrix.md"));
     const QString decisionLog =
         readSource(QStringLiteral("docs/superpowers/tracking/platform-migration-decision-log.md"));
-    const QString currentStatus = readSource(QStringLiteral("docs/current_status_and_project_overview.md"));
 
     QVERIFY2(governanceMatrix.contains(QStringLiteral("PlatformCtkPolicyBridge")),
         "governance matrix does not record PlatformCtkPolicyBridge ownership");
-    QVERIFY2(governanceMatrix.contains(QStringLiteral("setDescriptorPolicyContext()")),
-        "governance matrix does not record explicit setDescriptorPolicyContext() handoff");
-    QVERIFY2(governanceMatrix.contains(QStringLiteral("minimal compatibility carrier"), Qt::CaseInsensitive),
-        "governance matrix does not record PluginLoadPolicy as a minimal compatibility carrier");
-    QVERIFY2(governanceMatrix.contains(QStringLiteral("minimal compatibility projection"), Qt::CaseInsensitive),
-        "governance matrix does not record plugin_load_policy.json as a minimal compatibility projection");
-    QVERIFY2(decisionLog.contains(QStringLiteral("safe mode criticality follows platform_runtime.json.core_plugin_ids")),
-        "migration decision log does not record safe mode criticality truth on core_plugin_ids");
-    QVERIFY2(decisionLog.contains(QStringLiteral("reduce `PluginLoadPolicy` to a minimal compatibility metadata carrier")),
-        "decision log does not record the minimal compatibility carrier decision");
-    QVERIFY2(decisionLog.contains(QStringLiteral("minimal compatibility projection limited to descriptor-governed CTK plugins")),
-        "decision log does not record the reduced projection decision");
-    QVERIFY2(currentStatus.contains(
-                 QStringLiteral("CTKManager runtime bucket classification now resolves through PlatformCtkPolicyBridge")),
-        "current status does not record CTK descriptor policy bridge runtime classification acceptance");
-    QVERIFY2(currentStatus.contains(QStringLiteral("plugin_load_policy.json is now a minimal compatibility projection")),
-        "current status does not record the reduced compatibility projection acceptance");
+    QVERIFY2(governanceMatrix.contains(QStringLiteral("compatibility shell deletion is complete"), Qt::CaseInsensitive),
+        "governance matrix does not record completed compatibility shell deletion");
+    QVERIFY2(governanceMatrix.contains(QStringLiteral("no repository-recognized legacy load-policy entry point"), Qt::CaseInsensitive),
+        "governance matrix does not record absence of legacy load-policy entry points");
+    QVERIFY2(decisionLog.contains(QStringLiteral("delete the final `plugin_load_policy` compatibility shell")),
+        "decision log does not record the shell deletion decision");
+    QVERIFY2(decisionLog.contains(QStringLiteral("delete adjacent dead legacy helpers")),
+        "decision log does not record adjacent helper deletion");
+    QVERIFY2(!decisionLog.contains(QStringLiteral("keep `plugin_load_policy.json` as a minimal compatibility projection")),
+        "decision log still records plugin_load_policy.json retention");
 }
 
 void PluginLegacyConsumerGovernanceContractTest::runtime_acceptance_wiring_separates_product_and_compatibility_artifacts()
