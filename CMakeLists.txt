@@ -235,8 +235,6 @@ set(TS_FILES medicalpro_zh_CN.ts)
 set(FRAMEWORK_SOURCES
     Framework/CTKManager.h
     Framework/CTKManager.cpp
-    Framework/PluginLoadPolicy.h
-    Framework/PluginLoadPolicy.cpp
     Framework/StartupOrchestrator.h
     Framework/StartupOrchestrator.cpp
     Framework/VTKWidgetPool.h
@@ -1044,14 +1042,8 @@ set(MEDICALPRO_PRODUCT_CONFIG_FILES
     segmentation_config.json
 )
 
-set(MEDICALPRO_COMPATIBILITY_CONFIG_FILES
-    plugin_load_policy.json
-    plugin_load_policy_compatibility.md
-)
-
 set(MEDICALPRO_RUNTIME_CONFIG_FILES
     ${MEDICALPRO_PRODUCT_CONFIG_FILES}
-    ${MEDICALPRO_COMPATIBILITY_CONFIG_FILES}
 )
 
 function(copy_runtime_config_file target_name config_file)

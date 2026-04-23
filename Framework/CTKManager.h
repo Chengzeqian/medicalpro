@@ -93,7 +93,6 @@ public:
      * @return 成功安装的插件数量
      * @note Product startup mainline must use platform_runtime.json + descriptors instead.
      */
-    int installPluginsFromDirectory(const QString& pluginDir);
 
     /**
      * @brief 安装单个插件
@@ -130,7 +129,6 @@ public:
      * @param configPath 配置文件路径
      * @note Product startup mainline must not use this API as a truth source.
      */
-    void loadPluginPolicy(const QString& configPath);
     void setDescriptorPolicyContext(
         const PlatformRuntimeConfig& runtimeConfig,
         const QVector<PlatformPluginDescriptor>& descriptors);
@@ -194,13 +192,11 @@ public:
      * @brief 设置插件加载顺序
      * @param order 插件名称列表，按加载顺序排列
      */
-    void setPluginLoadOrder(const QStringList& order);
     
     /**
      * @brief 获取推荐的插件加载顺序
      * @return 推荐的插件加载顺序列表
      */
-    QStringList getRecommendedLoadOrder() const;
     
     /**
      * @brief 验证必需的服务是否已注册
@@ -325,7 +321,6 @@ private:
     bool m_started;
     bool m_safeMode;
     QStringList m_loadedPlugins;
-    QStringList m_pluginLoadOrder;
     bool m_descriptorPolicyContextInitialized = false;
     PlatformRuntimeConfig m_descriptorPolicyRuntimeConfig;
     QVector<PlatformPluginDescriptor> m_descriptorPolicyDescriptors;

@@ -1,6 +1,7 @@
 #include <QtTest/QtTest>
 
 #include <QFile>
+#include <QFileInfo>
 #include <QString>
 
 class PluginTruthSourceGovernanceContractTest : public QObject
@@ -10,7 +11,7 @@ class PluginTruthSourceGovernanceContractTest : public QObject
 private slots:
     void main_cpp_uses_runtime_config_and_descriptor_loader_for_product_mainline();
     void main_cpp_does_not_call_legacy_policy_helpers_for_product_mainline();
-    void legacy_policy_surface_is_marked_as_compatibility_only();
+    void plugin_load_policy_shell_is_deleted();
 
 private:
     QString readSource(const QString& relativePath) const;
@@ -48,18 +49,40 @@ void PluginTruthSourceGovernanceContractTest::main_cpp_does_not_call_legacy_poli
         "main.cpp still calls installPluginsFromDirectory() in the product startup mainline");
 }
 
-void PluginTruthSourceGovernanceContractTest::legacy_policy_surface_is_marked_as_compatibility_only()
+void PluginTruthSourceGovernanceContractTest::plugin_load_policy_shell_is_deleted()
 {
     const QString ctkManagerHeader = readSource(QStringLiteral("Framework/CTKManager.h"));
-    const QString pluginLoadPolicyHeader = readSource(QStringLiteral("Framework/PluginLoadPolicy.h"));
-    const QString pluginLoadPolicySource = readSource(QStringLiteral("Framework/PluginLoadPolicy.cpp"));
+    const QString ctkManagerSource = readSource(QStringLiteral("Framework/CTKManager.cpp"));
+    const QString rootCMake = readSource(QStringLiteral("CMakeLists.txt"));
 
-    QVERIFY2(ctkManagerHeader.contains(QStringLiteral("compatibility-only")),
-        "CTKManager.h has not marked the legacy load-policy APIs as compatibility-only");
-    QVERIFY2(pluginLoadPolicyHeader.contains(QStringLiteral("compatibility-only")),
-        "PluginLoadPolicy.h has not marked PluginLoadPolicy as compatibility-only");
-    QVERIFY2(pluginLoadPolicySource.contains(QStringLiteral("compatibility-only")),
-        "PluginLoadPolicy.cpp does not emit compatibility-only log language");
+    QVERIFY2(!QFileInfo(QStringLiteral(MEDICALPRO_SOURCE_DIR "/Framework/PluginLoadPolicy.h")).exists(),
+        "Framework/PluginLoadPolicy.h still exists");
+    QVERIFY2(!QFileInfo(QStringLiteral(MEDICALPRO_SOURCE_DIR "/Framework/PluginLoadPolicy.cpp")).exists(),
+        "Framework/PluginLoadPolicy.cpp still exists");
+    QVERIFY2(!QFileInfo(QStringLiteral(MEDICALPRO_SOURCE_DIR "/config/plugin_load_policy.json")).exists(),
+        "config/plugin_load_policy.json still exists");
+    QVERIFY2(!QFileInfo(QStringLiteral(MEDICALPRO_SOURCE_DIR "/config/plugin_load_policy_compatibility.md")).exists(),
+        "config/plugin_load_policy_compatibility.md still exists");
+    QVERIFY2(!ctkManagerHeader.contains(QStringLiteral("loadPluginPolicy(")),
+        "CTKManager.h still exposes loadPluginPolicy()");
+    QVERIFY2(!ctkManagerHeader.contains(QStringLiteral("installPluginsFromDirectory(")),
+        "CTKManager.h still exposes installPluginsFromDirectory()");
+    QVERIFY2(!ctkManagerHeader.contains(QStringLiteral("setPluginLoadOrder(")),
+        "CTKManager.h still exposes setPluginLoadOrder()");
+    QVERIFY2(!ctkManagerHeader.contains(QStringLiteral("getRecommendedLoadOrder(")),
+        "CTKManager.h still exposes getRecommendedLoadOrder()");
+    QVERIFY2(!ctkManagerHeader.contains(QStringLiteral("m_pluginLoadOrder")),
+        "CTKManager.h still stores m_pluginLoadOrder");
+    QVERIFY2(!ctkManagerSource.contains(QStringLiteral("#include \"PluginLoadPolicy.h\"")),
+        "CTKManager.cpp still includes PluginLoadPolicy.h");
+    QVERIFY2(!rootCMake.contains(QStringLiteral("Framework/PluginLoadPolicy.h")),
+        "CMakeLists.txt still compiles Framework/PluginLoadPolicy.h");
+    QVERIFY2(!rootCMake.contains(QStringLiteral("Framework/PluginLoadPolicy.cpp")),
+        "CMakeLists.txt still compiles Framework/PluginLoadPolicy.cpp");
+    QVERIFY2(!rootCMake.contains(QStringLiteral("plugin_load_policy.json")),
+        "CMakeLists.txt still deploys plugin_load_policy.json");
+    QVERIFY2(!rootCMake.contains(QStringLiteral("plugin_load_policy_compatibility.md")),
+        "CMakeLists.txt still deploys plugin_load_policy_compatibility.md");
 }
 
 QTEST_APPLESS_MAIN(PluginTruthSourceGovernanceContractTest)

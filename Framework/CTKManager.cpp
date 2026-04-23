@@ -1,6 +1,5 @@
 ﻿#include "CTKManager.h"
 #include "Logger.h"
-#include "PluginLoadPolicy.h"
 #include "StartupOrchestrator.h"
 #include "ErrorHandler.h"
 #include "Framework/Platform/Kernel/PlatformCtkPolicyBridge.h"
@@ -453,60 +452,6 @@ bool CTKManager::isSafeMode() const
     return m_safeMode;
 }
 
-int CTKManager::installPluginsFromDirectory(const QString& pluginDir)
-{
-    if (!m_started) {
-        LOG_ERROR("CTKManager", "CTK Framework not started - cannot install plugins");
-        return 0;
-    }
-
-    LOG_INFO(
-        "CTKManager",
-        QString("Installing plugins from compatibility-only directory scan (no auto start): %1").arg(pluginDir));
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-    QHash<QString, QString> pluginCandidates;
-    QDirIterator iterator(pluginDir, QStringList() << "*.dll" << "*.so" << "*.dylib", QDir::Files);
-    while (iterator.hasNext()) {
-        const QString path = iterator.next();
-        QFileInfo info(path);
-        QString key = info.completeBaseName();
-        if (key.startsWith(QStringLiteral("lib"), Qt::CaseInsensitive)) {
-            key.remove(0, 3);
-        }
-        pluginCandidates.insert(key.toLower(), path);
-    }
-
-    int installedCount = 0;
-
-    auto installByKey = [this, &pluginCandidates, &installedCount](const QString& key) {
-        const QString normalized = key.toLower();
-        auto it = pluginCandidates.find(normalized);
-        if (it != pluginCandidates.end()) {
-            if (installPlugin(it.value(), false)) {
-                ++installedCount;
-            }
-            pluginCandidates.erase(it);
-        }
-    };
-
-    for (const QString& orderedName : m_pluginLoadOrder) {
-        installByKey(orderedName);
-    }
-
-    auto toInstallKeys = pluginCandidates.keys();
-    for (const QString& key : toInstallKeys) {
-        installByKey(key);
-    }
-
-    LOG_INFO_F("CTKManager", "Installed %1 plugins (without auto start)", installedCount);
-    return installedCount;
-#else
-    Q_UNUSED(pluginDir);
-    return 0;
-#endif
-}
-
 bool CTKManager::installPlugin(const QString& pluginPath, bool autoStart, QString* outPluginName)
 {
 #ifdef CTK_PLUGIN_FRAMEWORK
@@ -651,17 +596,6 @@ bool CTKManager::startDeferredPlugins(bool stopOnFailure)
     Q_UNUSED(stopOnFailure);
     return false;
 #endif
-}
-
-void CTKManager::loadPluginPolicy(const QString& configPath)
-{
-    if (configPath.isEmpty()) {
-        return;
-    }
-    LOG_INFO(
-        "CTKManager",
-        QString("Loading compatibility-only plugin policy metadata from: %1").arg(configPath));
-    PluginLoadPolicy::instance()->loadConfig(configPath);
 }
 
 void CTKManager::setDescriptorPolicyContext(
@@ -1266,28 +1200,6 @@ ctkEventAdmin* CTKManager::getEventAdmin() const
 void CTKManager::logMessage(const QString& message)
 {
     LOG_INFO("CTKManager", message);
-}
-
-void CTKManager::setPluginLoadOrder(const QStringList& order)
-{
-    m_pluginLoadOrder = order;
-    LOG_INFO_F("CTKManager", "Plugin load order set: %1", order.join(", "));
-}
-
-QStringList CTKManager::getRecommendedLoadOrder() const
-{
-    return {
-        "UserManagement",      // 基础用户服务
-        "DicomViewer",         // DICOM 影像查看
-        "FourViewDisplay",     // 四视图显示
-        "BoneSegmentation",    // AI 骨骼分割
-        "PointRegistration",   // 点配准
-        "RegistrationCore",    // 配准核心算法
-        "InstrumentManagement",// 器械管理（按需）
-        "OpticalTracking",     // 光学跟踪（按需）
-        "Registration2D3D",    // 2D-3D 配准（按需）
-        "OpticalRegistration"  // 光学配准（按需）
-    };
 }
 
 bool CTKManager::verifyRequiredServices(const QStringList& serviceNames)
