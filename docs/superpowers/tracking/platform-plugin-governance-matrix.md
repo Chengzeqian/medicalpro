@@ -1,6 +1,6 @@
 # Platform Plugin Governance Matrix
 
-Updated: 2026-04-22
+Updated: 2026-04-23
 
 ## Core Plugin Governance Matrix
 
@@ -38,9 +38,12 @@ Updated: 2026-04-22
 - `CTKManager::setDescriptorPolicyContext()` is the governed descriptor policy handoff boundary between startup assembly and CTK runtime classification.
 - `CTKManager` runtime bucket classification now resolves through `PlatformCtkPolicyBridge` instead of legacy load-policy lookup.
 - Safe mode criticality now follows `platform_runtime.json.core_plugin_ids`.
+- `PluginLoadPolicy` is now a minimal compatibility carrier and no longer exposes query-style runtime policy APIs.
+- `plugin_load_policy.json` is now a minimal compatibility projection limited to the descriptor-governed CTK plugin set.
 - `plugin_load_policy.json` and `PluginLoadPolicy` remain compatibility-only metadata for `CTKManager::loadPluginPolicy()` and compatibility runtime surfaces.
 - `runtime_artifact_layout_test` covers product-mainline runtime artifacts only.
 - `plugin_legacy_compatibility_runtime_contract_test` owns `plugin_load_policy.json` and `plugin_load_policy_compatibility.md` shipping verification.
+- Compatibility config artifacts are explicitly deployed from `CMakeLists.txt` instead of surviving only through whole-directory config copying.
 - The authoritative human-readable inventory for remaining legacy consumers is `docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md`.
 - `CriticalPluginStart` starts only the core startup set declared in runtime config.
 - `DeferredPluginStart` goes through `CTKManager::startDeferredPlugins(false)` instead of a hard-coded plugin list in `main.cpp`.

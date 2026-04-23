@@ -1,5 +1,19 @@
 # Platform Migration Decision Log
 
+## 2026-04-23
+
+- Decision: reduce `PluginLoadPolicy` to a minimal compatibility metadata carrier.
+- Rationale: current product code no longer reads legacy policy facts for runtime behavior, so the remaining type must stop looking like a strategy query surface.
+- Impact: dead query APIs are removed, `CTKManager::loadPluginPolicy()` remains as the final compatibility entry, and compatibility metadata no longer implies runtime authority.
+
+- Decision: keep `plugin_load_policy.json` as a minimal compatibility projection limited to descriptor-governed CTK plugins.
+- Rationale: the file must stop presenting historical non-governed plugin entries as if it were still a general plugin policy table.
+- Impact: the projection now contains only `UserManagement`, `DicomViewer`, `FourViewDisplay`, `RegistrationCore`, and `OpticalTracking`, and it is documented as sourced from runtime config plus descriptors.
+
+- Decision: explicitly deploy compatibility config artifacts rather than relying on whole-directory config copying.
+- Rationale: compatibility artifact survival must be intentional, test-owned, and discoverable in the build graph.
+- Impact: `plugin_load_policy.json` and `plugin_load_policy_compatibility.md` are now named compatibility artifacts in `CMakeLists.txt`.
+
 ## 2026-04-22
 
 - Decision: switch `CTKManager` runtime bucket classification to `PlatformCtkPolicyBridge` with explicit descriptor policy context handoff.

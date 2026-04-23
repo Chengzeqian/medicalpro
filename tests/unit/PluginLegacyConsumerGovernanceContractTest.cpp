@@ -48,6 +48,12 @@ void PluginLegacyConsumerGovernanceContractTest::legacy_consumer_inventory_class
         "legacy consumer inventory does not classify main.cpp as forbidden_product_mainline");
     QVERIFY2(inventory.contains(QStringLiteral("`config/plugin_load_policy.json` | `allowed_compatibility_surface`")),
         "legacy consumer inventory does not classify plugin_load_policy.json as allowed_compatibility_surface");
+    QVERIFY2(inventory.contains(QStringLiteral("`PluginLoadPolicy` | `allowed_compatibility_surface` | shrunk")),
+        "legacy consumer inventory does not classify PluginLoadPolicy as a shrunk compatibility surface");
+    QVERIFY2(inventory.contains(QStringLiteral("minimal compatibility carrier"), Qt::CaseInsensitive),
+        "legacy consumer inventory does not describe PluginLoadPolicy as a minimal compatibility carrier");
+    QVERIFY2(inventory.contains(QStringLiteral("minimal compatibility projection"), Qt::CaseInsensitive),
+        "legacy consumer inventory does not describe plugin_load_policy.json as a minimal compatibility projection");
     QVERIFY2(inventory.contains(QStringLiteral("`CTKManager::loadPluginPolicy()` | `allowed_compatibility_surface`")),
         "legacy consumer inventory does not classify CTKManager::loadPluginPolicy() as allowed_compatibility_surface");
     QVERIFY2(inventory.contains(QStringLiteral("`CTKManager::installPluginsFromDirectory()` | `allowed_compatibility_surface`")),
@@ -109,11 +115,21 @@ void PluginLegacyConsumerGovernanceContractTest::governance_docs_record_descript
         "governance matrix does not record PlatformCtkPolicyBridge ownership");
     QVERIFY2(governanceMatrix.contains(QStringLiteral("setDescriptorPolicyContext()")),
         "governance matrix does not record explicit setDescriptorPolicyContext() handoff");
+    QVERIFY2(governanceMatrix.contains(QStringLiteral("minimal compatibility carrier"), Qt::CaseInsensitive),
+        "governance matrix does not record PluginLoadPolicy as a minimal compatibility carrier");
+    QVERIFY2(governanceMatrix.contains(QStringLiteral("minimal compatibility projection"), Qt::CaseInsensitive),
+        "governance matrix does not record plugin_load_policy.json as a minimal compatibility projection");
     QVERIFY2(decisionLog.contains(QStringLiteral("safe mode criticality follows platform_runtime.json.core_plugin_ids")),
         "migration decision log does not record safe mode criticality truth on core_plugin_ids");
+    QVERIFY2(decisionLog.contains(QStringLiteral("reduce `PluginLoadPolicy` to a minimal compatibility metadata carrier")),
+        "decision log does not record the minimal compatibility carrier decision");
+    QVERIFY2(decisionLog.contains(QStringLiteral("minimal compatibility projection limited to descriptor-governed CTK plugins")),
+        "decision log does not record the reduced projection decision");
     QVERIFY2(currentStatus.contains(
                  QStringLiteral("CTKManager runtime bucket classification now resolves through PlatformCtkPolicyBridge")),
         "current status does not record CTK descriptor policy bridge runtime classification acceptance");
+    QVERIFY2(currentStatus.contains(QStringLiteral("plugin_load_policy.json is now a minimal compatibility projection")),
+        "current status does not record the reduced compatibility projection acceptance");
 }
 
 void PluginLegacyConsumerGovernanceContractTest::runtime_acceptance_wiring_separates_product_and_compatibility_artifacts()
