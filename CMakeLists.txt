@@ -1039,29 +1039,43 @@ endif()
 # ============================================================================
 # Copy config files to build output directory
 # ============================================================================
-# 澶嶅埗閰嶇疆鏂囦欢鍒版瀯寤鸿緭鍑虹洰褰曪紙鏀寔澶氶厤缃敓鎴愬櫒濡?MSVC锛?
-if(EXISTS "${CMAKE_SOURCE_DIR}/config")
-    # 绑定到 medicalpro 的构建后步骤，避免单独构建目标时遗漏 config
-    add_custom_command(TARGET medicalpro POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:medicalpro>/config"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/config"
-            "$<TARGET_FILE_DIR:medicalpro>/config"
-        COMMENT "Copying config files to build directory..."
+set(MEDICALPRO_PRODUCT_CONFIG_FILES
+    platform_runtime.json
+    segmentation_config.json
+)
+
+set(MEDICALPRO_COMPATIBILITY_CONFIG_FILES
+    plugin_load_policy.json
+    plugin_load_policy_compatibility.md
+)
+
+set(MEDICALPRO_RUNTIME_CONFIG_FILES
+    ${MEDICALPRO_PRODUCT_CONFIG_FILES}
+    ${MEDICALPRO_COMPATIBILITY_CONFIG_FILES}
+)
+
+function(copy_runtime_config_file target_name config_file)
+    add_custom_command(TARGET ${target_name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${target_name}>/config"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/config/${config_file}"
+            "$<TARGET_FILE_DIR:${target_name}>/config/${config_file}"
+        COMMENT "Copying config/${config_file} to ${target_name} runtime directory"
     )
+endfunction()
 
-    # 如果有 medicalpro_newui 目标，也为其复制配置文件
-    if(TARGET medicalpro_newui)
-        add_custom_command(TARGET medicalpro_newui POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:medicalpro_newui>/config"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${CMAKE_SOURCE_DIR}/config"
-                "$<TARGET_FILE_DIR:medicalpro_newui>/config"
-            COMMENT "Copying config files for medicalpro_newui..."
-        )
-    endif()
+if(EXISTS "${CMAKE_SOURCE_DIR}/config")
+    foreach(_config_file ${MEDICALPRO_RUNTIME_CONFIG_FILES})
+        if(EXISTS "${CMAKE_SOURCE_DIR}/config/${_config_file}")
+            copy_runtime_config_file(medicalpro "${_config_file}")
 
-    message(STATUS "Config files will be copied to build output directory")
+            if(TARGET medicalpro_newui)
+                copy_runtime_config_file(medicalpro_newui "${_config_file}")
+            endif()
+        endif()
+    endforeach()
+
+    message(STATUS "Runtime config files will be copied to build output directory")
 endif()
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/data")

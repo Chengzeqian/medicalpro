@@ -14,6 +14,7 @@ private slots:
     void plugin_load_policy_surface_is_minimal();
     void plugin_load_policy_projection_contains_only_descriptor_governed_plugins();
     void compatibility_note_describes_projection_boundary();
+    void compatibility_artifacts_are_explicitly_deployed();
 
 private:
     QString readSource(const QString& relativePath) const;
@@ -111,6 +112,21 @@ void PluginLoadPolicyCompatibilityResidueContractTest::compatibility_note_descri
         "plugin_load_policy_compatibility.md does not describe the reduced projection scope");
     QVERIFY2(note.contains(QStringLiteral("must not define the product mainline")),
         "plugin_load_policy_compatibility.md lost the product-mainline boundary");
+}
+
+void PluginLoadPolicyCompatibilityResidueContractTest::compatibility_artifacts_are_explicitly_deployed()
+{
+    const QString rootCMake = readSource(QStringLiteral("CMakeLists.txt"));
+
+    QVERIFY2(rootCMake.contains(QStringLiteral("MEDICALPRO_COMPATIBILITY_CONFIG_FILES")),
+        "CMakeLists.txt does not define explicit compatibility config artifacts");
+    QVERIFY2(rootCMake.contains(QStringLiteral("plugin_load_policy.json")),
+        "CMakeLists.txt does not explicitly name plugin_load_policy.json");
+    QVERIFY2(rootCMake.contains(QStringLiteral("plugin_load_policy_compatibility.md")),
+        "CMakeLists.txt does not explicitly name plugin_load_policy_compatibility.md");
+    QVERIFY2(!rootCMake.contains(
+                 QStringLiteral("COMMAND ${CMAKE_COMMAND} -E copy_directory\n            \"${CMAKE_SOURCE_DIR}/config\"")),
+        "CMakeLists.txt still copies the whole config directory");
 }
 
 QTEST_APPLESS_MAIN(PluginLoadPolicyCompatibilityResidueContractTest)
