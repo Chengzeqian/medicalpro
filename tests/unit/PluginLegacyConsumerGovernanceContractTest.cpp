@@ -1,6 +1,7 @@
 #include <QtTest/QtTest>
 
 #include <QFile>
+#include <QFileInfo>
 #include <QString>
 
 class PluginLegacyConsumerGovernanceContractTest : public QObject
@@ -135,14 +136,17 @@ void PluginLegacyConsumerGovernanceContractTest::governance_docs_record_descript
 void PluginLegacyConsumerGovernanceContractTest::runtime_acceptance_wiring_separates_product_and_compatibility_artifacts()
 {
     const QString testsCMake = readSource(QStringLiteral("tests/CMakeLists.txt"));
+    const QString unitTestsCMake = readSource(QStringLiteral("tests/unit/CMakeLists.txt"));
     const QString runtimeScript = readSource(QStringLiteral("tests/runtime/verify_runtime_artifacts.cmake"));
 
-    QVERIFY2(!testsCMake.contains(QStringLiteral("-Dplugin_policy_file=$<TARGET_FILE_DIR:medicalpro>/config/plugin_load_policy.json")),
-        "tests/CMakeLists.txt still wires plugin_policy_file into the default product runtime layout test");
-    QVERIFY2(testsCMake.contains(QStringLiteral("NAME plugin_legacy_compatibility_runtime_contract_test")),
-        "tests/CMakeLists.txt has not registered plugin_legacy_compatibility_runtime_contract_test");
-    QVERIFY2(runtimeScript.contains(QStringLiteral("verify_plugin_legacy_compatibility_runtime_contract")),
-        "verify_runtime_artifacts.cmake has no dedicated compatibility runtime contract mode");
+    QVERIFY2(!testsCMake.contains(QStringLiteral("NAME plugin_legacy_compatibility_runtime_contract_test")),
+        "tests/CMakeLists.txt still registers plugin_legacy_compatibility_runtime_contract_test");
+    QVERIFY2(!runtimeScript.contains(QStringLiteral("verify_plugin_legacy_compatibility_runtime_contract")),
+        "verify_runtime_artifacts.cmake still exposes verify_plugin_legacy_compatibility_runtime_contract");
+    QVERIFY2(!unitTestsCMake.contains(QStringLiteral("plugin_load_policy_compatibility_residue_contract_test")),
+        "tests/unit/CMakeLists.txt still registers plugin_load_policy_compatibility_residue_contract_test");
+    QVERIFY2(!QFileInfo(QStringLiteral(MEDICALPRO_SOURCE_DIR "/tests/unit/PluginLoadPolicyCompatibilityResidueContractTest.cpp")).exists(),
+        "tests/unit/PluginLoadPolicyCompatibilityResidueContractTest.cpp still exists");
 }
 
 QTEST_APPLESS_MAIN(PluginLegacyConsumerGovernanceContractTest)
