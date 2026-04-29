@@ -1254,6 +1254,35 @@ QPushButton:hover { background-color: #95a5a6; }</string>
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="evaluationTab">
+      <attribute name="title">
+       <string>评估</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="evaluationTabLayout">
+       <property name="leftMargin">
+        <number>20</number>
+       </property>
+       <property name="topMargin">
+        <number>20</number>
+       </property>
+       <property name="rightMargin">
+        <number>20</number>
+       </property>
+       <property name="bottomMargin">
+        <number>20</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="evaluationPlaceholderLabel">
+         <property name="text">
+          <string>评估结果与导出将在此汇总</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>

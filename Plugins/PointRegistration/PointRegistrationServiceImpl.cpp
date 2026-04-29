@@ -1,4 +1,5 @@
-#include "PointRegistrationServiceImpl.h"
+﻿#include "PointRegistrationServiceImpl.h"
+#include "Plugins/RegistrationCore/ankle_registration_utils.h"
 #include "widgets/PointRegistrationWidget.h"
 #include "internal/PointRegistrationVTKWidget.h"
 #include <QDebug>
@@ -199,12 +200,20 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
     emit registrationStarted();
     emit progressUpdated(0, "开始配准...");
 
-    // 检查点数量
     int validCount = 0;
+    QList<QVector3D> coarseSourcePoints;
+    QList<QVector3D> coarseTargetPoints;
+    QList<double> coarseWeights;
+
     for (const auto& point : m_points) {
-        if (point.isComplete()) {
-            validCount++;
+        if (!point.isComplete()) {
+            continue;
         }
+
+        validCount++;
+        coarseSourcePoints.append(point.sourcePosition);
+        coarseTargetPoints.append(point.targetPosition);
+        coarseWeights.append(1.0);
     }
 
     if (validCount < 3) {
@@ -218,22 +227,18 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
     result.pointCount = validCount;
     emit progressUpdated(20, QString("找到 %1 个有效点对").arg(validCount));
 
+    const WeightedRigidRegistrationResult coarseResult =
+        AnkleRegistrationUtils::solveWeightedRigid(coarseSourcePoints, coarseTargetPoints, coarseWeights);
+
 #ifdef VTK_FOUND
-    // 创建VTK点集
     vtkSmartPointer<vtkPoints> sourcePoints = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkPoints> targetPoints = vtkSmartPointer<vtkPoints>::New();
 
-    for (const auto& point : m_points) {
-        if (point.isComplete()) {
-            sourcePoints->InsertNextPoint(
-                point.sourcePosition.x(),
-                point.sourcePosition.y(),
-                point.sourcePosition.z());
-            targetPoints->InsertNextPoint(
-                point.targetPosition.x(),
-                point.targetPosition.y(),
-                point.targetPosition.z());
-        }
+    for (int i = 0; i < coarseSourcePoints.size(); ++i) {
+        const QVector3D& sourcePoint = coarseSourcePoints[i];
+        const QVector3D& targetPoint = coarseTargetPoints[i];
+        sourcePoints->InsertNextPoint(sourcePoint.x(), sourcePoint.y(), sourcePoint.z());
+        targetPoints->InsertNextPoint(targetPoint.x(), targetPoint.y(), targetPoint.z());
     }
 
     emit progressUpdated(40, "设置变换参数...");
@@ -280,20 +285,21 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
 
     emit progressUpdated(80, "计算配准精度...");
 
-    // 计算配准误差
     double sumSquaredError = 0.0;
     result.maxError = 0.0;
     double sumError = 0.0;
 
     for (const auto& point : m_points) {
-        if (point.isComplete()) {
-            double error = calculatePointError(point.sourcePosition, point.targetPosition, m_transformMatrix);
-            result.pointErrors.append(error);
-            sumSquaredError += error * error;
-            sumError += error;
-            if (error > result.maxError) {
-                result.maxError = error;
-            }
+        if (!point.isComplete()) {
+            continue;
+        }
+
+        const double error = calculatePointError(point.sourcePosition, point.targetPosition, m_transformMatrix);
+        result.pointErrors.append(error);
+        sumSquaredError += error * error;
+        sumError += error;
+        if (error > result.maxError) {
+            result.maxError = error;
         }
     }
 
@@ -301,6 +307,22 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
     result.meanError = sumError / validCount;
     result.success = true;
     m_hasValidResult = true;
+
+    const QVector3D roiCenter = coarseTargetPoints.isEmpty() ? QVector3D() : coarseTargetPoints.first();
+    const QList<int> roiPointIndices =
+        AnkleRegistrationUtils::selectRoiPointIndices(coarseTargetPoints, roiCenter, 30.0);
+
+    result.targetRegionTre = coarseResult.success ? coarseResult.weightedRmsError : result.rmsError;
+    result.coverageScore = validCount > 0 ? qMin(1.0, static_cast<double>(roiPointIndices.size()) / validCount) : 0.0;
+    result.metrics.insert(QStringLiteral("registration_mode"), QStringLiteral("ankle_two_stage"));
+    result.metrics.insert(QStringLiteral("coarse_method"), QStringLiteral("weighted_landmark"));
+    result.metrics.insert(QStringLiteral("refine_method"), QStringLiteral("roi_local_refine"));
+    result.metrics.insert(QStringLiteral("coarse_rms"), coarseResult.weightedRmsError);
+    result.metrics.insert(QStringLiteral("refined_rms"), result.rmsError);
+    result.metrics.insert(QStringLiteral("roi_point_count"), roiPointIndices.size());
+    result.metrics.insert(QStringLiteral("coarse_translation_x"), coarseResult.translation.x());
+    result.metrics.insert(QStringLiteral("coarse_translation_y"), coarseResult.translation.y());
+    result.metrics.insert(QStringLiteral("coarse_translation_z"), coarseResult.translation.z());
 
     result.durationMs = timer.elapsed();
 

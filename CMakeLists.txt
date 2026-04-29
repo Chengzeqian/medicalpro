@@ -152,6 +152,15 @@ set(FRAMEWORK_SOURCES
     Framework/Segmentation/SegmentationService.h
     Framework/Registration/RegistrationTypes.h
     Framework/Registration/RegistrationService.h
+    Framework/Navigation/ankle_navigation_types.h
+    Framework/Navigation/ankle_case_workspace_repository.h
+    Framework/Navigation/ankle_case_workspace_repository.cpp
+    Framework/Navigation/ankle_planning_service.h
+    Framework/Navigation/ankle_planning_service.cpp
+    Framework/Navigation/navigation_confidence_evaluator.h
+    Framework/Navigation/navigation_confidence_evaluator.cpp
+    Framework/Navigation/navigation_evaluation_service.h
+    Framework/Navigation/navigation_evaluation_service.cpp
     Framework/Logger.h
     Framework/Platform/Contracts/PlatformRuntimeTypes.h
     Framework/Platform/Contracts/PlatformPluginDescriptor.h

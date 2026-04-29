@@ -24,12 +24,14 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
 
     set(REGISTRATIONCORE_PLATFORM_SOURCES
         RegistrationServiceImpl.cpp
+        ankle_registration_utils.cpp
         registration_core_module.cpp
     )
 
     set(REGISTRATIONCORE_PLATFORM_HEADERS
         RegistrationService.h
         RegistrationServiceImpl.h
+        ankle_registration_utils.h
         registration_core_module.h
     )
 

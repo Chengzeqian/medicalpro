@@ -7,6 +7,7 @@
 #include "Plugins/DicomViewer/DicomViewerService.h"
 #include "Plugins/FourViewDisplay/FourViewDisplayService.h"
 #include "Plugins/InstrumentManagement/InstrumentManagementService.h"
+#include "Plugins/OpticalTracking/OpticalTrackingService.h"
 #include "Plugins/PointRegistration/PointRegistrationService.h"
 
 namespace
@@ -74,6 +75,13 @@ FourViewDisplayService* LegacyNavigationPageServiceAdapter::fourViewDisplayServi
 {
     return serviceRegistry()
         ? qobject_cast<FourViewDisplayService*>(serviceRegistry()->service(QStringLiteral("FourViewDisplayService")))
+        : nullptr;
+}
+
+OpticalTrackingService* LegacyNavigationPageServiceAdapter::opticalTrackingService() const
+{
+    return serviceRegistry()
+        ? qobject_cast<OpticalTrackingService*>(serviceRegistry()->service(QStringLiteral("OpticalTrackingService")))
         : nullptr;
 }
 

@@ -10,6 +10,7 @@
  */
 
 #include "PointRegistrationDataStructures.h"
+#include "target_sensitive_point_selector.h"
 #include <QObject>
 #include <QVector3D>
 #include <QMatrix4x4>
@@ -171,6 +172,9 @@ public:
      * @return 成功返回true
      */
     bool executeRegistration();
+    void setTargetRegistrationRegion(const TargetRegistrationRegion& region);
+    QList<RecommendedRegistrationPoint> recommendRegistrationPoints(
+        const QList<CandidateRegistrationPoint>& candidates) const;
 
     /**
      * @brief 获取最后配准结果
@@ -279,6 +283,8 @@ private:
     RegistrationSessionState m_state;
     ProbePointSource m_probeSource;
     PointRegistrationResult m_lastResult;
+    TargetRegistrationRegion m_targetRegion;
+    TargetSensitivePointSelector m_pointSelector;
 };
 
 #endif // REGISTRATION_WORKFLOW_H

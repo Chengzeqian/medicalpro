@@ -81,6 +81,11 @@ void DashboardPageNew::setCurrentPatientId(int patientId)
     }
 }
 
+void DashboardPageNew::setCurrentCaseId(const QString& caseId)
+{
+    m_currentCaseId = caseId;
+}
+
 void DashboardPageNew::on_backButton_clicked()
 {
     emit backToManagementRequested();
@@ -338,10 +343,13 @@ void DashboardPageNew::updateNavigationCta(bool patientSelected)
     const QString title = !patientSelected
         ? QStringLiteral("先选择病例")
         : (m_currentDicomStudyCount > 0 ? QStringLiteral("病例与影像已就绪") : QStringLiteral("病例已就绪，可继续"));
+    const QString caseHint = m_currentCaseId.isEmpty()
+        ? QString()
+        : QStringLiteral("当前病例：%1。").arg(m_currentCaseId);
 
     ui->navigationCtaTitleLabel->setText(title);
     ui->navigationCtaHintLabel->setText(
-        ThreePagePresentationUtils::buildDashboardNavigationHint(patientSelected, m_currentDicomStudyCount));
+        caseHint + ThreePagePresentationUtils::buildDashboardNavigationHint(patientSelected, m_currentDicomStudyCount));
     ui->navigationCtaFrame->setProperty("statusTone", tone);
     ui->navigationCtaTitleLabel->setProperty("statusTone", tone);
     polishWidget(ui->navigationCtaFrame);

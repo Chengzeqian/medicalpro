@@ -15,5 +15,6 @@ public:
     DicomViewerService* dicomViewerService() const override;
     BoneSegmentationService* segmentationService() const override;
     FourViewDisplayService* fourViewDisplayService() const override;
+    OpticalTrackingService* opticalTrackingService() const override;
     PointRegistrationService* pointRegistrationService() const override;
 };

@@ -50,6 +50,7 @@ MainInterfaceWidget::MainInterfaceWidget(
     , m_identityAppService(nullptr)
     , m_imagingAppService(nullptr)
     , m_navigationAppService(nullptr)
+    , m_currentCaseId()
     , m_currentPatientId(-1)
     , m_isLoggedIn(false)
 {
@@ -177,6 +178,7 @@ void MainInterfaceWidget::onReturnToWelcomeRequested()
     qDebug() << "[MainInterfaceWidget] return to welcome";
     m_isLoggedIn = false;
     m_currentUser.clear();
+    m_currentCaseId.clear();
     m_currentPatientId = -1;
     emit logoutRequested();
     navigateToPage(PAGE_WELCOME);
@@ -313,8 +315,16 @@ void MainInterfaceWidget::enterSurgicalNavigationSystem(int patientId)
     }
 
     m_currentPatientId = patientId;
+    QString patientName = QStringLiteral("患者%1").arg(patientId);
+    if (m_identityAppService) {
+        const auto patient = m_identityAppService->patientById(patientId);
+        if (patient.isValid()) {
+            patientName = patient.name;
+        }
+    }
+
     m_surgicalNavigationPage->resetPage();
-    m_surgicalNavigationPage->setPatientId(patientId);
+    m_surgicalNavigationPage->setCaseContext(m_currentCaseId, patientId, patientName);
     navigateToPage(PAGE_SURGICAL_NAVIGATION);
 }
 
@@ -354,6 +364,15 @@ void MainInterfaceWidget::setupConnections()
 
     connect(m_managementPage, &ManagementPageNew::backRequested,
             this, &MainInterfaceWidget::onManagementBack);
+    connect(m_managementPage, &ManagementPageNew::enterCaseWorkspaceRequested,
+            this, [this](const QString& caseId, int patientId) {
+                m_currentPatientId = patientId;
+                m_currentCaseId = caseId;
+                if (m_dashboardPage) {
+                    m_dashboardPage->setCurrentPatientId(patientId);
+                    m_dashboardPage->setCurrentCaseId(caseId);
+                }
+            });
     connect(m_managementPage, &ManagementPageNew::enterMainSystemRequested,
             this, &MainInterfaceWidget::onManagementEnterMainSystem);
 

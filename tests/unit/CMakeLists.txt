@@ -1087,6 +1087,161 @@ set_tests_properties(platform_ui_bridge_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_ui_bridge_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
+add_executable(ankle_case_workspace_repository_test
+    AnkleCaseWorkspaceRepositoryTest.cpp
+)
+
+target_include_directories(ankle_case_workspace_repository_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(ankle_case_workspace_repository_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME ankle_case_workspace_repository_test
+    COMMAND ankle_case_workspace_repository_test
+)
+
+set_tests_properties(ankle_case_workspace_repository_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:ankle_case_workspace_repository_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(ankle_planning_service_test
+    AnklePlanningServiceTest.cpp
+)
+
+target_include_directories(ankle_planning_service_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(ankle_planning_service_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME ankle_planning_service_test
+    COMMAND ankle_planning_service_test
+)
+
+set_tests_properties(ankle_planning_service_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:ankle_planning_service_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(ankle_navigation_workflow_contract_test
+    AnkleNavigationWorkflowContractTest.cpp
+)
+
+target_include_directories(ankle_navigation_workflow_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(ankle_navigation_workflow_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(ankle_navigation_workflow_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME ankle_navigation_workflow_contract_test
+    COMMAND ankle_navigation_workflow_contract_test
+)
+
+add_executable(target_sensitive_point_selection_test
+    TargetSensitivePointSelectionTest.cpp
+)
+
+target_include_directories(target_sensitive_point_selection_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(target_sensitive_point_selection_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    PointRegistrationPlatformModuleLib
+)
+
+add_test(
+    NAME target_sensitive_point_selection_test
+    COMMAND target_sensitive_point_selection_test
+)
+
+add_executable(ankle_registration_utils_test
+    AnkleRegistrationUtilsTest.cpp
+)
+
+target_include_directories(ankle_registration_utils_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(ankle_registration_utils_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    RegistrationCorePlatformModuleLib
+)
+
+add_test(
+    NAME ankle_registration_utils_test
+    COMMAND ankle_registration_utils_test
+)
+
+add_executable(navigation_confidence_evaluator_test
+    NavigationConfidenceEvaluatorTest.cpp
+)
+
+target_include_directories(navigation_confidence_evaluator_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(navigation_confidence_evaluator_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME navigation_confidence_evaluator_test
+    COMMAND navigation_confidence_evaluator_test
+)
+
+set_tests_properties(navigation_confidence_evaluator_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_confidence_evaluator_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(navigation_evaluation_service_test
+    NavigationEvaluationServiceTest.cpp
+)
+
+target_include_directories(navigation_evaluation_service_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(navigation_evaluation_service_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME navigation_evaluation_service_test
+    COMMAND navigation_evaluation_service_test
+)
+
+set_tests_properties(navigation_evaluation_service_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_evaluation_service_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
 set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS
     platform_plugin_host_lifecycle_behavior_test
     platform_built_in_module_bootstrap_behavior_test
@@ -1104,6 +1259,10 @@ set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS
     platform_startup_coordinator_test
     platform_warmup_coordinator_test
     platform_ui_bridge_test
+    ankle_case_workspace_repository_test
+    ankle_planning_service_test
+    navigation_confidence_evaluator_test
+    navigation_evaluation_service_test
 )
 
 foreach(_medicalpro_framework_unit_test IN LISTS MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS)

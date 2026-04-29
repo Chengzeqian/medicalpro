@@ -8,6 +8,7 @@ class DicomViewerService;
 class FourViewDisplayService;
 class INavigationPageServicePort;
 class InstrumentManagementService;
+class OpticalTrackingService;
 class PointRegistrationService;
 class BoneSegmentationService;
 
@@ -22,6 +23,7 @@ public:
     DicomViewerService* dicomViewerService() const;
     BoneSegmentationService* segmentationService() const;
     FourViewDisplayService* fourViewDisplayService() const;
+    OpticalTrackingService* opticalTrackingService() const;
     bool isPointRegistrationFrameworkReady() const;
     QString pointRegistrationPluginState() const;
     PointRegistrationService* pointRegistrationService(bool tryStartPlugin) const;

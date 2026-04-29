@@ -120,6 +120,7 @@ private:
     ImagingAppService* m_imagingAppService;
     NavigationAppService* m_navigationAppService;
 
+    QString m_currentCaseId;
     int m_currentPatientId;
     bool m_isLoggedIn;
     QString m_currentUser;

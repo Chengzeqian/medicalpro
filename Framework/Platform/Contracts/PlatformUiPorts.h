@@ -11,6 +11,7 @@ class FourViewDisplayService;
 class InstrumentManagementService;
 class PointRegistrationService;
 class BoneSegmentationService;
+class OpticalTrackingService;
 
 class FRAMEWORK_EXPORT ICoreUiRuntimeStatusPort
 {
@@ -40,5 +41,6 @@ public:
     virtual DicomViewerService* dicomViewerService() const = 0;
     virtual BoneSegmentationService* segmentationService() const = 0;
     virtual FourViewDisplayService* fourViewDisplayService() const = 0;
+    virtual OpticalTrackingService* opticalTrackingService() const = 0;
     virtual PointRegistrationService* pointRegistrationService() const = 0;
 };

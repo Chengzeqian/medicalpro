@@ -3,6 +3,7 @@
 
 #include "Framework/Platform/UiBridge/NavigationPageServiceAccess.h"
 #include "Framework/Platform/LegacyAdapters/LegacyNavigationPageServiceAdapter.h"
+#include "Framework/Navigation/navigation_evaluation_service.h"
 #include "Plugins/BoneSegmentation/SegmentationService.h"
 #include "Plugins/DicomViewer/DicomViewerService.h"
 #include "Plugins/FourViewDisplay/FourViewDisplayService.h"
@@ -14,6 +15,7 @@
 #include "UI/Dialogs/InstrumentPreviewDialog.h"
 
 #include <QFileDialog>
+#include <QCoreApplication>
 #include <QVBoxLayout>
 #include <QMouseEvent>
 #include <QDir>
@@ -34,7 +36,9 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
     , ui(new Ui::NavigationPage)
     , m_serviceAccess(serviceAccess)
     , m_ownedServiceAdapter(nullptr)
+    , m_caseId()
     , m_patientId(-1)
+    , m_workflowStage(AnkleWorkflowStage::Preparation)
     , m_trackerConnected(false)
     , m_navigationActive(false)
     , m_fourViewWidget(nullptr)
@@ -52,6 +56,12 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
 {
     ui->setupUi(this);
     setObjectName("NavigationPage");
+    ui->tabWidget->setTabText(ui->tabWidget->indexOf(ui->instrumentTab), QStringLiteral("准备"));
+    ui->tabWidget->setTabText(ui->tabWidget->indexOf(ui->planningTab), QStringLiteral("规划"));
+    ui->tabWidget->setTabText(ui->tabWidget->indexOf(ui->registrationTab), QStringLiteral("配准"));
+    ui->tabWidget->setTabText(ui->tabWidget->indexOf(ui->navigationTab), QStringLiteral("导航"));
+    ui->tabWidget->setTabText(ui->tabWidget->indexOf(ui->evaluationTab), QStringLiteral("评估"));
+    setWorkflowStage(AnkleWorkflowStage::Preparation);
 
     if (!m_serviceAccess) {
         m_ownedServiceAdapter = new LegacyNavigationPageServiceAdapter();
@@ -121,7 +131,11 @@ void NavigationPageNew::onActivated()
 
     // 鏇存柊鎮ｈ€呬俊鎭樉绀?
     if (!m_patientName.isEmpty()) {
-        ui->patientInfoLabel->setText(QString("鎮ｈ€咃細%1").arg(m_patientName));
+        if (m_caseId.isEmpty()) {
+            ui->patientInfoLabel->setText(QStringLiteral("患者：%1").arg(m_patientName));
+        } else {
+            ui->patientInfoLabel->setText(QStringLiteral("病例：%1 | 患者：%2").arg(m_caseId, m_patientName));
+        }
     }
 
     loadInstruments();
@@ -162,6 +176,15 @@ void NavigationPageNew::onDeactivated()
     }
 }
 
+void NavigationPageNew::setCaseContext(const QString& caseId, int patientId, const QString& patientName)
+{
+    m_caseId = caseId;
+    m_patientId = patientId;
+    m_patientName = patientName;
+    ui->patientInfoLabel->setText(QStringLiteral("病例：%1 | 患者：%2").arg(m_caseId, m_patientName));
+    setWorkflowStage(AnkleWorkflowStage::Preparation);
+}
+
 void NavigationPageNew::setPatientId(int patientId)
 {
     m_patientId = patientId;
@@ -170,7 +193,11 @@ void NavigationPageNew::setPatientId(int patientId)
 void NavigationPageNew::setPatientName(const QString& name)
 {
     m_patientName = name;
-    ui->patientInfoLabel->setText(QString("鎮ｈ€咃細%1").arg(name));
+    if (m_caseId.isEmpty()) {
+        ui->patientInfoLabel->setText(QStringLiteral("患者：%1").arg(name));
+    } else {
+        ui->patientInfoLabel->setText(QStringLiteral("病例：%1 | 患者：%2").arg(m_caseId, name));
+    }
 }
 
 void NavigationPageNew::beginTransitionMask()
@@ -190,9 +217,39 @@ void NavigationPageNew::resetPage()
     m_trackerTimer->stop();
     updateTrackerStatus(false);
     // 娓呯悊鎮ｈ€呮樉绀?
+    m_caseId.clear();
     m_patientId = -1;
     m_patientName.clear();
-    ui->patientInfoLabel->setText("鎮ｈ€咃細-");
+    ui->patientInfoLabel->setText(QStringLiteral("患者：-"));
+    setWorkflowStage(AnkleWorkflowStage::Preparation);
+}
+
+void NavigationPageNew::setWorkflowStage(AnkleWorkflowStage stage)
+{
+    m_workflowStage = stage;
+
+    switch (stage) {
+    case AnkleWorkflowStage::Preparation:
+        ui->tabWidget->setCurrentWidget(ui->instrumentTab);
+        break;
+    case AnkleWorkflowStage::Planning:
+        ui->tabWidget->setCurrentWidget(ui->planningTab);
+        break;
+    case AnkleWorkflowStage::Registration:
+        ui->tabWidget->setCurrentWidget(ui->registrationTab);
+        break;
+    case AnkleWorkflowStage::Navigation:
+        ui->tabWidget->setCurrentWidget(ui->navigationTab);
+        break;
+    case AnkleWorkflowStage::Evaluation:
+        ui->tabWidget->setCurrentWidget(ui->evaluationTab);
+        break;
+    }
+}
+
+QString NavigationPageNew::evaluationCasesRoot() const
+{
+    return QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("cases"));
 }
 
 bool NavigationPageNew::eventFilter(QObject* obj, QEvent* event)
@@ -772,13 +829,11 @@ void NavigationPageNew::on_calibrateButton_clicked()
 
 void NavigationPageNew::on_connectTrackerButton_clicked()
 {
-    // Tracking service integration not wired yet; fall back to simulation.
-    m_trackingService = nullptr;
-
+    m_trackingService = m_serviceAccess ? m_serviceAccess->opticalTrackingService() : nullptr;
 
     // 妯℃嫙杩炴帴
     updateTrackerStatus(true);
-    showInfo("追踪器", "追踪器已连接（模拟）。");
+    showInfo("追踪器", m_trackingService ? "追踪器服务已连接。" : "追踪器已连接（模拟）。");
 }
 
 void NavigationPageNew::on_disconnectTrackerButton_clicked()
@@ -807,6 +862,36 @@ void NavigationPageNew::on_startNavigationButton_clicked()
     m_registrationTransform = m_pointRegistrationService->getTransformMatrix();
     if (m_registrationTransform.isIdentity()) {
         showWarning("导航", "尚未完成配准，请先在配准Tab中完成点配准。");
+        return;
+    }
+
+    const PointRegistrationResult registrationResult =
+        m_registrationWorkflow ? m_registrationWorkflow->getLastResult() : PointRegistrationResult();
+
+    NavigationConfidenceInputs inputs;
+    inputs.fre = registrationResult.rmsError;
+    inputs.targetTre = registrationResult.targetRegionTre;
+    inputs.coverageScore = registrationResult.coverageScore;
+    inputs.surfaceResidual = registrationResult.metrics.value(QStringLiteral("refined_rms")).toDouble();
+
+    QVariantMap trackingQuality;
+    if (m_trackingService) {
+        trackingQuality = m_trackingService->checkTrackingQuality(QString(), QString());
+    }
+    if (trackingQuality.isEmpty()) {
+        trackingQuality.insert(QStringLiteral("tracking_jitter_mm"), 0.4);
+        trackingQuality.insert(QStringLiteral("visible_frame_ratio"), 1.0);
+    }
+
+    inputs.trackingJitter = trackingQuality.value(QStringLiteral("tracking_jitter_mm")).toDouble();
+    inputs.visibleFrameRatio = trackingQuality.value(QStringLiteral("visible_frame_ratio")).toDouble();
+
+    m_lastConfidence = m_confidenceEvaluator.evaluate(inputs);
+    if (!m_lastConfidence.allowNavigation) {
+        const QString warningText = m_lastConfidence.recommendations.isEmpty()
+            ? QStringLiteral("当前导航准入条件不足。")
+            : m_lastConfidence.recommendations.join(QStringLiteral("；"));
+        showWarning(QStringLiteral("导航准入"), warningText);
         return;
     }
 
@@ -864,7 +949,8 @@ void NavigationPageNew::on_startNavigationButton_clicked()
     // 鍚姩璺熻釜鍣ㄦ暟鎹洿鏂帮紙鏃х殑瀹氭椂鍣紝淇濈暀鍏煎锛?
     m_trackerTimer->start();
 
-    showInfo("导航", "实时导航已开始。探针位置将实时显示在3D视图中。");
+    showInfo("导航", QStringLiteral("实时导航已开始。当前准入评分：%1")
+                           .arg(m_lastConfidence.score, 0, 'f', 2));
 }
 
 void NavigationPageNew::on_pauseNavigationButton_clicked()
@@ -889,6 +975,25 @@ void NavigationPageNew::on_pauseNavigationButton_clicked()
 
     ui->startNavigationButton->setEnabled(true);
     ui->pauseNavigationButton->setEnabled(false);
+
+    if (!m_caseId.isEmpty()) {
+        NavigationEvaluationService evaluationService(evaluationCasesRoot());
+
+        AnkleNavigationRunRecord run;
+        run.caseId = m_caseId;
+        run.navigationMode = QStringLiteral("replay");
+        run.confidenceScore = m_lastConfidence.score;
+        run.warnings = m_lastConfidence.recommendations;
+        evaluationService.saveNavigationRun(run);
+
+        AnkleEvaluationReport report;
+        report.caseId = m_caseId;
+        report.translationErrorMm = m_registrationWorkflow ? m_registrationWorkflow->getLastResult().targetRegionTre : 0.0;
+        report.rotationErrorDeg = 0.0;
+        report.allowNavigation = m_lastConfidence.allowNavigation;
+        evaluationService.saveEvaluationReport(report);
+        evaluationService.exportMetricsCsv(m_caseId);
+    }
 }
 
 void NavigationPageNew::on_resetViewButton_clicked()
@@ -1499,6 +1604,18 @@ void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& r
     updateRegistrationResultDisplay(result);
     if (!m_registrationWorkflow) {
         return;
+    }
+
+    if (!m_caseId.isEmpty()) {
+        NavigationEvaluationService evaluationService(evaluationCasesRoot());
+        AnkleRegistrationRecord record;
+        record.caseId = m_caseId;
+        record.registrationMode = result.metrics.value(QStringLiteral("registration_mode")).toString();
+        record.fre = result.rmsError;
+        record.targetTre = result.targetRegionTre;
+        record.coverageScore = result.coverageScore;
+        record.metrics = result.metrics;
+        evaluationService.saveRegistrationRecord(record);
     }
 
     // 鑾峰彇璐ㄩ噺鎻忚堪

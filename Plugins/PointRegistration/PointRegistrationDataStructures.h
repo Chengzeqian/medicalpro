@@ -105,6 +105,9 @@ struct PointRegistrationResult {
     double maxError;               ///< 最大误差 (mm)
     double meanError;              ///< 平均误差 (mm)
     QVector<double> pointErrors;   ///< 每个点的误差
+    double targetRegionTre;        ///< 目标区 TRE
+    double coverageScore;          ///< 采点覆盖评分
+    QVariantMap metrics;           ///< 扩展指标
     
     // 统计信息
     int pointCount;                ///< 有效点对数量
@@ -117,6 +120,7 @@ struct PointRegistrationResult {
         , rotationX(0.0), rotationY(0.0), rotationZ(0.0)
         , scale(1.0)
         , rmsError(0.0), maxError(0.0), meanError(0.0)
+        , targetRegionTre(0.0), coverageScore(0.0)
         , pointCount(0), durationMs(0.0)
     {
         transformMatrix.setToIdentity();

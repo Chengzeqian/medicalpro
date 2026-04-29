@@ -28,6 +28,7 @@ public:
 
 signals:
     void backRequested();
+    void enterCaseWorkspaceRequested(const QString& caseId, int patientId);
     void enterMainSystemRequested();
 
 private slots:

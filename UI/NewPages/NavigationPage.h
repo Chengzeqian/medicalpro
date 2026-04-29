@@ -3,6 +3,7 @@
 
 #include "BasePage.h"
 #include "PageIndex.h"
+#include "Framework/Navigation/navigation_confidence_evaluator.h"
 #include "Plugins/PointRegistration/PointRegistrationDataStructures.h"
 
 #include <QEvent>
@@ -23,6 +24,15 @@ class OpticalTrackingService;
 class PointRegistrationService;
 class RegistrationWorkflow;
 
+enum class AnkleWorkflowStage
+{
+    Preparation,
+    Planning,
+    Registration,
+    Navigation,
+    Evaluation
+};
+
 class NavigationPageNew : public BasePage
 {
     Q_OBJECT
@@ -34,6 +44,7 @@ public:
     void onActivated() override;
     void onDeactivated() override;
 
+    void setCaseContext(const QString& caseId, int patientId, const QString& patientName);
     void setPatientId(int patientId);
     void setPatientName(const QString& name);
 
@@ -92,6 +103,8 @@ protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
+    void setWorkflowStage(AnkleWorkflowStage stage);
+    QString evaluationCasesRoot() const;
     void loadInstruments();
     void setupVTKViews();
     void cleanupVTKViews();
@@ -109,8 +122,10 @@ private:
     Ui::NavigationPage* ui;
     NavigationPageServiceAccess* m_serviceAccess;
     LegacyNavigationPageServiceAdapter* m_ownedServiceAdapter;
+    QString m_caseId;
     int m_patientId;
     QString m_patientName;
+    AnkleWorkflowStage m_workflowStage;
     bool m_trackerConnected;
     bool m_navigationActive;
     QString m_lastDicomDirPath;
@@ -131,6 +146,8 @@ private:
     FourViewDisplayService* m_fourViewService;
     OpticalTrackingService* m_trackingService;
     PointRegistrationService* m_pointRegistrationService;
+    NavigationConfidenceEvaluator m_confidenceEvaluator;
+    NavigationConfidenceResult m_lastConfidence;
 };
 
 #endif // NAVIGATIONPAGE_NEW_H

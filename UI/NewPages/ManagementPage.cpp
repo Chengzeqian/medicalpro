@@ -512,6 +512,20 @@ void ManagementPageNew::on_backButton_clicked()
 
 void ManagementPageNew::on_enterDashboardButton_clicked()
 {
+    int patientId = 1;
+    const int currentRow = ui->patientTable->currentRow();
+    if (currentRow >= 0) {
+        auto* patientIdItem = ui->patientTable->item(currentRow, 0);
+        if (patientIdItem) {
+            const int parsedPatientId = patientIdItem->text().toInt();
+            if (parsedPatientId > 0) {
+                patientId = parsedPatientId;
+            }
+        }
+    }
+
+    const QString caseId = QStringLiteral("ankle-case-%1").arg(patientId, 3, 10, QLatin1Char('0'));
+    emit enterCaseWorkspaceRequested(caseId, patientId);
     emit enterMainSystemRequested();
     emit navigateTo(toInt(PageIndex::Dashboard));
 }

@@ -1,4 +1,4 @@
-# Plugins CMakeLists.txt - CTK插件根目录
+﻿# Plugins CMakeLists.txt - CTK插件根目录
 cmake_minimum_required(VERSION 3.16.0)
 
 project(OpticalTrackingPlugins)
@@ -110,18 +110,6 @@ message(STATUS "Configuring platform plugin modules...")
         message(STATUS "Registration2D3D plugin is disabled by option")
     endif()
 
-    # PointRegistration插件 - 基于点的配准
-    if(ENABLE_PLUGIN_POINT_REGISTRATION)
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/PointRegistration/CMakeLists.txt")
-            add_subdirectory(PointRegistration)
-            message(STATUS "PointRegistration plugin subdirectory added")
-        else()
-            message(WARNING "PointRegistration plugin CMakeLists.txt not found")
-        endif()
-    else()
-        message(STATUS "PointRegistration plugin is disabled by option")
-    endif()
-
     # OpticalRegistration插件 - 光学配准（依赖OpticalTracking）
     if(ENABLE_PLUGIN_OPTICAL_REGISTRATION)
         if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/OpticalRegistration/CMakeLists.txt")
@@ -156,6 +144,18 @@ message(STATUS "Configuring platform plugin modules...")
         endif()
     else()
         message(STATUS "RegistrationCore plugin is disabled by option")
+    endif()
+
+    # PointRegistration插件 - 基于点的配准
+    if(ENABLE_PLUGIN_POINT_REGISTRATION)
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/PointRegistration/CMakeLists.txt")
+            add_subdirectory(PointRegistration)
+            message(STATUS "PointRegistration plugin subdirectory added")
+        else()
+            message(WARNING "PointRegistration plugin CMakeLists.txt not found")
+        endif()
+    else()
+        message(STATUS "PointRegistration plugin is disabled by option")
     endif()
 
     # Configure Precompiled Headers for All Plugins (Requirement 8.4)

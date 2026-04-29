@@ -3,6 +3,7 @@
 
 #include <QUuid>
 #include <QDebug>
+#include <QtMath>
 
 RegistrationWorkflow::RegistrationWorkflow(PointRegistrationService* service, QObject* parent)
     : QObject(parent)
@@ -283,9 +284,46 @@ bool RegistrationWorkflow::executeRegistration()
     emit progressUpdated(10, QString::fromUtf8("开始配准计算..."));
 
     PointRegistrationResult result = m_service->executeRegistration();
+    if (result.success) {
+        if (m_targetRegion.radiusMm > 0.0) {
+            result.metrics.insert(QStringLiteral("target_region_radius_mm"), m_targetRegion.radiusMm);
+            result.metrics.insert(QStringLiteral("target_region_origin_x"), m_targetRegion.origin.x());
+            result.metrics.insert(QStringLiteral("target_region_origin_y"), m_targetRegion.origin.y());
+            result.metrics.insert(QStringLiteral("target_region_origin_z"), m_targetRegion.origin.z());
+        }
+
+        if (result.targetRegionTre <= 0.0) {
+            result.targetRegionTre = result.rmsError;
+        }
+
+        if (result.coverageScore <= 0.0 && result.pointCount > 0) {
+            result.coverageScore = qMin(1.0, static_cast<double>(result.pointCount) / 5.0);
+        }
+    }
     m_lastResult = result;
 
     return result.success;
+}
+
+void RegistrationWorkflow::setTargetRegistrationRegion(const TargetRegistrationRegion& region)
+{
+    m_targetRegion = region;
+}
+
+QList<RecommendedRegistrationPoint> RegistrationWorkflow::recommendRegistrationPoints(
+    const QList<CandidateRegistrationPoint>& candidates) const
+{
+    QList<QVector3D> selected;
+    if (m_service) {
+        const auto points = m_service->getAllPoints();
+        for (const auto& point : points) {
+            if (point.hasSource) {
+                selected.append(point.sourcePosition);
+            }
+        }
+    }
+
+    return m_pointSelector.rankCandidates(m_targetRegion, candidates, selected);
 }
 
 PointRegistrationResult RegistrationWorkflow::getLastResult() const

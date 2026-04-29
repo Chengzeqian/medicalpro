@@ -27,6 +27,7 @@ public:
 
     void onActivated() override;
     void setCurrentPatientId(int patientId);
+    void setCurrentCaseId(const QString& caseId);
     int getCurrentPatientId() const { return m_currentPatientId; }
 
 signals:
@@ -56,6 +57,7 @@ private:
     void polishWidget(QWidget* widget);
 
     Ui::DashboardPage* ui;
+    QString m_currentCaseId;
     int m_currentPatientId;
     int m_currentDicomStudyCount;
     QList<int> m_patientIds;

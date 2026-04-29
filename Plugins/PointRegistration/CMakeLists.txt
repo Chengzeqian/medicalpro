@@ -23,6 +23,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
         PointRegistrationServiceImpl.cpp
         ProbeSimulator.cpp
         RegistrationWorkflow.cpp
+        target_sensitive_point_selector.cpp
         point_registration_module.cpp
         widgets/PointRegistrationWidget.cpp
         internal/PointRegistrationVTKWidget.cpp
@@ -34,6 +35,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
         PointRegistrationDataStructures.h
         ProbeSimulator.h
         RegistrationWorkflow.h
+        target_sensitive_point_selector.h
         point_registration_module.h
         widgets/PointRegistrationWidget.h
         internal/PointRegistrationVTKWidget.h
@@ -53,6 +55,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Gui
         Qt${QT_VERSION_MAJOR}::Widgets
+        RegistrationCorePlatformModuleLib
     )
 
     register_platform_descriptor(PointRegistration "${CMAKE_CURRENT_SOURCE_DIR}/platform/plugin.json")

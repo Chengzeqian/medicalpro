@@ -1,5 +1,11 @@
 ## Platform Kernel Governance
 
+### 2026-04-29 Ankle Arthroplasty Navigation Phase Acceptance
+
+- `medicalpro` 继续作为踝关节置换导航唯一主系统，未引入 3D Slicer / MITK 运行时依赖。
+- 病例工作区、规划持久化、目标敏感采点、两阶段配准、导航准入评分、评估结果导出已连成当前主交付链。
+- 导航页现已在配准完成和导航暂停时分别落盘 `registration_result.json`、`navigation_run.json`、`evaluation_report.json` 与 `evaluation_metrics.csv`。
+
 ### 2026-04-28 Runtime Descriptor Schema Cleanup
 
 - `PlatformDescriptorLoader` no longer accepts the legacy runtime key `ctk_symbolic_name`; the governed runtime descriptor schema now requires `runtime.symbolic_name`.

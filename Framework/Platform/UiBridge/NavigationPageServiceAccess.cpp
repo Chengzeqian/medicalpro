@@ -40,6 +40,11 @@ FourViewDisplayService* NavigationPageServiceAccess::fourViewDisplayService() co
     return m_port->fourViewDisplayService();
 }
 
+OpticalTrackingService* NavigationPageServiceAccess::opticalTrackingService() const
+{
+    return m_port->opticalTrackingService();
+}
+
 bool NavigationPageServiceAccess::isPointRegistrationFrameworkReady() const
 {
     return m_port->frameworkReady();
