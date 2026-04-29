@@ -5,7 +5,7 @@
   "domain": "imaging",
   "enabled": true,
   "runtime": {
-    "ctk_symbolic_name": "FourViewDisplay",
+    "symbolic_name": "FourViewDisplay",
     "startup_policy": "eager",
     "bootstrap_level": "core",
     "entry_capability": "imaging.viewport"

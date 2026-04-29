@@ -15,7 +15,7 @@
 /**
  * @brief 2D3D配准服务接口
  * 
- * 这是一个纯虚接口，遵循CTK服务架构设计原则。
+ * 这是一个纯虚接口，遵循平台服务契约。
  * 实现类负责：
  * - Python环境初始化和管理
  * - 调用Python配准算法
@@ -228,8 +228,7 @@ signals:
     void registrationCancelled(const QString& registrationId);
 };
 
-// CTK服务接口声明（必需）
+// 服务接口声明（必需）
 Q_DECLARE_INTERFACE(Registration2D3DService, "com.medicalpro.Registration2D3DService")
 
 #endif // REGISTRATION2D3D_SERVICE_H
-

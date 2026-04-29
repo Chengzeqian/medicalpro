@@ -146,8 +146,7 @@ signals:
     void progressUpdated(int progress, const QString& message);
 };
 
-// CTK服务接口声明
+// 服务接口声明
 Q_DECLARE_INTERFACE(OpticalRegistrationService, "org.medicalpro.OpticalRegistrationService")
 
 #endif // OPTICAL_REGISTRATION_SERVICE_H
-

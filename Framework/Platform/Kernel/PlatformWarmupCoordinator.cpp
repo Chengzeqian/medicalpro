@@ -58,12 +58,12 @@ PlatformWarmupOutcome PlatformWarmupCoordinator::run(
             if (!m_recorder) continue;
             m_recorder->recordPluginStepStarted(
                 entry.pluginId,
-                entry.ctkSymbolicName,
+                entry.symbolicName,
                 PlatformLifecycleStep::Warmup,
                 false);
             m_recorder->recordPluginStepFinished(
                 entry.pluginId,
-                entry.ctkSymbolicName,
+                entry.symbolicName,
                 PlatformLifecycleStep::Warmup,
                 PlatformLifecycleResult::Skipped,
                 QStringLiteral("skipped_by_mode"),
@@ -92,7 +92,7 @@ PlatformWarmupOutcome PlatformWarmupCoordinator::run(
         if (m_recorder) {
             m_recorder->recordPluginStepStarted(
                 entry.pluginId,
-                entry.ctkSymbolicName,
+                entry.symbolicName,
                 PlatformLifecycleStep::Warmup,
                 false);
         }
@@ -105,7 +105,7 @@ PlatformWarmupOutcome PlatformWarmupCoordinator::run(
         if (m_recorder) {
             m_recorder->recordPluginStepFinished(
                 entry.pluginId,
-                entry.ctkSymbolicName,
+                entry.symbolicName,
                 PlatformLifecycleStep::Warmup,
                 stepResult,
                 warmupReasonCode(stepResult),

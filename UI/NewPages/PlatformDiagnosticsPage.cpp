@@ -157,7 +157,7 @@ void PlatformDiagnosticsPage::populatePluginTable(
     for (int row = 0; row < plugins.size(); ++row) {
         const auto& plugin = plugins.at(row);
         ui->pluginTableWidget->setItem(row, 0, makeReadOnlyItem(plugin.pluginId));
-        ui->pluginTableWidget->setItem(row, 1, makeReadOnlyItem(plugin.ctkSymbolicName));
+        ui->pluginTableWidget->setItem(row, 1, makeReadOnlyItem(plugin.symbolicName));
         ui->pluginTableWidget->setItem(row, 2, makeReadOnlyItem(bootstrapText(plugin.bootstrapLevel)));
         ui->pluginTableWidget->setItem(row, 3, makeReadOnlyItem(startupPolicyText(plugin.startupPolicy)));
         ui->pluginTableWidget->setItem(row, 4, makeReadOnlyItem(pluginStateText(plugin.state)));
@@ -396,8 +396,8 @@ QString PlatformDiagnosticsPage::pluginDisplayText(const PlatformPluginLifecycle
     if (!plugin.displayName.isEmpty() && plugin.displayName != plugin.pluginId) {
         return QStringLiteral("%1 (%2)").arg(plugin.displayName, plugin.pluginId);
     }
-    if (!plugin.ctkSymbolicName.isEmpty() && plugin.ctkSymbolicName != plugin.pluginId) {
-        return QStringLiteral("%1 (%2)").arg(plugin.ctkSymbolicName, plugin.pluginId);
+    if (!plugin.symbolicName.isEmpty() && plugin.symbolicName != plugin.pluginId) {
+        return QStringLiteral("%1 (%2)").arg(plugin.symbolicName, plugin.pluginId);
     }
 
     return plugin.pluginId.isEmpty() ? QStringLiteral("none") : plugin.pluginId;
@@ -430,14 +430,14 @@ QString PlatformDiagnosticsPage::recoveryText(const QStringList& recoveryHints) 
 
 QString PlatformDiagnosticsPage::traceScopeText(const PlatformStartupTraceEntry& traceEntry) const
 {
-    return (!traceEntry.pluginId.isEmpty() || !traceEntry.ctkSymbolicName.isEmpty())
+    return (!traceEntry.pluginId.isEmpty() || !traceEntry.symbolicName.isEmpty())
         ? QStringLiteral("plugin")
         : QStringLiteral("phase");
 }
 
 QString PlatformDiagnosticsPage::traceSubjectText(const PlatformStartupTraceEntry& traceEntry) const
 {
-    if (!traceEntry.ctkSymbolicName.isEmpty()) return traceEntry.ctkSymbolicName;
+    if (!traceEntry.symbolicName.isEmpty()) return traceEntry.symbolicName;
     if (!traceEntry.pluginId.isEmpty()) return traceEntry.pluginId;
     if (!traceEntry.phaseLabel.isEmpty()) return traceEntry.phaseLabel;
     return traceEntry.phaseKey;

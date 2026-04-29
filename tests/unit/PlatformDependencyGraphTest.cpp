@@ -19,7 +19,7 @@ PlatformPluginDescriptor makeDescriptor(
     descriptor.version = QStringLiteral("1.0.0");
     descriptor.displayName = symbolicName;
     descriptor.domain = QStringLiteral("test");
-    descriptor.runtime.ctkSymbolicName = symbolicName;
+    descriptor.runtime.symbolicName = symbolicName;
     descriptor.runtime.bootstrapLevel = bootstrapLevel;
     descriptor.runtime.startupPolicy = startupPolicy;
     descriptor.provides.capabilities = providesCapabilities;

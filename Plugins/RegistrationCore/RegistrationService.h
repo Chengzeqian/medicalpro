@@ -33,6 +33,8 @@ class vtkPolyData;
  * T_CT_to_Tracker = computeRegistration(SourcePoints_Tracker, TargetPoints_CT)
  * ToolWorld = T_CT_to_Tracker^(-1) * ToolTracker
  */
+namespace registration_core {
+
 class RegistrationService : public QObject
 {
     Q_OBJECT
@@ -343,7 +345,9 @@ signals:
                                    const QString& warning);
 };
 
+} // namespace registration_core
+
 // Qt 接口声明
-Q_DECLARE_INTERFACE(RegistrationService, "medical.RegistrationService")
+Q_DECLARE_INTERFACE(registration_core::RegistrationService, "medical.RegistrationService")
 
 #endif // REGISTRATION_SERVICE_H

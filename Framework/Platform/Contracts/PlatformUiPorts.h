@@ -10,7 +10,7 @@ class DicomViewerService;
 class FourViewDisplayService;
 class InstrumentManagementService;
 class PointRegistrationService;
-class SegmentationService;
+class BoneSegmentationService;
 
 class FRAMEWORK_EXPORT ICoreUiRuntimeStatusPort
 {
@@ -38,7 +38,7 @@ public:
     virtual QString pluginState(const QString& pluginName) const = 0;
     virtual InstrumentManagementService* instrumentManagementService() const = 0;
     virtual DicomViewerService* dicomViewerService() const = 0;
-    virtual SegmentationService* segmentationService() const = 0;
+    virtual BoneSegmentationService* segmentationService() const = 0;
     virtual FourViewDisplayService* fourViewDisplayService() const = 0;
     virtual PointRegistrationService* pointRegistrationService() const = 0;
 };

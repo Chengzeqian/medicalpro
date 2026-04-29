@@ -21,7 +21,7 @@ void PlatformWarmupCoordinatorTest::run_skips_all_warmup_entries_outside_orchest
     PlatformManagedPluginPlan plan;
     PlatformManagedPluginPlanEntry entry;
     entry.pluginId = QStringLiteral("org.medicalpro.dicom_viewer");
-    entry.ctkSymbolicName = QStringLiteral("DicomViewer");
+    entry.symbolicName = QStringLiteral("DicomViewer");
     plan.installEntries = QVector<PlatformManagedPluginPlanEntry>{entry};
 
     PlatformWarmupCoordinator coordinator(&recorder);

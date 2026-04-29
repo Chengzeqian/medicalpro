@@ -2,9 +2,9 @@
 #include "UI/MainInterfaceFactory.h"
 #include "UI/AppTheme.h"
 
-#include "Framework/CTKManager.h"
 #include "Framework/ConsoleLogBridge.h"
 #include "Framework/Platform/Bootstrap/StartupBootstrapController.h"
+#include "Framework/Platform/Bootstrap/platform_built_in_module_bootstrap.h"
 #include "Framework/Platform/Kernel/PlatformDescriptorLoader.h"
 #include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
 #include "Framework/Platform/Kernel/PlatformManagedPluginPlan.h"
@@ -12,6 +12,8 @@
 #include "Framework/Platform/Kernel/PlatformRuntimeConfig.h"
 #include "Framework/Platform/Kernel/PlatformStartupCoordinator.h"
 #include "Framework/Platform/Kernel/PlatformWarmupCoordinator.h"
+#include "Framework/Platform/Kernel/platform_plugin_host.h"
+#include "Framework/Platform/Kernel/platform_runtime_host_adapter.h"
 #include "Framework/Platform/LegacyAdapters/LegacyNavigationAdapter.h"
 #include "Framework/Registration/RegistrationService.h"
 #include "Framework/StartupOrchestrator.h"
@@ -28,8 +30,6 @@
 #include <QHash>
 #include <QLocale>
 #include <QMessageBox>
-#include <QMutex>
-#include <QMutexLocker>
 #include <QPointer>
 #include <QSet>
 #include <QTimer>
@@ -37,8 +37,10 @@
 #include <atomic>
 #include <exception>
 #include <cstdio>
+#include <functional>
 #include <memory>
 #include <stdexcept>
+#include <utility>
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -167,7 +169,6 @@ static void configureThirdPartyDllSearchPaths()
 
     QStringList candidateDirs;
     candidateDirs << projectDir.absoluteFilePath("ThirdParty/VTK/VTK-install/bin");
-    candidateDirs << projectDir.absoluteFilePath("ThirdParty/CTK/CTK_install/lib/ctk-0.1");
     candidateDirs << projectDir.absoluteFilePath("ThirdParty/ITK/ITK-install/bin");
 
     QStringList validDirs;
@@ -237,28 +238,26 @@ struct StartupRuntimeContext
     struct PluginIdentity
     {
         QString pluginId;
-        QString ctkSymbolicName;
+        QString symbolicName;
     };
 
     StartupRuntimeContext(
         const PlatformRuntimeConfig& config,
-        CTKManager* ctkManager,
-        const QHash<QString, QString>& platformPluginIdToCtkSymbolicName,
+        PlatformStartupCoordinator::StartPluginFn startPluginFn,
+        const QHash<QString, QString>& platformPluginIdToSymbolicName,
         const QVector<PlatformPluginDescriptor>& descriptors)
         : runtimeConfig(config)
         , startupCoordinator(
               config.runtimeMode,
-              [ctkManager](const QString& pluginName) {
-                  return ctkManager->startPlugin(pluginName);
-              },
-              platformPluginIdToCtkSymbolicName,
+              std::move(startPluginFn),
+              platformPluginIdToSymbolicName,
               &lifecycleRecorder)
     {
         for (const auto& descriptor : descriptors) {
             descriptorsByPluginId.insert(descriptor.id, descriptor);
-            const auto ctkSymbolicName = descriptor.runtime.ctkSymbolicName.trimmed();
-            if (!ctkSymbolicName.isEmpty()) {
-                pluginIdByCtkSymbolicName.insert(ctkSymbolicName.toLower(), descriptor.id);
+            const auto symbolicName = descriptor.runtime.symbolicName.trimmed();
+            if (!symbolicName.isEmpty()) {
+                pluginIdBySymbolicName.insert(symbolicName.toLower(), descriptor.id);
             }
         }
     }
@@ -268,47 +267,47 @@ struct StartupRuntimeContext
         PluginIdentity identity;
         identity.pluginId = pluginId.trimmed();
         if (!identity.pluginId.isEmpty() && descriptorsByPluginId.contains(identity.pluginId)) {
-            identity.ctkSymbolicName = descriptorsByPluginId.value(identity.pluginId).runtime.ctkSymbolicName.trimmed();
+            identity.symbolicName = descriptorsByPluginId.value(identity.pluginId).runtime.symbolicName.trimmed();
         }
         return identity;
     }
 
-    PluginIdentity resolveByCtkSymbolicName(const QString& ctkSymbolicName) const
+    PluginIdentity resolveBySymbolicName(const QString& symbolicName) const
     {
         PluginIdentity identity;
-        identity.ctkSymbolicName = ctkSymbolicName.trimmed();
-        if (identity.ctkSymbolicName.isEmpty()) return identity;
+        identity.symbolicName = symbolicName.trimmed();
+        if (identity.symbolicName.isEmpty()) return identity;
 
-        const auto exactPluginId = pluginIdByCtkSymbolicName.value(identity.ctkSymbolicName.toLower()).trimmed();
+        const auto exactPluginId = pluginIdBySymbolicName.value(identity.symbolicName.toLower()).trimmed();
         if (!exactPluginId.isEmpty()) {
             identity.pluginId = exactPluginId;
             return identity;
         }
 
-        QString normalized = identity.ctkSymbolicName;
+        QString normalized = identity.symbolicName;
         if (normalized.startsWith(QStringLiteral("lib"), Qt::CaseInsensitive)) {
             normalized = normalized.mid(3);
-            const auto normalizedPluginId = pluginIdByCtkSymbolicName.value(normalized.toLower()).trimmed();
+            const auto normalizedPluginId = pluginIdBySymbolicName.value(normalized.toLower()).trimmed();
             if (!normalizedPluginId.isEmpty()) {
                 identity.pluginId = normalizedPluginId;
-                identity.ctkSymbolicName = normalized;
+                identity.symbolicName = normalized;
             }
         }
         return identity;
     }
 
-    PluginIdentity resolveByCtkSymbolicOrPath(const QString& ctkSymbolicName, const QString& pluginPath) const
+    PluginIdentity resolveBySymbolicOrPath(const QString& symbolicName, const QString& pluginPath) const
     {
-        auto identity = resolveByCtkSymbolicName(ctkSymbolicName);
+        auto identity = resolveBySymbolicName(symbolicName);
         if (!identity.pluginId.isEmpty()) return identity;
 
         const auto fileBaseName = QFileInfo(pluginPath).completeBaseName();
         if (fileBaseName.isEmpty()) return identity;
 
-        auto byFile = resolveByCtkSymbolicName(fileBaseName);
+        auto byFile = resolveBySymbolicName(fileBaseName);
         if (!byFile.pluginId.isEmpty()) return byFile;
 
-        if (byFile.ctkSymbolicName.isEmpty()) byFile.ctkSymbolicName = fileBaseName;
+        if (byFile.symbolicName.isEmpty()) byFile.symbolicName = fileBaseName;
         return byFile;
     }
 
@@ -321,29 +320,33 @@ struct StartupRuntimeContext
         return services;
     }
 
-    QStringList missingRequiredPlugins(const QString& pluginId, CTKManager* ctkManager) const
+    QStringList missingRequiredPlugins(
+        const QString& pluginId,
+        const std::function<bool(const QString&)>& isPluginStartedFn) const
     {
         QStringList missing;
-        if (!ctkManager) return missing;
+        if (!isPluginStartedFn) return missing;
 
         const auto descriptor = descriptorsByPluginId.value(pluginId);
         for (const auto& requiredPluginId : descriptor.required.plugins) {
             const auto requiredIdentity = resolveByPlatformPluginId(requiredPluginId);
-            if (requiredIdentity.ctkSymbolicName.isEmpty()) {
+            if (requiredIdentity.symbolicName.isEmpty()) {
                 missing.append(requiredPluginId);
                 continue;
             }
-            if (!ctkManager->isPluginStarted(requiredIdentity.ctkSymbolicName)) {
+            if (!isPluginStartedFn(requiredIdentity.symbolicName)) {
                 missing.append(requiredPluginId);
             }
         }
         return missing;
     }
 
-    QStringList missingRequiredCapabilities(const QString& pluginId, CTKManager* ctkManager) const
+    QStringList missingRequiredCapabilities(
+        const QString& pluginId,
+        const std::function<bool(const QString&)>& isPluginStartedFn) const
     {
         QStringList missing;
-        if (!ctkManager) return missing;
+        if (!isPluginStartedFn) return missing;
 
         const auto descriptor = descriptorsByPluginId.value(pluginId);
         for (const auto& requiredCapability : descriptor.required.capabilities) {
@@ -351,9 +354,9 @@ struct StartupRuntimeContext
             for (auto it = descriptorsByPluginId.constBegin(); it != descriptorsByPluginId.constEnd(); ++it) {
                 const auto& candidate = it.value();
                 if (!candidate.provides.capabilities.contains(requiredCapability)) continue;
-                const auto ctkSymbolicName = candidate.runtime.ctkSymbolicName.trimmed();
-                if (ctkSymbolicName.isEmpty()) continue;
-                if (!ctkManager->isPluginStarted(ctkSymbolicName)) continue;
+                const auto symbolicName = candidate.runtime.symbolicName.trimmed();
+                if (symbolicName.isEmpty()) continue;
+                if (!isPluginStartedFn(symbolicName)) continue;
                 capabilityReady = true;
                 break;
             }
@@ -380,12 +383,7 @@ struct StartupRuntimeContext
     std::shared_ptr<PlatformOnDemandActivationService> onDemandActivationService;
     std::unique_ptr<LegacyNavigationAdapter> navigationAdapter;
     QHash<QString, PlatformPluginDescriptor> descriptorsByPluginId;
-    QHash<QString, QString> pluginIdByCtkSymbolicName;
-    mutable QMutex bridgeMutex;
-    QHash<QString, PluginIdentity> pendingInstallByPath;
-    QHash<QString, PluginIdentity> pendingStartByCtkSymbolicName;
-    QVector<QMetaObject::Connection> startupRecorderBridgeConnections;
-    std::atomic_bool startupRecorderBridgeEnabled{true};
+    QHash<QString, QString> pluginIdBySymbolicName;
     std::atomic_bool shutdownRequested{false};
 };
 
@@ -431,7 +429,7 @@ int main(int argc, char* argv[])
         SafeApplication app(argc, argv);
         qDebug() << "[main] QApplication instance created";
 
-        // Configure third-party DLL search paths before any plugin or CTK
+        // Configure third-party DLL search paths before platform module
         // initialization so VTK-dependent plugins can resolve their runtime
         // DLLs without failing during startup.
         configureThirdPartyDllSearchPaths();
@@ -472,14 +470,16 @@ int main(int argc, char* argv[])
 
         const QStringList arguments = QCoreApplication::arguments();
         const bool safeMode = arguments.contains(QStringLiteral("--safe-mode"));
-        CTKManager::instance()->setSafeMode(safeMode);
+        auto runtimeHost = std::make_shared<PlatformRuntimeHostAdapter>();
+        auto* runtimeHostPort = static_cast<IPlatformRuntimeHostPort*>(runtimeHost.get());
+        auto* serviceAccessPort = static_cast<IPlatformServiceAccessPort*>(runtimeHost.get());
+        registerBuiltInPlatformModules();
 
 #ifdef VTK_FOUND
         const int defaultPoolSize = safeMode ? 2 : 6;
         VTKWidgetPool::instance()->initialize(defaultPoolSize);
 #endif
 
-        CTKManager* ctkManager = CTKManager::instance();
         const QString runtimeConfigPath =
             QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("config/platform_runtime.json"));
         QString runtimeConfigError;
@@ -500,15 +500,28 @@ int main(int argc, char* argv[])
                     .toStdString());
         }
 
-        ctkManager->setDescriptorPolicyContext(runtimeConfig, descriptors);
-
-        QHash<QString, QString> platformPluginIdToCtkSymbolicName;
-        platformPluginIdToCtkSymbolicName.reserve(descriptors.size());
+        QHash<QString, QString> platformPluginIdToSymbolicName;
+        platformPluginIdToSymbolicName.reserve(descriptors.size());
         for (const auto& descriptor : descriptors) {
-            const auto ctkSymbolicName = descriptor.runtime.ctkSymbolicName.trimmed();
-            if (ctkSymbolicName.isEmpty()) continue;
-            platformPluginIdToCtkSymbolicName.insert(descriptor.id, ctkSymbolicName);
+            const auto symbolicName = descriptor.runtime.symbolicName.trimmed();
+            if (symbolicName.isEmpty()) continue;
+            platformPluginIdToSymbolicName.insert(descriptor.id, symbolicName);
         }
+
+        const auto isPlatformModuleAvailable = [](const QString& symbolicName) {
+            return PlatformPluginHost::sharedInstance().hasActivator(symbolicName);
+        };
+        const auto activatePlugin = [runtimeHostPort](const QString& pluginName) {
+            return runtimeHostPort && runtimeHostPort->activatePlugin(pluginName);
+        };
+        const auto isPluginStarted = [runtimeHostPort](const QString& pluginName) {
+            return runtimeHostPort && runtimeHostPort->isPluginStarted(pluginName);
+        };
+        const auto missingServices = [runtimeHostPort](const QStringList& requiredServices) {
+            return runtimeHostPort
+                ? runtimeHostPort->missingServices(requiredServices)
+                : requiredServices;
+        };
 
         const QString pluginsPath =
             QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("plugins"));
@@ -517,22 +530,47 @@ int main(int argc, char* argv[])
             runtimeConfig,
             descriptors,
             pluginsPath,
+            isPlatformModuleAvailable,
             &managedPlanError);
         if (!managedPlanError.isEmpty()) {
             throw std::runtime_error(
                 QStringLiteral("Failed to build managed startup plan: %1").arg(managedPlanError).toStdString());
         }
 
+        bool missingPlatformModule = false;
+        for (const auto& entry : managedPlan.installEntries) {
+            if (entry.requiresBundleInstall) {
+                missingPlatformModule = true;
+                break;
+            }
+        }
+        if (!missingPlatformModule) {
+            for (const auto& descriptor : descriptors) {
+                const auto symbolicName = descriptor.runtime.symbolicName.trimmed();
+                if (symbolicName.isEmpty()) continue;
+                if (!isPlatformModuleAvailable(symbolicName)) {
+                    missingPlatformModule = true;
+                    break;
+                }
+            }
+        }
+        if (missingPlatformModule) {
+            throw std::runtime_error(
+                QStringLiteral("Platform module coverage is incomplete after runtime host cleanup")
+                    .toStdString());
+        }
+
         qDebug() << "[main] Platform runtime mode:" << runtimeModeToString(runtimeConfig.runtimeMode);
         qDebug() << "[main] Platform descriptor directory:" << runtimeConfig.descriptorDirectory;
         qDebug() << "[main] Platform core plugin ids:" << runtimeConfig.corePluginIds;
         qDebug() << "[main] Managed startup plugin ids:" << managedPlan.managedPluginIds;
+        qDebug() << "[main] Platform runtime host active:" << true;
         auto orchestrator = StartupOrchestrator::instance();
         orchestrator->setRuntimeMode(runtimeConfig.runtimeMode);
         auto startupContext = std::make_shared<StartupRuntimeContext>(
             runtimeConfig,
-            ctkManager,
-            platformPluginIdToCtkSymbolicName,
+            activatePlugin,
+            platformPluginIdToSymbolicName,
             descriptors);
         startupContext->managedPlan = managedPlan;
         startupContext->warmupCoordinator = std::make_unique<PlatformWarmupCoordinator>(&startupContext->lifecycleRecorder);
@@ -581,16 +619,16 @@ int main(int argc, char* argv[])
 
                 return PlatformPluginState::Discovered;
             },
-            [ctkManager](const QStringList& requiredServices) {
-                return ctkManager->getMissingServices(requiredServices);
+            [missingServices](const QStringList& requiredServices) {
+                return missingServices(requiredServices);
             },
-            [startupContext, ctkManager](const QString& pluginId) {
-                return startupContext->missingRequiredPlugins(pluginId, ctkManager);
+            [startupContext, isPluginStarted](const QString& pluginId) {
+                return startupContext->missingRequiredPlugins(pluginId, isPluginStarted);
             },
-            [startupContext, ctkManager](const QString& pluginId) {
-                return startupContext->missingRequiredCapabilities(pluginId, ctkManager);
+            [startupContext, isPluginStarted](const QString& pluginId) {
+                return startupContext->missingRequiredCapabilities(pluginId, isPluginStarted);
             },
-            [ctkManager](const QString&, const QStringList& healthChecks) {
+            [serviceAccessPort](const QString&, const QStringList& healthChecks) {
                 QVector<PlatformHealthCheckResult> results;
 
                 for (const auto& healthCheck : healthChecks) {
@@ -601,12 +639,12 @@ int main(int argc, char* argv[])
                         result.passed = true;
                         result.detail = QStringLiteral("Required services were registered");
                     } else if (healthCheck == QStringLiteral("core_binary_accessible")) {
-                        result.passed = ctkManager->getService<RegistrationService>() != nullptr;
+                        result.passed = serviceAccessPort->registrationService() != nullptr;
                         result.detail = result.passed
                             ? QStringLiteral("RegistrationService is available")
                             : QStringLiteral("RegistrationService is not available");
                     } else if (healthCheck == QStringLiteral("tracking_adapter_accessible")) {
-                        result.passed = ctkManager->getService<OpticalTrackingService>() != nullptr;
+                        result.passed = serviceAccessPort->opticalTrackingService() != nullptr;
                         result.detail = result.passed
                             ? QStringLiteral("OpticalTrackingService is available")
                             : QStringLiteral("OpticalTrackingService is not available");
@@ -626,10 +664,9 @@ int main(int argc, char* argv[])
             pluginsPath,
             &startupContext->startupCoordinator,
             nullptr,
-            [ctkManager](const PlatformOnDemandActivationPlanEntry& entry) {
-                return ctkManager->installPlugin(entry.bundleFilePath, false, nullptr);
-            },
-            onDemandProbes);
+            PlatformOnDemandActivationService::InstallPluginFn {},
+            onDemandProbes,
+            isPlatformModuleAvailable);
         startupContext->navigationAdapter = std::make_unique<LegacyNavigationAdapter>(
             [service = startupContext->onDemandActivationService](const QString& pluginId) {
                 return service->ensureReady(pluginId);
@@ -704,24 +741,10 @@ int main(int argc, char* argv[])
         qDebug() << "[Phase 5] Launching background startup tasks";
         qDebug() << "----------------------------------------";
         orchestrator->setLifecycleRecorder(&startupContext->lifecycleRecorder);
-        QObject::connect(&app, &QCoreApplication::aboutToQuit, &app, [startupContext]() {
+        QObject::connect(&app, &QCoreApplication::aboutToQuit, &app, [startupContext, runtimeHostPort]() {
             startupContext->shutdownRequested.store(true);
+            if (runtimeHostPort) runtimeHostPort->stop();
         });
-
-        const auto normalizedIdentity = [startupContext](
-                                            const QString& ctkSymbolicName,
-                                            const QString& pluginPath) {
-            auto identity = startupContext->resolveByCtkSymbolicOrPath(ctkSymbolicName, pluginPath);
-            if (identity.ctkSymbolicName.isEmpty()) {
-                identity.ctkSymbolicName = ctkSymbolicName.trimmed();
-            }
-            if (identity.pluginId.isEmpty()) {
-                identity.pluginId = identity.ctkSymbolicName.isEmpty()
-                    ? QStringLiteral("unknown_plugin")
-                    : QStringLiteral("ctk:%1").arg(identity.ctkSymbolicName);
-            }
-            return identity;
-        };
 
         const auto applyPluginState = [startupContext](const StartupRuntimeContext::PluginIdentity& identity, PlatformPluginState state) {
             if (!startupContext->stateStore) return;
@@ -731,196 +754,7 @@ int main(int argc, char* argv[])
             startupContext->stateStore->setPluginState(pluginId, state);
         };
 
-        // State write-back bridge (kept active during runtime).
-        QObject::connect(
-            ctkManager,
-            &CTKManager::pluginInstalled,
-            &app,
-            [startupContext, normalizedIdentity, applyPluginState](const QString& pluginName, const QString& pluginPath) {
-                applyPluginState(normalizedIdentity(pluginName, pluginPath), PlatformPluginState::Installed);
-            },
-            Qt::QueuedConnection);
-
-        QObject::connect(
-            ctkManager,
-            &CTKManager::pluginInstallFailedDetailed,
-            &app,
-            [startupContext, normalizedIdentity, applyPluginState](const QString& pluginName, const QString& pluginPath, const QString&) {
-                applyPluginState(normalizedIdentity(pluginName, pluginPath), PlatformPluginState::Failed);
-            },
-            Qt::QueuedConnection);
-
-        QObject::connect(
-            ctkManager,
-            &CTKManager::pluginStartRequestedDetailed,
-            &app,
-            [normalizedIdentity, applyPluginState](const QString& pluginName) {
-                applyPluginState(normalizedIdentity(pluginName, QString()), PlatformPluginState::Starting);
-            },
-            Qt::QueuedConnection);
-
-        QObject::connect(
-            ctkManager,
-            &CTKManager::pluginStartedDetailed,
-            &app,
-            [normalizedIdentity, applyPluginState](const QString& pluginName) {
-                applyPluginState(normalizedIdentity(pluginName, QString()), PlatformPluginState::Starting);
-            },
-            Qt::QueuedConnection);
-
-        QObject::connect(
-            ctkManager,
-            &CTKManager::pluginStartFailedDetailed,
-            &app,
-            [normalizedIdentity, applyPluginState](const QString& pluginName, const QString&) {
-                applyPluginState(normalizedIdentity(pluginName, QString()), PlatformPluginState::Failed);
-            },
-            Qt::QueuedConnection);
-
-        // Startup recorder bridge lifecycle guard.
-        QObject::connect(
-            orchestrator,
-            &StartupOrchestrator::startupCompleted,
-            orchestrator,
-            [startupContext](bool) {
-                startupContext->startupRecorderBridgeEnabled.store(false);
-                QMutexLocker locker(&startupContext->bridgeMutex);
-                for (const auto& connection : startupContext->startupRecorderBridgeConnections) {
-                    QObject::disconnect(connection);
-                }
-                startupContext->startupRecorderBridgeConnections.clear();
-            },
-            Qt::DirectConnection);
-
-        {
-            QMutexLocker locker(&startupContext->bridgeMutex);
-            startupContext->startupRecorderBridgeConnections.append(QObject::connect(
-            ctkManager,
-            &CTKManager::pluginInstallStartedDetailed,
-            [startupContext, normalizedIdentity](const QString& pluginName, const QString& pluginPath) {
-                if (!startupContext->startupRecorderBridgeEnabled.load()) return;
-                const auto identity = normalizedIdentity(pluginName, pluginPath);
-                if (startupContext->managedPlan.managedPluginIds.contains(identity.pluginId)) return;
-                {
-                    QMutexLocker locker(&startupContext->bridgeMutex);
-                    startupContext->pendingInstallByPath.insert(pluginPath, identity);
-                }
-                startupContext->lifecycleRecorder.recordPluginStepStarted(
-                    identity.pluginId,
-                    identity.ctkSymbolicName,
-                    PlatformLifecycleStep::Install,
-                    false);
-            }));
-
-            startupContext->startupRecorderBridgeConnections.append(QObject::connect(
-            ctkManager,
-            &CTKManager::pluginInstalled,
-            [startupContext, normalizedIdentity](const QString& pluginName, const QString& pluginPath) {
-                if (!startupContext->startupRecorderBridgeEnabled.load()) return;
-                auto identity = normalizedIdentity(pluginName, pluginPath);
-                if (startupContext->managedPlan.managedPluginIds.contains(identity.pluginId)) return;
-                {
-                    QMutexLocker locker(&startupContext->bridgeMutex);
-                    if (startupContext->pendingInstallByPath.contains(pluginPath)) {
-                        identity = startupContext->pendingInstallByPath.take(pluginPath);
-                    }
-                }
-                startupContext->lifecycleRecorder.recordPluginStepFinished(
-                    identity.pluginId,
-                    identity.ctkSymbolicName,
-                    PlatformLifecycleStep::Install,
-                    PlatformLifecycleResult::Succeeded,
-                    QStringLiteral("install_succeeded"),
-                    QStringLiteral("CTK plugin install succeeded"));
-            }));
-
-            startupContext->startupRecorderBridgeConnections.append(QObject::connect(
-            ctkManager,
-            &CTKManager::pluginInstallFailedDetailed,
-            [startupContext, normalizedIdentity](const QString& pluginName, const QString& pluginPath, const QString& reason) {
-                if (!startupContext->startupRecorderBridgeEnabled.load()) return;
-                auto identity = normalizedIdentity(pluginName, pluginPath);
-                if (startupContext->managedPlan.managedPluginIds.contains(identity.pluginId)) return;
-                {
-                    QMutexLocker locker(&startupContext->bridgeMutex);
-                    if (startupContext->pendingInstallByPath.contains(pluginPath)) {
-                        identity = startupContext->pendingInstallByPath.take(pluginPath);
-                    }
-                }
-                startupContext->lifecycleRecorder.recordPluginStepFinished(
-                    identity.pluginId,
-                    identity.ctkSymbolicName,
-                    PlatformLifecycleStep::Install,
-                    PlatformLifecycleResult::Failed,
-                    QStringLiteral("install_failed"),
-                    reason);
-            }));
-
-            startupContext->startupRecorderBridgeConnections.append(QObject::connect(
-            ctkManager,
-            &CTKManager::pluginStartRequestedDetailed,
-            [startupContext, normalizedIdentity](const QString& pluginName) {
-                if (!startupContext->startupRecorderBridgeEnabled.load()) return;
-                auto identity = normalizedIdentity(pluginName, QString());
-                if (!identity.pluginId.startsWith(QStringLiteral("ctk:"))
-                    && startupContext->descriptorsByPluginId.contains(identity.pluginId)) {
-                    return;
-                }
-
-                {
-                    QMutexLocker locker(&startupContext->bridgeMutex);
-                    startupContext->pendingStartByCtkSymbolicName.insert(identity.ctkSymbolicName.toLower(), identity);
-                }
-                startupContext->lifecycleRecorder.recordPluginStepStarted(
-                    identity.pluginId,
-                    identity.ctkSymbolicName,
-                    PlatformLifecycleStep::Start,
-                    false);
-            }));
-
-            startupContext->startupRecorderBridgeConnections.append(QObject::connect(
-            ctkManager,
-            &CTKManager::pluginStartedDetailed,
-            [startupContext](const QString& pluginName) {
-                if (!startupContext->startupRecorderBridgeEnabled.load()) return;
-                StartupRuntimeContext::PluginIdentity identity;
-                {
-                    QMutexLocker locker(&startupContext->bridgeMutex);
-                    identity = startupContext->pendingStartByCtkSymbolicName.take(pluginName.toLower());
-                }
-                if (identity.pluginId.isEmpty()) return;
-                startupContext->lifecycleRecorder.recordPluginStepFinished(
-                    identity.pluginId,
-                    identity.ctkSymbolicName,
-                    PlatformLifecycleStep::Start,
-                    PlatformLifecycleResult::Succeeded,
-                    QStringLiteral("start_succeeded"),
-                    QStringLiteral("CTK plugin start succeeded"));
-            }));
-
-            startupContext->startupRecorderBridgeConnections.append(QObject::connect(
-            ctkManager,
-            &CTKManager::pluginStartFailedDetailed,
-            [startupContext](const QString& pluginName, const QString& reason) {
-                if (!startupContext->startupRecorderBridgeEnabled.load()) return;
-                StartupRuntimeContext::PluginIdentity identity;
-                {
-                    QMutexLocker locker(&startupContext->bridgeMutex);
-                    identity = startupContext->pendingStartByCtkSymbolicName.take(pluginName.toLower());
-                }
-                if (identity.pluginId.isEmpty()) return;
-                startupContext->lifecycleRecorder.recordPluginStepFinished(
-                    identity.pluginId,
-                    identity.ctkSymbolicName,
-                    PlatformLifecycleStep::Start,
-                    PlatformLifecycleResult::Failed,
-                    QStringLiteral("start_failed"),
-                    reason);
-            }));
-        }
-
-        // Register the CTK framework initialization handler
-#ifdef CTK_PLUGIN_FRAMEWORK
+        // Register the runtime host initialization handler
         orchestrator->registerPhaseHandler(
             StartupPhase::MainUICreation,
             [publishBootStage](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
@@ -932,34 +766,35 @@ int main(int argc, char* argv[])
                     QStringLiteral("main_interface_deferred"));
             });
 
-        orchestrator->registerPhaseHandler(StartupPhase::CTKFrameworkInit, [ctkManager, startupContext, publishBootStage, publishFailure](QApplication* app) -> StartupOrchestrator::PhaseExecutionResult {
+        orchestrator->registerPhaseHandler(StartupPhase::PlatformRuntimeInit, [runtimeHostPort, startupContext, publishBootStage, publishFailure](QApplication* app) -> StartupOrchestrator::PhaseExecutionResult {
             publishBootStage(
-                QStringLiteral("CTK framework initialization"),
+                QStringLiteral("Platform runtime initialization"),
                 QStringLiteral("正在初始化插件框架"));
             if (!startupContext->startupCoordinator.shouldInitializeFramework()) {
-                qDebug() << "[StartupOrchestrator] Skipping CTK framework initialization in observe_only mode";
+                qDebug() << "[StartupOrchestrator] Skipping platform runtime initialization in observe_only mode";
                 return StartupOrchestrator::PhaseExecutionResult::skipped(
-                    QStringLiteral("CTK framework initialization skipped in observe_only mode"));
+                    QStringLiteral("Platform runtime initialization skipped in observe_only mode"),
+                    QStringLiteral("observe_only_mode"));
             }
 
-            qDebug() << "[StartupOrchestrator] Running CTK framework initialization...";
-            if (!ctkManager->initializeFramework(app)) {
-                qCritical() << "[StartupOrchestrator] CTK framework initialization failed";
-                publishFailure(QStringLiteral("CTK framework initialization failed"));
+            qDebug() << "[StartupOrchestrator] Running platform runtime initialization...";
+            if (!runtimeHostPort->initialize(app)) {
+                qCritical() << "[StartupOrchestrator] Platform runtime initialization failed";
+                publishFailure(QStringLiteral("Platform runtime initialization failed"));
                 return false;
             }
-            if (!ctkManager->startFramework()) {
-                qCritical() << "[StartupOrchestrator] CTK framework startup failed";
-                publishFailure(QStringLiteral("CTK framework startup failed"));
+            if (!runtimeHostPort->start()) {
+                qCritical() << "[StartupOrchestrator] Platform runtime startup failed";
+                publishFailure(QStringLiteral("Platform runtime startup failed"));
                 return false;
             }
-            qDebug() << "[StartupOrchestrator] CTK framework initialization completed";
+            qDebug() << "[StartupOrchestrator] Platform runtime initialization completed";
 
             return true;
         });
 
         // Register the plugin installation handler
-        orchestrator->registerPhaseHandler(StartupPhase::PluginInstallation, [ctkManager, startupContext, publishBootStage, publishFailure](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+        orchestrator->registerPhaseHandler(StartupPhase::PluginInstallation, [startupContext, publishBootStage, publishFailure](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
             publishBootStage(
                 QStringLiteral("Plugin installation"),
                 QStringLiteral("正在安装平台插件"));
@@ -972,8 +807,8 @@ int main(int argc, char* argv[])
             qDebug() << "[StartupOrchestrator] Running managed plugin installation...";
             const bool installed = startupContext->startupCoordinator.installManagedPlugins(
                 startupContext->managedPlan,
-                [ctkManager](const PlatformManagedPluginPlanEntry& entry) {
-                    return ctkManager->installPlugin(entry.bundleFilePath, false, nullptr);
+                [](const PlatformManagedPluginPlanEntry&) {
+                    return true;
                 });
             qDebug() << "[StartupOrchestrator] Managed plugin installation completed";
             if (!installed) {
@@ -984,7 +819,7 @@ int main(int argc, char* argv[])
 
         orchestrator->registerPhaseHandler(
             StartupPhase::CriticalPluginStart,
-            [startupContext, ctkManager, applyPluginState, publishBootStage, publishFailure, publishReady](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+            [startupContext, applyPluginState, publishBootStage, publishFailure, publishReady, missingServices, isPluginStarted](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
                 publishBootStage(
                     QStringLiteral("Critical plugin activation"),
                     QStringLiteral("正在准备主流程插件"));
@@ -1016,26 +851,26 @@ int main(int argc, char* argv[])
                     const auto outcome = startupContext->startupCoordinator.waitForServiceReady(
                         entry,
                         {
-                            [ctkManager](const QStringList& requiredServices) {
-                                return ctkManager->getMissingServices(requiredServices);
+                            [missingServices](const QStringList& requiredServices) {
+                                return missingServices(requiredServices);
                             },
-                            [startupContext, ctkManager](const QString& pluginId) {
-                                return startupContext->missingRequiredPlugins(pluginId, ctkManager);
+                            [startupContext, isPluginStarted](const QString& pluginId) {
+                                return startupContext->missingRequiredPlugins(pluginId, isPluginStarted);
                             },
-                            [startupContext, ctkManager](const QString& pluginId) {
-                                return startupContext->missingRequiredCapabilities(pluginId, ctkManager);
+                            [startupContext, isPluginStarted](const QString& pluginId) {
+                                return startupContext->missingRequiredCapabilities(pluginId, isPluginStarted);
                             }
                         });
 
                     applyPluginState(identity, outcome.finalState);
                     startupContext->lifecycleRecorder.recordPluginStepStarted(
                         identity.pluginId,
-                        identity.ctkSymbolicName,
+                        identity.symbolicName,
                         PlatformLifecycleStep::ServiceReady,
                         true);
                     startupContext->lifecycleRecorder.recordPluginStepFinished(
                         identity.pluginId,
-                        identity.ctkSymbolicName,
+                        identity.symbolicName,
                         PlatformLifecycleStep::ServiceReady,
                         outcome.success ? PlatformLifecycleResult::Succeeded : PlatformLifecycleResult::Timeout,
                         outcome.reasonCode,
@@ -1053,7 +888,7 @@ int main(int argc, char* argv[])
                 return true;
         });
 
-        orchestrator->registerPhaseHandler(StartupPhase::DeferredPluginStart, [ctkManager, startupContext, publishBootStage](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+        orchestrator->registerPhaseHandler(StartupPhase::DeferredPluginStart, [startupContext, publishBootStage](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
             publishBootStage(
                 QStringLiteral("Deferred plugin activation"),
                 QStringLiteral("主流程已就绪，后台继续启动可选插件"));
@@ -1065,15 +900,10 @@ int main(int argc, char* argv[])
 
             qDebug() << "[StartupOrchestrator] Running deferred plugin activation...";
 
-            const auto deferredPlugins = ctkManager->getDeferredPlugins();
-            if (deferredPlugins.isEmpty()) {
-                qDebug() << "[StartupOrchestrator] No deferred plugins configured for startup";
-                return true;
-            }
-
-            const bool success = startupContext->startupCoordinator.startDeferredPlugins(deferredPlugins);
-            qDebug() << "[StartupOrchestrator] Deferred plugin activation completed";
-            return success;
+            qDebug() << "[StartupOrchestrator] Deferred plugin activation has no additional runtime work";
+            return StartupOrchestrator::PhaseExecutionResult::skipped(
+                QStringLiteral("Deferred plugin activation has no additional runtime work"),
+                QStringLiteral("no_deferred_runtime_work"));
         });
 
         orchestrator->registerPhaseHandler(StartupPhase::ServiceWarmup, [startupContext, publishBootStage](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
@@ -1116,10 +946,6 @@ int main(int argc, char* argv[])
 
             return true;
         });
-
-#else
-        qDebug() << "[Phase 5] CTK plugin framework disabled, skipping CTK startup handlers";
-#endif
 
         QObject::connect(orchestrator, &StartupOrchestrator::startupCompleted, &app, [&mainInterface, safeMode](bool success) {
             if (!success) {
@@ -1175,3 +1001,5 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+
+#include "main.moc"

@@ -26,7 +26,7 @@ enum class StartupPhase {
     QApplicationInit,
     SplashScreen,
     MainUICreation,
-    CTKFrameworkInit,
+    PlatformRuntimeInit,
     PluginInstallation,
     CriticalPluginStart,
     DeferredPluginStart,

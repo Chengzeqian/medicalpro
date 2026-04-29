@@ -15,11 +15,7 @@
 #include <QScrollArea>
 
 // CTK框架支持
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include <ctkPluginContext.h>
 class DicomViewerService;
-class ctkEventAdmin;
-#endif
 
 /**
  * @brief DICOM影像查看器Widget
@@ -52,10 +48,6 @@ public:
 
     ~DicomViewerWidget();
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    // 初始化 CTK 服务
-    void initializeCTKService(ctkPluginContext* context);
-#endif
 
     // ========== 数据加载 ==========
     
@@ -234,12 +226,8 @@ private:
     QPushButton* m_exportBtn;
     QPushButton* m_printBtn;
     
-    // CTK 服务
-#ifdef CTK_PLUGIN_FRAMEWORK
-    ctkPluginContext* m_ctkContext;
+    // 服务
     DicomViewerService* m_dicomService;
-    ctkEventAdmin* m_eventAdmin;
-#endif
     
     // 状态变量
     int m_currentPatientId;

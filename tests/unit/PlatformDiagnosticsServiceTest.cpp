@@ -20,7 +20,7 @@ PlatformPluginDescriptor makeDescriptor(
     descriptor.version = QStringLiteral("1.0.0");
     descriptor.displayName = ctkSymbolicName;
     descriptor.domain = QStringLiteral("test");
-    descriptor.runtime.ctkSymbolicName = ctkSymbolicName;
+    descriptor.runtime.symbolicName = ctkSymbolicName;
     descriptor.runtime.bootstrapLevel = bootstrapLevel;
     descriptor.runtime.startupPolicy = startupPolicy;
     descriptor.provides.capabilities = QStringList{QStringLiteral("%1.capability").arg(pluginId)};
@@ -42,7 +42,7 @@ PlatformLifecycleEvent makeEvent(
     PlatformLifecycleEvent event;
     event.kind = kind;
     event.pluginId = pluginId;
-    event.ctkSymbolicName = ctkSymbolicName;
+    event.symbolicName = ctkSymbolicName;
     event.step = step;
     event.result = result;
     event.offsetMs = offsetMs;
@@ -63,7 +63,7 @@ private slots:
     void buildSnapshot_identifies_slowest_plugin_and_failure_point();
     void buildSnapshot_falls_back_to_first_degraded_failure_point();
     void buildSnapshot_prefers_reason_code_recovery_hints_over_raw_detail();
-    void buildSnapshot_detects_ctk_platform_state_mismatch();
+    void buildSnapshot_detects_runtime_platform_state_mismatch();
     void buildSnapshot_does_not_report_mismatch_when_platform_state_is_ready();
     void buildSnapshot_deduplicates_and_sorts_problems_after_mismatch_append();
     void buildSnapshot_reports_managed_scope_and_excluded_plugins();
@@ -78,7 +78,7 @@ void PlatformDiagnosticsServiceTest::buildSnapshot_includes_mode_trace_and_recov
     descriptor.version = QStringLiteral("1.0.0");
     descriptor.displayName = QStringLiteral("DicomViewer");
     descriptor.domain = QStringLiteral("imaging");
-    descriptor.runtime.ctkSymbolicName = QStringLiteral("DicomViewer");
+    descriptor.runtime.symbolicName = QStringLiteral("DicomViewer");
     descriptor.provides.capabilities = QStringList{QStringLiteral("imaging.data")};
 
     PlatformStateStore store;
@@ -235,7 +235,7 @@ void PlatformDiagnosticsServiceTest::buildSnapshot_prefers_reason_code_recovery_
         "Raw detail that should not become the top-level hint")));
 }
 
-void PlatformDiagnosticsServiceTest::buildSnapshot_detects_ctk_platform_state_mismatch()
+void PlatformDiagnosticsServiceTest::buildSnapshot_detects_runtime_platform_state_mismatch()
 {
     PlatformStateStore store;
     store.replaceDescriptors({
@@ -253,7 +253,7 @@ void PlatformDiagnosticsServiceTest::buildSnapshot_detects_ctk_platform_state_mi
     const auto snapshot = service.buildSnapshot(observation);
 
     QVERIFY(!snapshot.problems.isEmpty());
-    QCOMPARE(snapshot.problems.constFirst().reasonCode, QStringLiteral("ctk_platform_state_mismatch"));
+    QCOMPARE(snapshot.problems.constFirst().reasonCode, QStringLiteral("runtime_platform_state_mismatch"));
     QCOMPARE(snapshot.problems.constFirst().pluginId, QStringLiteral("org.medicalpro.user_management"));
 }
 
@@ -276,7 +276,7 @@ void PlatformDiagnosticsServiceTest::buildSnapshot_does_not_report_mismatch_when
 
     bool foundMismatch = false;
     for (const auto& problem : snapshot.problems) {
-        if (problem.reasonCode == QStringLiteral("ctk_platform_state_mismatch")) {
+        if (problem.reasonCode == QStringLiteral("runtime_platform_state_mismatch")) {
             foundMismatch = true;
             break;
         }
@@ -318,8 +318,8 @@ void PlatformDiagnosticsServiceTest::buildSnapshot_deduplicates_and_sorts_proble
             220,
             100,
             false,
-            QStringLiteral("ctk_platform_state_mismatch"),
-            QStringLiteral("CTK reports plugin UserManagement as started but platform state is 0"))
+            QStringLiteral("runtime_platform_state_mismatch"),
+            QStringLiteral("Runtime reports plugin UserManagement as started but platform state is 0"))
     };
 
     PlatformDiagnosticsService service(&store);
@@ -327,7 +327,7 @@ void PlatformDiagnosticsServiceTest::buildSnapshot_deduplicates_and_sorts_proble
 
     int mismatchCount = 0;
     for (const auto& problem : snapshot.problems) {
-        if (problem.reasonCode == QStringLiteral("ctk_platform_state_mismatch")) mismatchCount++;
+        if (problem.reasonCode == QStringLiteral("runtime_platform_state_mismatch")) mismatchCount++;
     }
     QCOMPARE(mismatchCount, 1);
     QVERIFY(!snapshot.problems.isEmpty());

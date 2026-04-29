@@ -87,6 +87,11 @@ QStringList toStringList(const QJsonValue& value)
     return output;
 }
 
+QString runtimeSymbolicName(const QJsonObject& runtimeObject)
+{
+    return runtimeObject.value(QStringLiteral("symbolic_name")).toString().trimmed();
+}
+
 PlatformStartupPolicy toStartupPolicy(const QString& rawValue, bool* ok)
 {
     if (rawValue == QStringLiteral("eager")) {
@@ -146,7 +151,11 @@ PlatformPluginDescriptor PlatformDescriptorLoader::loadFromFile(const QString& f
     descriptor.enabled = root.value(QStringLiteral("enabled")).toBool(true);
 
     const auto runtimeObject = root.value(QStringLiteral("runtime")).toObject();
-    descriptor.runtime.ctkSymbolicName = runtimeObject.value(QStringLiteral("ctk_symbolic_name")).toString();
+    descriptor.runtime.symbolicName = runtimeSymbolicName(runtimeObject);
+    if (descriptor.runtime.symbolicName.isEmpty()) {
+        if (error) *error = QStringLiteral("Descriptor missing required field runtime.symbolic_name: %1").arg(filePath);
+        return {};
+    }
     descriptor.runtime.entryCapability = runtimeObject.value(QStringLiteral("entry_capability")).toString();
 
     bool startupPolicyOk = false;

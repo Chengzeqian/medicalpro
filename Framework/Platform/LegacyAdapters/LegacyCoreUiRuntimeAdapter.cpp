@@ -1,38 +1,45 @@
 #include "Framework/Platform/LegacyAdapters/LegacyCoreUiRuntimeAdapter.h"
 
-#include "Framework/CTKManager.h"
+#include "Framework/Platform/Kernel/platform_plugin_host.h"
+#include "Framework/Platform/Kernel/platform_service_registry.h"
 
 #include <QDir>
 #include <QFileInfo>
 
 bool LegacyCoreUiRuntimeAdapter::frameworkReady() const
 {
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager && ctkManager->isCTKAvailable();
+    return !PlatformPluginHost::sharedInstance().registeredPluginIds().isEmpty();
 }
 
 QStringList LegacyCoreUiRuntimeAdapter::installedPlugins() const
 {
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager ? ctkManager->getInstalledPlugins() : QStringList {};
+    return PlatformPluginHost::sharedInstance().registeredPluginIds();
 }
 
 QStringList LegacyCoreUiRuntimeAdapter::startedPlugins() const
 {
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager ? ctkManager->getStartedPlugins() : QStringList {};
+    QStringList startedPlugins;
+    auto& host = PlatformPluginHost::sharedInstance();
+    const QStringList pluginIds = host.registeredPluginIds();
+    for (const QString& pluginId : pluginIds) {
+        if (host.isModuleStarted(pluginId)) startedPlugins.append(pluginId);
+    }
+    return startedPlugins;
 }
 
 QStringList LegacyCoreUiRuntimeAdapter::loadedPlugins() const
 {
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager ? ctkManager->getLoadedPlugins() : QStringList {};
+    return PlatformPluginHost::sharedInstance().registeredPluginIds();
 }
 
 QStringList LegacyCoreUiRuntimeAdapter::missingServices(const QStringList& requiredServices) const
 {
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager ? ctkManager->getMissingServices(requiredServices) : requiredServices;
+    QStringList missingServices;
+    auto* registry = PlatformPluginHost::sharedInstance().serviceRegistry();
+    for (const QString& serviceId : requiredServices) {
+        if (!registry || !registry->hasService(serviceId)) missingServices.append(serviceId);
+    }
+    return missingServices;
 }
 
 bool LegacyCoreUiRuntimeAdapter::directoryExists(const QString& directoryPath) const

@@ -23,12 +23,12 @@ public:
         const QString& detail = {});
     void recordPluginStepStarted(
         const QString& pluginId,
-        const QString& ctkSymbolicName,
+        const QString& symbolicName,
         PlatformLifecycleStep step,
         bool blockingStartup);
     void recordPluginStepFinished(
         const QString& pluginId,
-        const QString& ctkSymbolicName,
+        const QString& symbolicName,
         PlatformLifecycleStep step,
         PlatformLifecycleResult result,
         const QString& reasonCode = {},
@@ -43,7 +43,7 @@ private:
         QString spanId;
         QString parentSpanId;
         QString pluginId;
-        QString ctkSymbolicName;
+        QString symbolicName;
         QString phaseKey;
         QString phaseLabel;
         PlatformLifecycleStep step = PlatformLifecycleStep::None;
@@ -70,12 +70,12 @@ private:
     ActiveSpan takePhaseSpan(const QString& phaseKey);
     ActiveSpan takePluginSpan(
         const QString& pluginId,
-        const QString& ctkSymbolicName,
+        const QString& symbolicName,
         PlatformLifecycleStep step);
     static QString stepKey(PlatformLifecycleStep step);
     static QString pluginSpanKey(
         const QString& pluginId,
-        const QString& ctkSymbolicName,
+        const QString& symbolicName,
         PlatformLifecycleStep step);
 
     QString m_sessionId = QStringLiteral("startup_session");

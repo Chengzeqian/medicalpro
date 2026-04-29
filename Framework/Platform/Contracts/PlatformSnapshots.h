@@ -29,7 +29,7 @@ struct PlatformStartupTraceEntry
     QString phaseKey;
     QString phaseLabel;
     QString pluginId;
-    QString ctkSymbolicName;
+    QString symbolicName;
     PlatformLifecycleStep step = PlatformLifecycleStep::None;
     PlatformLifecycleResult result = PlatformLifecycleResult::Running;
     bool success = false;
@@ -51,7 +51,7 @@ struct PlatformLifecycleEvent
     QString phaseKey;
     QString phaseLabel;
     QString pluginId;
-    QString ctkSymbolicName;
+    QString symbolicName;
     qint64 offsetMs = 0;
     qint64 durationMs = 0;
     bool blockingStartup = false;
@@ -67,7 +67,7 @@ struct PlatformLifecycleEvent
 struct PlatformPluginLifecycleSnapshot
 {
     QString pluginId;
-    QString ctkSymbolicName;
+    QString symbolicName;
     QString displayName;
     PlatformBootstrapLevel bootstrapLevel = PlatformBootstrapLevel::Deferred;
     PlatformStartupPolicy startupPolicy = PlatformStartupPolicy::Disabled;
@@ -94,7 +94,7 @@ struct PlatformPluginLifecycleSnapshot
 struct PlatformPluginRuntimeSnapshot
 {
     QString pluginId;
-    QString ctkSymbolicName;
+    QString symbolicName;
     PlatformPluginState state = PlatformPluginState::Discovered;
     QStringList missingRequiredServices;
     QStringList missingRequiredCapabilities;

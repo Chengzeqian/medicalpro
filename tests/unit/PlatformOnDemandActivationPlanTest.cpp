@@ -22,7 +22,7 @@ PlatformPluginDescriptor makeDescriptor(
     descriptor.version = QStringLiteral("1.0.0");
     descriptor.displayName = displayName;
     descriptor.domain = QStringLiteral("navigation");
-    descriptor.runtime.ctkSymbolicName = ctkSymbolicName;
+    descriptor.runtime.symbolicName = ctkSymbolicName;
     descriptor.runtime.startupPolicy = startupPolicy;
     descriptor.runtime.bootstrapLevel = bootstrapLevel;
     descriptor.provides.capabilities = providedCapabilities;
@@ -41,6 +41,7 @@ class PlatformOnDemandActivationPlanTest : public QObject
 
 private slots:
     void build_returns_target_activation_entry();
+    void build_marks_platform_hosted_target_as_not_requiring_bundle_install();
     void build_adds_required_plugin_before_target();
     void build_rejects_missing_diagnostics_contract();
     void build_rejects_missing_bundle_path();
@@ -77,6 +78,32 @@ void PlatformOnDemandActivationPlanTest::build_returns_target_activation_entry()
     QCOMPARE(plan.activationEntries.size(), 1);
     QVERIFY(plan.activationEntries.constFirst().target);
     QVERIFY(plan.activationEntries.constFirst().bundleFilePath.endsWith(QStringLiteral("RegistrationCore.dll")));
+}
+
+void PlatformOnDemandActivationPlanTest::build_marks_platform_hosted_target_as_not_requiring_bundle_install()
+{
+    QTemporaryDir pluginDir;
+    QVERIFY(pluginDir.isValid());
+
+    QString error;
+    const auto plan = PlatformOnDemandActivationPlanBuilder::build(
+        QStringLiteral("org.medicalpro.registration_core"),
+        {
+            makeDescriptor(
+                QStringLiteral("org.medicalpro.registration_core"),
+                QStringLiteral("RegistrationCore"),
+                QStringLiteral("RegistrationCore"))
+        },
+        pluginDir.path(),
+        [](const QString& symbolicName) {
+            return symbolicName == QStringLiteral("RegistrationCore");
+        },
+        &error);
+
+    QVERIFY2(error.isEmpty(), qPrintable(error));
+    QCOMPARE(plan.activationEntries.size(), 1);
+    QVERIFY(plan.activationEntries.constFirst().bundleFilePath.isEmpty());
+    QVERIFY(!plan.activationEntries.constFirst().requiresBundleInstall);
 }
 
 void PlatformOnDemandActivationPlanTest::build_adds_required_plugin_before_target()

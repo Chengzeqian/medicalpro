@@ -6,10 +6,10 @@
 #include <QString>
 #include <QWidget>
 
-#include "Framework/Platform/CtkBridge/CoreUiRuntimeStatusProvider.h"
-#include "Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.h"
+#include "Framework/Platform/UiBridge/CoreUiRuntimeStatusProvider.h"
 #include "Framework/Platform/Diagnostics/PlatformDiagnosticsService.h"
 #include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
+#include "Framework/Platform/Diagnostics/PlatformRuntimeSnapshotCollector.h"
 #include "Framework/Platform/Kernel/PlatformStateStore.h"
 
 class QCloseEvent;
@@ -110,7 +110,7 @@ private:
     PlatformStateStore m_platformStateStore;
     PlatformDiagnosticsService m_platformDiagnosticsService;
     PlatformLifecycleTraceRecorder m_lifecycleTraceRecorder;
-    CtkRuntimeSnapshotCollector m_runtimeCollector;
+    PlatformRuntimeSnapshotCollector m_runtimeCollector;
     LegacyCoreUiRuntimeAdapter* m_coreUiRuntimeAdapter;
     CoreUiRuntimeStatusProvider* m_coreUiRuntimeStatusProvider;
     LegacyUserManagementAdapter* m_identityAdapter;

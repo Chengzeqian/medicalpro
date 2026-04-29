@@ -1,90 +1,85 @@
 #include "Framework/Platform/LegacyAdapters/LegacyNavigationPageServiceAdapter.h"
 
-#include "Framework/CTKManager.h"
+#include "Framework/Platform/Kernel/platform_plugin_host.h"
+#include "Framework/Platform/Kernel/platform_service_registry.h"
 
-#ifdef CTK_PLUGIN_FRAMEWORK
 #include "Plugins/BoneSegmentation/SegmentationService.h"
 #include "Plugins/DicomViewer/DicomViewerService.h"
 #include "Plugins/FourViewDisplay/FourViewDisplayService.h"
 #include "Plugins/InstrumentManagement/InstrumentManagementService.h"
 #include "Plugins/PointRegistration/PointRegistrationService.h"
-#endif
+
+namespace
+{
+PlatformPluginHost& pluginHost()
+{
+    return PlatformPluginHost::sharedInstance();
+}
+
+PlatformServiceRegistry* serviceRegistry()
+{
+    return pluginHost().serviceRegistry();
+}
+}
 
 bool LegacyNavigationPageServiceAdapter::frameworkReady() const
 {
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager && ctkManager->isCTKAvailable();
+    return !pluginHost().registeredPluginIds().isEmpty();
 }
 
 QObject* LegacyNavigationPageServiceAdapter::pluginEventSource() const
 {
-    return CTKManager::instance();
+    return nullptr;
 }
 
 bool LegacyNavigationPageServiceAdapter::isPluginStarted(const QString& pluginName) const
 {
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager && ctkManager->isPluginStarted(pluginName);
+    return pluginHost().isModuleStarted(pluginName);
 }
 
 bool LegacyNavigationPageServiceAdapter::startPlugin(const QString& pluginName)
 {
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager && ctkManager->startPlugin(pluginName);
+    return pluginHost().hasActivator(pluginName) && pluginHost().startModule(pluginName);
 }
 
 QString LegacyNavigationPageServiceAdapter::pluginState(const QString& pluginName) const
 {
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager ? ctkManager->getPluginState(pluginName) : QString {};
+    if (pluginHost().isModuleStarted(pluginName)) return QStringLiteral("ACTIVE");
+    if (pluginHost().hasActivator(pluginName)) return QStringLiteral("RESOLVED");
+    return QStringLiteral("UNKNOWN");
 }
 
 InstrumentManagementService* LegacyNavigationPageServiceAdapter::instrumentManagementService() const
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager ? ctkManager->getService<InstrumentManagementService>() : nullptr;
-#else
-    return nullptr;
-#endif
+    return serviceRegistry()
+        ? qobject_cast<InstrumentManagementService*>(serviceRegistry()->service(QStringLiteral("InstrumentManagementService")))
+        : nullptr;
 }
 
 DicomViewerService* LegacyNavigationPageServiceAdapter::dicomViewerService() const
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager ? ctkManager->getService<DicomViewerService>() : nullptr;
-#else
-    return nullptr;
-#endif
+    return serviceRegistry()
+        ? qobject_cast<DicomViewerService*>(serviceRegistry()->service(QStringLiteral("DicomViewerService")))
+        : nullptr;
 }
 
-SegmentationService* LegacyNavigationPageServiceAdapter::segmentationService() const
+BoneSegmentationService* LegacyNavigationPageServiceAdapter::segmentationService() const
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager ? ctkManager->getService<SegmentationService>() : nullptr;
-#else
-    return nullptr;
-#endif
+    return serviceRegistry()
+        ? qobject_cast<BoneSegmentationService*>(serviceRegistry()->service(QStringLiteral("SegmentationService")))
+        : nullptr;
 }
 
 FourViewDisplayService* LegacyNavigationPageServiceAdapter::fourViewDisplayService() const
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager ? ctkManager->getService<FourViewDisplayService>() : nullptr;
-#else
-    return nullptr;
-#endif
+    return serviceRegistry()
+        ? qobject_cast<FourViewDisplayService*>(serviceRegistry()->service(QStringLiteral("FourViewDisplayService")))
+        : nullptr;
 }
 
 PointRegistrationService* LegacyNavigationPageServiceAdapter::pointRegistrationService() const
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
-    auto* ctkManager = CTKManager::instance();
-    return ctkManager ? ctkManager->getService<PointRegistrationService>() : nullptr;
-#else
-    return nullptr;
-#endif
+    return serviceRegistry()
+        ? qobject_cast<PointRegistrationService*>(serviceRegistry()->service(QStringLiteral("PointRegistrationService")))
+        : nullptr;
 }

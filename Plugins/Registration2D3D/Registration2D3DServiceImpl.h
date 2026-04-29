@@ -10,7 +10,8 @@
  */
 
 #include "Registration2D3DService.h"
-#include <ctkPluginContext.h>
+
+class PlatformServiceRegistry;
 
 // 解决 Qt 和 Python 的宏冲突
 // Qt 定义了 slots/signals 等宏，Python.h 中使用了 slots 作为变量名
@@ -89,8 +90,8 @@ public:
     void pauseRendering() override;
     void resumeRendering() override;
 
-    // ========== CTK Context 管理 ==========
-    void setContext(ctkPluginContext* context) { m_context = context; }
+    // ========== 服务注册表接入管理 ==========
+    void setServiceRegistry(PlatformServiceRegistry* serviceRegistry) { m_serviceRegistry = serviceRegistry; }
     
 private slots:
     // 工作线程信号处理
@@ -102,8 +103,8 @@ private slots:
                        const QString& errorMessage);
     
 private:
-    // CTK Context
-    ctkPluginContext* m_context;
+    // 服务注册表接入
+    PlatformServiceRegistry* m_serviceRegistry;
     
     // Python环境
     bool m_pythonInitialized;

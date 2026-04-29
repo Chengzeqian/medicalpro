@@ -11,11 +11,6 @@
 #include <QMutex>
 #include <QRecursiveMutex>
 
-// CTK Plugin Framework
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include <ctkPluginContext.h>
-#endif
-
 /**
  * @brief DICOM影像查看服务实现类
  * 
@@ -93,10 +88,7 @@ public:
     void pauseRendering() override;
     void resumeRendering() override;
 
-    // CTK Context管理（用于Widget初始化）
-#ifdef CTK_PLUGIN_FRAMEWORK
-    void setPluginContext(ctkPluginContext* context) { m_pluginContext = context; }
-#endif
+    // Widget 状态管理（用于 Widget 初始化）
 
 private slots:
     void onDatabaseError(const QSqlError& error);
@@ -156,10 +148,7 @@ private:
     bool m_renderingPaused;
     QList<QWidget*> m_createdWidgets;  // 跟踪创建的Widget
 
-    // CTK上下文（用于Widget创建）
-#ifdef CTK_PLUGIN_FRAMEWORK
-    ctkPluginContext* m_pluginContext;
-#endif
+    // Widget 创建辅助状态
 };
 
 #endif // DICOMVIEWERSERVICEIMPL_H

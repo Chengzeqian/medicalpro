@@ -13,7 +13,7 @@ public:
     QString pluginState(const QString& pluginName) const override;
     InstrumentManagementService* instrumentManagementService() const override;
     DicomViewerService* dicomViewerService() const override;
-    SegmentationService* segmentationService() const override;
+    BoneSegmentationService* segmentationService() const override;
     FourViewDisplayService* fourViewDisplayService() const override;
     PointRegistrationService* pointRegistrationService() const override;
 };

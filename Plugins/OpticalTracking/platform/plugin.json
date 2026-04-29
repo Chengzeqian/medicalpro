@@ -5,7 +5,7 @@
   "domain": "navigation",
   "enabled": true,
   "runtime": {
-    "ctk_symbolic_name": "OpticalTracking",
+    "symbolic_name": "OpticalTracking",
     "startup_policy": "on_demand",
     "bootstrap_level": "deferred",
     "entry_capability": "navigation.tracking"

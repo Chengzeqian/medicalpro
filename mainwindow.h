@@ -15,10 +15,7 @@
 #include <QTimer>
 #include <QVector3D>
 #include <QCloseEvent>
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include <ctkServiceReference.h>
-#endif
+#include <memory>
 
 
 
@@ -28,13 +25,10 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
-#ifdef CTK_PLUGIN_FRAMEWORK
 class OpticalTrackingService;
-class PatientDatabaseService;
-class MedicalImageCoreService;
-class ImageInteractionService;
-class MedicalViewerService;
-class MedicalProcessingService;
+class CtkRuntimeHostAdapter;
+class IPlatformServiceAccessPort;
+#ifdef CTK_PLUGIN_FRAMEWORK
 class CTKEnhancedLogger;
 class ctkCollapsibleGroupBox;
 class ctkDoubleSpinBox; 
@@ -101,7 +95,6 @@ private slots:
     void onOpenPointPickerDialog();           // 打开点拾取界面
     void onOpenMeasurementDialog();           // 打开测量工具界面
     void onOpenAnnotationDialog();            // 打开标注工具界面
-    void onImageInteractionServiceAvailable(bool available);  // 图像交互服务可用性
     
     // === 医学查看器插件槽函数 ===
     void onOpenMedicalViewerDialog();         // 打开医学查看器主界面
@@ -136,13 +129,12 @@ private:
     // 旧患者管理方法已移除，现在使用CTK插件架构
     
     // 光学追踪相关方法
-    void setupCTKPluginContext();               // 设置CTK插件上下文
+    void setupPlatformServiceAccess();          // 设置平台服务访问入口
     void initializeTrackingService();
-    void initializePatientManagementService(ctkPluginContext* context);  // 初始化患者管理服务
-    void initializeMedicalImageService(ctkPluginContext* context);      // 初始化医学图像服务
-    void initializeImageInteractionService(ctkPluginContext* context);  // 初始化图像交互服务
-    void initializeMedicalViewerService(ctkPluginContext* context);     // 初始化医学查看器服务
-    void initializeMedicalProcessingService(ctkPluginContext* context); // 初始化医学处理服务
+    void initializePatientManagementService();   // 初始化患者管理服务
+    void initializeMedicalImageService();        // 初始化医学图像服务
+    void initializeMedicalViewerService();       // 初始化医学查看器服务
+    void initializeMedicalProcessingService();   // 初始化医学处理服务
     void addPatientManagementMenuItem();                               // 添加患者管理菜单项
     void addMedicalImageMenuItem();                                     // 添加医学图像菜单项
     void addImageInteractionMenuItem();                                // 添加图像交互菜单项
@@ -192,33 +184,20 @@ private:
     int m_markerDetectionCount;
 
 #ifdef CTK_PLUGIN_FRAMEWORK
-    // CTK插件上下文
-    ctkPluginContext* m_ctkContext;
-    
-    // CTK特定的成员 - 只通过服务接口访问插件
-    ctkServiceReference m_trackingServiceRef;
+    std::shared_ptr<CtkRuntimeHostAdapter> m_runtimeHost;
+    IPlatformServiceAccessPort* m_serviceAccess;
+
     OpticalTrackingService* m_trackingService;
     QString m_currentSessionId;
+    QObject* m_patientService;
+    QObject* m_imageService;
     
-    // 患者管理插件服务
-    ctkServiceReference m_patientServiceRef;
-    PatientDatabaseService* m_patientService;
     
-    // 医学图像管理插件服务
-    ctkServiceReference m_imageServiceRef;
-    MedicalImageCoreService* m_imageService;
     
-    // 图像交互插件服务
-    ctkServiceReference m_imageInteractionServiceRef;
-    ImageInteractionService* m_imageInteractionService;
+    QObject* m_medicalViewerService;
+    QObject* m_medicalProcessingService;
     
-    // 医学查看器插件服务
-    ctkServiceReference m_medicalViewerServiceRef;
-    MedicalViewerService* m_medicalViewerService;
     
-    // 医学处理插件服务
-    ctkServiceReference m_medicalProcessingServiceRef;
-    MedicalProcessingService* m_medicalProcessingService;
     
     // CTK增强组件
     CTKEnhancedLogger* m_enhancedLogger;

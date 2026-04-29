@@ -28,10 +28,6 @@
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include "Plugins/UserManagement/UserDataStructures.h"
-#endif
-
 MainInterfaceWidget::MainInterfaceWidget(
     INavigationFacadePort* navigationPort,
     QWidget* parent)

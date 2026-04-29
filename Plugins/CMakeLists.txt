@@ -18,8 +18,7 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
 endif()
 
 # 添加CTK插件的通用配置
-if(CTK_FOUND)
-    message(STATUS "Configuring CTK plugins...")
+message(STATUS "Configuring platform plugin modules...")
 
     	# 构建开关 - 核心插件
     option(ENABLE_PLUGIN_OPTICAL_TRACKING "Build OpticalTracking plugin" ON)
@@ -179,6 +178,3 @@ if(CTK_FOUND)
         endif()
     endif()
 
-else()
-    message(WARNING "CTK not found - plugins will not be built")
-endif()

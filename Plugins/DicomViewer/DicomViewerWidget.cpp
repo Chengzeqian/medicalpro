@@ -14,16 +14,9 @@
 #include <QScrollBar>
 #include <cmath>
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include <service/event/ctkEventAdmin.h>
-#include <service/event/ctkEvent.h>
-#endif
-
 DicomViewerWidget::DicomViewerWidget(QWidget *parent)
     : QWidget(parent)
-    , m_ctkContext(nullptr)
     , m_dicomService(nullptr)
-    , m_eventAdmin(nullptr)
     , m_currentPatientId(-1)
     , m_currentSeriesId(-1)
     , m_currentImageId(-1)
@@ -42,9 +35,7 @@ DicomViewerWidget::DicomViewerWidget(QWidget *parent)
 
 DicomViewerWidget::DicomViewerWidget(DicomViewerService* service, QWidget *parent)
     : QWidget(parent)
-    , m_ctkContext(nullptr)
     , m_dicomService(service)
-    , m_eventAdmin(nullptr)
     , m_currentPatientId(-1)
     , m_currentSeriesId(-1)
     , m_currentImageId(-1)
@@ -65,40 +56,6 @@ DicomViewerWidget::~DicomViewerWidget()
 {
     qDebug() << "[DicomViewerWidget] Widget销毁";
 }
-
-#ifdef CTK_PLUGIN_FRAMEWORK
-void DicomViewerWidget::initializeCTKService(ctkPluginContext* context)
-{
-    if (!context) {
-        qWarning() << "[DicomViewerWidget] CTK context为空";
-        return;
-    }
-    
-    m_ctkContext = context;
-    
-    // 获取DicomViewerService
-    ctkServiceReference serviceRef = context->getServiceReference<DicomViewerService>();
-    if (serviceRef) {
-        m_dicomService = qobject_cast<DicomViewerService*>(
-            context->getService(serviceRef)
-        );
-        if (m_dicomService) {
-            qDebug() << "[DicomViewerWidget] ✓ DicomViewerService已获取";
-        }
-    } else {
-        qWarning() << "[DicomViewerWidget] 无法获取DicomViewerService";
-    }
-    
-    // 获取EventAdmin
-    ctkServiceReference eventRef = context->getServiceReference<ctkEventAdmin>();
-    if (eventRef) {
-        m_eventAdmin = qobject_cast<ctkEventAdmin*>(context->getService(eventRef));
-        if (m_eventAdmin) {
-            qDebug() << "[DicomViewerWidget] ✓ EventAdmin已获取";
-        }
-    }
-}
-#endif
 
 void DicomViewerWidget::setupUI()
 {

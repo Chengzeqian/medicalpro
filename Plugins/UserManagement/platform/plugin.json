@@ -5,7 +5,7 @@
   "domain": "identity",
   "enabled": true,
   "runtime": {
-    "ctk_symbolic_name": "UserManagement",
+    "symbolic_name": "UserManagement",
     "startup_policy": "eager",
     "bootstrap_level": "core",
     "entry_capability": "identity.core"

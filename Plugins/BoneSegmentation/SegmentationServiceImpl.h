@@ -48,10 +48,10 @@ struct SegmentationTask {
  * 3. 使用 vtkMarchingCubes 生成 Mesh
  * 4. 异步任务管理，不阻塞主线程
  */
-class SegmentationServiceImpl : public SegmentationService
+class SegmentationServiceImpl : public BoneSegmentationService
 {
     Q_OBJECT
-    Q_INTERFACES(SegmentationService)
+    Q_INTERFACES(BoneSegmentationService)
 
 public:
     explicit SegmentationServiceImpl(QObject* parent = nullptr);

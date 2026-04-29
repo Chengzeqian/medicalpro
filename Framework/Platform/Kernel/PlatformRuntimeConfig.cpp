@@ -92,7 +92,7 @@ PlatformRuntimeConfig PlatformRuntimeConfig::loadFromFile(const QString& filePat
     return config;
 }
 
-QStringList PlatformRuntimeConfig::resolveCoreCtkPluginNames(const QString& descriptorDirectoryPath, QString* error) const
+QStringList PlatformRuntimeConfig::resolveCoreSymbolicNames(const QString& descriptorDirectoryPath, QString* error) const
 {
     if (error) error->clear();
     if (descriptorDirectoryPath.isEmpty()) {
@@ -109,17 +109,17 @@ QStringList PlatformRuntimeConfig::resolveCoreCtkPluginNames(const QString& desc
     QStringList loadErrors;
     const auto descriptors = PlatformDescriptorLoader::loadFromDirectory(descriptorDirectory.absolutePath(), &loadErrors);
 
-    QHash<QString, QString> ctkSymbolicNamesById;
-    ctkSymbolicNamesById.reserve(descriptors.size());
+    QHash<QString, QString> symbolicNamesById;
+    symbolicNamesById.reserve(descriptors.size());
     for (const auto& descriptor : descriptors) {
-        ctkSymbolicNamesById.insert(descriptor.id, descriptor.runtime.ctkSymbolicName);
+        symbolicNamesById.insert(descriptor.id, descriptor.runtime.symbolicName);
     }
 
     QStringList resolvedNames;
     resolvedNames.reserve(corePluginIds.size());
 
     for (const auto& pluginId : corePluginIds) {
-        if (!ctkSymbolicNamesById.contains(pluginId)) {
+        if (!symbolicNamesById.contains(pluginId)) {
             if (error) {
                 *error = QStringLiteral("missing descriptor for core plugin id: %1").arg(pluginId);
                 if (!loadErrors.isEmpty()) *error += QStringLiteral(" | loader errors: %1").arg(loadErrors.join(QStringLiteral("; ")));
@@ -127,13 +127,13 @@ QStringList PlatformRuntimeConfig::resolveCoreCtkPluginNames(const QString& desc
             return {};
         }
 
-        const auto ctkSymbolicName = ctkSymbolicNamesById.value(pluginId).trimmed();
-        if (ctkSymbolicName.isEmpty()) {
-            if (error) *error = QStringLiteral("descriptor missing ctk_symbolic_name for core plugin id: %1").arg(pluginId);
+        const auto symbolicName = symbolicNamesById.value(pluginId).trimmed();
+        if (symbolicName.isEmpty()) {
+            if (error) *error = QStringLiteral("descriptor missing runtime.symbolic_name for core plugin id: %1").arg(pluginId);
             return {};
         }
 
-        resolvedNames.append(ctkSymbolicName);
+        resolvedNames.append(symbolicName);
     }
 
     return resolvedNames;

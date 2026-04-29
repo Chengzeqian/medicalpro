@@ -17,17 +17,14 @@
 #include <QThread>
 #include <QDateTime>
 #include <QMetaObject>
-#include <service/event/ctkEventAdmin.h>
-#include <service/event/ctkEvent.h>
-#include <ctkDictionary.h>
-
 #include "Framework/DatabaseManager.h"
+#include "Framework/Platform/Contracts/platform_runtime_host_ports.h"
 
 UserManagementServiceImpl::UserManagementServiceImpl(QObject* parent)
     : UserManagementService(parent)
     , m_databaseInitialized(false)
     , m_serviceInitialized(false)
-    , m_eventAdmin(nullptr)
+    , m_eventBus(nullptr)
     , m_totalLoginAttempts(0)
     , m_successfulLogins(0)
     , m_failedLogins(0)
@@ -53,6 +50,11 @@ UserManagementServiceImpl::UserManagementServiceImpl(QObject* parent)
     initializeRolePermissions();
     
     qDebug() << "[UserManagementServiceImpl] UserManagement service instance initialization complete";
+}
+
+void UserManagementServiceImpl::setEventBus(IPlatformEventBusPort* eventBus)
+{
+    m_eventBus = eventBus;
 }
 
 UserManagementServiceImpl::~UserManagementServiceImpl()
@@ -341,7 +343,7 @@ UserInfo UserManagementServiceImpl::loginUser(const QString& username, const QSt
     logSecurityEvent("INFO", QString("User login succeeded: %1").arg(username), user.id);
     
     // 发送登录成功事件
-    sendCTKEvent("user/login", {{"userId", user.id}, {"username", username}});
+    publishPlatformEvent("user/login", {{"userId", user.id}, {"username", username}});
     emit userLoggedIn(user);
 
     qDebug() << "[UserManagementServiceImpl] User login succeeded:" << username;
@@ -375,7 +377,7 @@ bool UserManagementServiceImpl::logoutUser(int userId)
     logOperation(userId, "LOGOUT", QString("User logout: %1").arg(user.username), QString(), true);
     logSecurityEvent("INFO", QString("User logout: %1").arg(user.username), userId);
 
-    sendCTKEvent("user/logout", {{"userId", userId}, {"username", user.username}});
+    publishPlatformEvent("user/logout", {{"userId", userId}, {"username", user.username}});
     emit userLoggedOut(userId);
 
     qDebug() << "[UserManagementServiceImpl] User logout succeeded:" << user.username;
@@ -442,7 +444,7 @@ bool UserManagementServiceImpl::updateUser(const UserInfo& user)
     logSecurityEvent("INFO", QString("User profile updated: %1").arg(user.username), user.id);
 
     // 发送更新事件
-    sendCTKEvent("user/update", {{"userId", user.id}, {"username", user.username}});
+    publishPlatformEvent("user/update", {{"userId", user.id}, {"username", user.username}});
     emit userUpdated(user);
 
     qDebug() << "[UserManagementServiceImpl] User updated successfully:" << user.username;
@@ -709,7 +711,7 @@ bool UserManagementServiceImpl::changePassword(int userId, const QString& oldPas
     logSecurityEvent("INFO", QString("Password changed: %1").arg(user.username), userId);
 
     // 发送修改事件
-    sendCTKEvent("user/update", {{"userId", userId}, {"username", user.username}});
+    publishPlatformEvent("user/update", {{"userId", userId}, {"username", user.username}});
     emit userUpdated(user);
 
     qDebug() << "[UserManagementServiceImpl] Password changed successfully:" << user.username;
@@ -754,7 +756,7 @@ bool UserManagementServiceImpl::resetPassword(int userId, const QString& newPass
     logSecurityEvent("INFO", QString("Password reset: %1").arg(user.username), userId);
 
     // 发送重置事件
-    sendCTKEvent("user/update", {{"userId", userId}, {"username", user.username}});
+    publishPlatformEvent("user/update", {{"userId", userId}, {"username", user.username}});
     emit userUpdated(user);
 
     qDebug() << "[UserManagementServiceImpl] Password reset successfully:" << user.username;
@@ -832,7 +834,7 @@ bool UserManagementServiceImpl::setUserRole(int userId, UserRole role)
     logSecurityEvent("INFO", QString("User role updated: %1").arg(user.username), userId);
 
     // 发送设置事件
-    sendCTKEvent("user/update", {{"userId", userId}, {"username", user.username}});
+    publishPlatformEvent("user/update", {{"userId", userId}, {"username", user.username}});
     emit userUpdated(user);
 
     qDebug() << "[UserManagementServiceImpl] User role updated successfully:" << user.username;
@@ -1055,18 +1057,11 @@ bool UserManagementServiceImpl::isEmailExists(const QString& email, int excludeU
     return false;
 }
 
-void UserManagementServiceImpl::sendCTKEvent(const QString& topic, const QVariantMap& properties)
+void UserManagementServiceImpl::publishPlatformEvent(const QString& topic, const QVariantMap& properties)
 {
-    if (m_eventAdmin) {
-        ctkDictionary eventProperties;
-        for (auto it = properties.begin(); it != properties.end(); ++it) {
-            eventProperties.insert(it.key(), it.value());
-        }
-        
-        ctkEvent event(topic, eventProperties);
-        m_eventAdmin->postEvent(event);
-        
-        qDebug() << "[UserManagementServiceImpl] Publishing CTK event:" << topic;
+    if (m_eventBus) {
+        m_eventBus->publish(topic, properties);
+        qDebug() << "[UserManagementServiceImpl] Publishing platform event:" << topic;
     }
 }
 

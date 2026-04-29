@@ -17,7 +17,7 @@ void PlatformStateStore::replaceDescriptors(const QVector<PlatformPluginDescript
 
         PlatformPluginRuntimeSnapshot snapshot;
         snapshot.pluginId = descriptor.id;
-        snapshot.ctkSymbolicName = descriptor.runtime.ctkSymbolicName;
+        snapshot.symbolicName = descriptor.runtime.symbolicName;
         m_snapshots.insert(descriptor.id, snapshot);
     }
 

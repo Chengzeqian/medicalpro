@@ -11,7 +11,7 @@ class PluginTruthSourceGovernanceContractTest : public QObject
 private slots:
     void main_cpp_uses_runtime_config_and_descriptor_loader_for_product_mainline();
     void main_cpp_does_not_call_legacy_policy_helpers_for_product_mainline();
-    void plugin_load_policy_shell_is_deleted();
+    void plugin_load_policy_shell_and_ctk_bridge_runtime_are_deleted();
 
 private:
     QString readSource(const QString& relativePath) const;
@@ -49,10 +49,8 @@ void PluginTruthSourceGovernanceContractTest::main_cpp_does_not_call_legacy_poli
         "main.cpp still calls installPluginsFromDirectory() in the product startup mainline");
 }
 
-void PluginTruthSourceGovernanceContractTest::plugin_load_policy_shell_is_deleted()
+void PluginTruthSourceGovernanceContractTest::plugin_load_policy_shell_and_ctk_bridge_runtime_are_deleted()
 {
-    const QString ctkManagerHeader = readSource(QStringLiteral("Framework/CTKManager.h"));
-    const QString ctkManagerSource = readSource(QStringLiteral("Framework/CTKManager.cpp"));
     const QString rootCMake = readSource(QStringLiteral("CMakeLists.txt"));
 
     QVERIFY2(!QFileInfo(QStringLiteral(MEDICALPRO_SOURCE_DIR "/Framework/PluginLoadPolicy.h")).exists(),
@@ -63,22 +61,26 @@ void PluginTruthSourceGovernanceContractTest::plugin_load_policy_shell_is_delete
         "config/plugin_load_policy.json still exists");
     QVERIFY2(!QFileInfo(QStringLiteral(MEDICALPRO_SOURCE_DIR "/config/plugin_load_policy_compatibility.md")).exists(),
         "config/plugin_load_policy_compatibility.md still exists");
-    QVERIFY2(!ctkManagerHeader.contains(QStringLiteral("loadPluginPolicy(")),
-        "CTKManager.h still exposes loadPluginPolicy()");
-    QVERIFY2(!ctkManagerHeader.contains(QStringLiteral("installPluginsFromDirectory(")),
-        "CTKManager.h still exposes installPluginsFromDirectory()");
-    QVERIFY2(!ctkManagerHeader.contains(QStringLiteral("setPluginLoadOrder(")),
-        "CTKManager.h still exposes setPluginLoadOrder()");
-    QVERIFY2(!ctkManagerHeader.contains(QStringLiteral("getRecommendedLoadOrder(")),
-        "CTKManager.h still exposes getRecommendedLoadOrder()");
-    QVERIFY2(!ctkManagerHeader.contains(QStringLiteral("m_pluginLoadOrder")),
-        "CTKManager.h still stores m_pluginLoadOrder");
-    QVERIFY2(!ctkManagerSource.contains(QStringLiteral("#include \"PluginLoadPolicy.h\"")),
-        "CTKManager.cpp still includes PluginLoadPolicy.h");
+    QVERIFY2(!QFileInfo(QStringLiteral(MEDICALPRO_SOURCE_DIR "/Framework/CTKManager.h")).exists(),
+        "Framework/CTKManager.h still exists");
+    QVERIFY2(!QFileInfo(QStringLiteral(MEDICALPRO_SOURCE_DIR "/Framework/CTKManager.cpp")).exists(),
+        "Framework/CTKManager.cpp still exists");
+    QVERIFY2(!QFileInfo(QStringLiteral(MEDICALPRO_SOURCE_DIR "/Framework/Platform/CtkBridge/legacy_ctk_runtime_bridge.h")).exists(),
+        "legacy_ctk_runtime_bridge.h still exists");
+    QVERIFY2(!QFileInfo(QStringLiteral(MEDICALPRO_SOURCE_DIR "/Framework/Platform/CtkBridge/legacy_ctk_runtime_bridge.cpp")).exists(),
+        "legacy_ctk_runtime_bridge.cpp still exists");
     QVERIFY2(!rootCMake.contains(QStringLiteral("Framework/PluginLoadPolicy.h")),
         "CMakeLists.txt still compiles Framework/PluginLoadPolicy.h");
     QVERIFY2(!rootCMake.contains(QStringLiteral("Framework/PluginLoadPolicy.cpp")),
         "CMakeLists.txt still compiles Framework/PluginLoadPolicy.cpp");
+    QVERIFY2(!rootCMake.contains(QStringLiteral("Framework/CTKManager.h")),
+        "CMakeLists.txt still compiles Framework/CTKManager.h");
+    QVERIFY2(!rootCMake.contains(QStringLiteral("Framework/CTKManager.cpp")),
+        "CMakeLists.txt still compiles Framework/CTKManager.cpp");
+    QVERIFY2(!rootCMake.contains(QStringLiteral("Framework/Platform/CtkBridge/legacy_ctk_runtime_bridge.h")),
+        "CMakeLists.txt still compiles legacy_ctk_runtime_bridge.h");
+    QVERIFY2(!rootCMake.contains(QStringLiteral("Framework/Platform/CtkBridge/legacy_ctk_runtime_bridge.cpp")),
+        "CMakeLists.txt still compiles legacy_ctk_runtime_bridge.cpp");
     QVERIFY2(!rootCMake.contains(QStringLiteral("plugin_load_policy.json")),
         "CMakeLists.txt still deploys plugin_load_policy.json");
     QVERIFY2(!rootCMake.contains(QStringLiteral("plugin_load_policy_compatibility.md")),

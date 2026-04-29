@@ -1,5 +1,23 @@
 # Platform Migration Decision Log
 
+## 2026-04-27
+
+- Decision: switch the default product mainline to `ENABLE_CTK_PLUGIN_FRAMEWORK=OFF`.
+- Rationale: CTK runtime exit is accepted only when the default Release build no longer depends on CTK runtime linkage, deployment, or startup ownership.
+- Impact: the product mainline now boots through platform-owned runtime/service ports by default, while CTK runtime behavior is confined to bridge-only source paths.
+
+- Decision: make `MEDICALPRO_DEPLOY_CTK_RUNTIME` and `MEDICALPRO_BUILD_LEGACY_CTK_PLUGINS` fatal if explicitly enabled.
+- Rationale: deprecated toggles must not silently revive deleted runtime/deployment paths after acceptance.
+- Impact: configuration now fails fast instead of rebuilding CTK runtime shipping or legacy plugin deployment by accident.
+
+- Decision: delete the remaining migrated plugin activator source files instead of keeping bridge-shell stubs.
+- Rationale: keeping empty CTK activator shells would preserve a false second host model and weaken the migration boundary.
+- Impact: `UserManagement`, `DicomViewer`, `FourViewDisplay`, `RegistrationCore`, `Registration2D3D`, `OpticalTracking`, `InstrumentManagement`, `OpticalRegistration`, `PointRegistration`, and `BoneSegmentation` are now governed as platform-host modules only.
+
+- Decision: harden Framework-linked unit tests by synchronizing the current `Framework.dll` into each test output directory.
+- Rationale: the last false-negative acceptance failure came from a stale `tests/unit/Release/Framework.dll` shadowing the real no-CTK runtime binary and reintroducing CTK-linked behavior inside one test process.
+- Impact: the acceptance suite now validates the current product/runtime binary state instead of stale local DLL residue.
+
 ## 2026-04-23
 
 - Decision: delete the final `plugin_load_policy` compatibility shell.
@@ -16,7 +34,7 @@
 
 ## 2026-04-22
 
-- Decision: switch `CTKManager` runtime bucket classification to `PlatformCtkPolicyBridge` with explicit descriptor policy context handoff.
+- Decision: switch `CTKManager` runtime bucket classification to `PlatformPluginPolicyBridge` with explicit descriptor policy context handoff.
 - Rationale: runtime classification must follow the same governed descriptor/runtime facts as product startup truth rather than internal legacy policy lookup.
 - Impact: `main.cpp` now hands runtime descriptors into `CTKManager` through `setDescriptorPolicyContext(...)`, and fallback diagnostics are explicit when context is missing.
 
@@ -115,5 +133,5 @@
 ## 2026-04-20
 
 - Decision: accept the startup lifecycle diagnostics infrastructure itself as landed, not only the diagnostics page presentation layer.
-- Rationale: `PlatformLifecycleTraceRecorder` now records session, phase, and plugin-step facts; `PlatformPluginLifecycleAggregator` now derives slowest plugin, blocking point, failure point, ready-path versus warmup-tail, and recovery hints; `PlatformDiagnosticsService` now reports `ctk_platform_state_mismatch` as a first-class governed problem instead of leaving it implicit.
+- Rationale: `PlatformLifecycleTraceRecorder` now records session, phase, and plugin-step facts; `PlatformPluginLifecycleAggregator` now derives slowest plugin, blocking point, failure point, ready-path versus warmup-tail, and recovery hints; `PlatformDiagnosticsService` now reports `runtime_platform_state_mismatch` as a first-class governed problem instead of leaving it implicit.
 - Impact: startup slowness and degradation should now be explainable through the governance layer in `observe_only`, `facade_mode`, and `orchestrate_core`, so future work can extend the diagnostics experience without redefining the lifecycle model again.

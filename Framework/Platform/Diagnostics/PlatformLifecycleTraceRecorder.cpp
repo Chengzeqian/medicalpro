@@ -36,11 +36,11 @@ QString PlatformLifecycleTraceRecorder::stepKey(PlatformLifecycleStep step)
 
 QString PlatformLifecycleTraceRecorder::pluginSpanKey(
     const QString& pluginId,
-    const QString& ctkSymbolicName,
+    const QString& symbolicName,
     PlatformLifecycleStep step)
 {
     QString identity = pluginId.trimmed();
-    if (identity.isEmpty()) identity = ctkSymbolicName.trimmed();
+    if (identity.isEmpty()) identity = symbolicName.trimmed();
     if (identity.isEmpty()) identity = QStringLiteral("unknown");
     return QStringLiteral("%1|%2").arg(identity.toLower(), stepKey(step));
 }
@@ -142,7 +142,7 @@ void PlatformLifecycleTraceRecorder::recordPhaseFinished(
 
 void PlatformLifecycleTraceRecorder::recordPluginStepStarted(
     const QString& pluginId,
-    const QString& ctkSymbolicName,
+    const QString& symbolicName,
     PlatformLifecycleStep step,
     bool blockingStartup)
 {
@@ -153,13 +153,13 @@ void PlatformLifecycleTraceRecorder::recordPluginStepStarted(
     span.spanId = QStringLiteral("plugin:%1:%2").arg(pluginId, stepKey(step));
     span.parentSpanId = QStringLiteral("startup_session");
     span.pluginId = pluginId;
-    span.ctkSymbolicName = ctkSymbolicName;
+    span.symbolicName = symbolicName;
     span.phaseKey = pluginId;
     span.phaseLabel = stepKey(step);
     span.step = step;
     span.blockingStartup = blockingStartup;
     span.startedAtMs = currentTimestampMs();
-    m_pluginSpans.insert(pluginSpanKey(pluginId, ctkSymbolicName, step), span);
+    m_pluginSpans.insert(pluginSpanKey(pluginId, symbolicName, step), span);
 
     auto eventKind = PlatformLifecycleEventKind::PluginStartStarted;
     if (step == PlatformLifecycleStep::Install) {
@@ -181,15 +181,15 @@ void PlatformLifecycleTraceRecorder::recordPluginStepStarted(
 
 void PlatformLifecycleTraceRecorder::recordPluginStepFinished(
     const QString& pluginId,
-    const QString& ctkSymbolicName,
+    const QString& symbolicName,
     PlatformLifecycleStep step,
     PlatformLifecycleResult result,
     const QString& reasonCode,
     const QString& detail)
 {
     QMutexLocker locker(&m_mutex);
-    auto span = takePluginSpan(pluginId, ctkSymbolicName, step);
-    if (!ctkSymbolicName.isEmpty()) span.ctkSymbolicName = ctkSymbolicName;
+    auto span = takePluginSpan(pluginId, symbolicName, step);
+    if (!symbolicName.isEmpty()) span.symbolicName = symbolicName;
     const auto endOffsetMs = currentTimestampMs();
     const auto elapsedMs = qMax<qint64>(0, endOffsetMs - span.startedAtMs);
 
@@ -247,7 +247,7 @@ void PlatformLifecycleTraceRecorder::appendEvent(
     event.phaseKey = span.phaseKey;
     event.phaseLabel = span.phaseLabel;
     event.pluginId = span.pluginId;
-    event.ctkSymbolicName = span.ctkSymbolicName;
+    event.symbolicName = span.symbolicName;
     event.offsetMs = currentTimestampMs();
     event.durationMs = elapsedMs;
     event.blockingStartup = span.blockingStartup;
@@ -271,7 +271,7 @@ void PlatformLifecycleTraceRecorder::appendTrace(
     entry.phaseKey = span.phaseKey;
     entry.phaseLabel = span.phaseLabel;
     entry.pluginId = span.pluginId;
-    entry.ctkSymbolicName = span.ctkSymbolicName;
+    entry.symbolicName = span.symbolicName;
     entry.step = span.step;
     entry.result = result;
     entry.success = result != PlatformLifecycleResult::Failed
@@ -300,22 +300,23 @@ PlatformLifecycleTraceRecorder::ActiveSpan PlatformLifecycleTraceRecorder::takeP
 
 PlatformLifecycleTraceRecorder::ActiveSpan PlatformLifecycleTraceRecorder::takePluginSpan(
     const QString& pluginId,
-    const QString& ctkSymbolicName,
+    const QString& symbolicName,
     PlatformLifecycleStep step)
 {
-    const auto key = pluginSpanKey(pluginId, ctkSymbolicName, step);
+    const auto key = pluginSpanKey(pluginId, symbolicName, step);
     if (m_pluginSpans.contains(key)) return m_pluginSpans.take(key);
 
     const auto normalizedPluginId = pluginId.trimmed().toLower();
-    const auto normalizedCtkName = ctkSymbolicName.trimmed().toLower();
+    const auto normalizedSymbolicName = symbolicName.trimmed().toLower();
     for (auto it = m_pluginSpans.begin(); it != m_pluginSpans.end(); ++it) {
         const auto& candidate = it.value();
         if (candidate.step != step) continue;
         const auto candidatePluginId = candidate.pluginId.trimmed().toLower();
-        const auto candidateCtkName = candidate.ctkSymbolicName.trimmed().toLower();
+        const auto candidateSymbolicName = candidate.symbolicName.trimmed().toLower();
         const bool pluginMatch = !normalizedPluginId.isEmpty() && candidatePluginId == normalizedPluginId;
-        const bool ctkMatch = !normalizedCtkName.isEmpty() && candidateCtkName == normalizedCtkName;
-        if (!pluginMatch && !ctkMatch) continue;
+        const bool symbolicMatch = !normalizedSymbolicName.isEmpty()
+            && candidateSymbolicName == normalizedSymbolicName;
+        if (!pluginMatch && !symbolicMatch) continue;
 
         const auto matchedSpan = it.value();
         m_pluginSpans.erase(it);

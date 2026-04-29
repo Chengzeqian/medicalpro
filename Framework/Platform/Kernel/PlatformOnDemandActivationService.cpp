@@ -10,13 +10,15 @@ PlatformOnDemandActivationService::PlatformOnDemandActivationService(
     PlatformStartupCoordinator* startupCoordinator,
     PlatformStateStore* stateStore,
     InstallPluginFn installPluginFn,
-    PlatformOnDemandProbeSet probeSet)
+    PlatformOnDemandProbeSet probeSet,
+    PlatformModuleAvailabilityFn isPlatformModuleAvailable)
     : m_descriptors(std::move(descriptors))
     , m_pluginDirectory(std::move(pluginDirectory))
     , m_startupCoordinator(startupCoordinator)
     , m_stateStore(stateStore)
     , m_installPluginFn(std::move(installPluginFn))
     , m_probeSet(std::move(probeSet))
+    , m_isPlatformModuleAvailable(std::move(isPlatformModuleAvailable))
 {
 }
 
@@ -40,6 +42,7 @@ bool PlatformOnDemandActivationService::ensureReady(const QString& pluginId)
         normalizedPluginId,
         m_descriptors,
         m_pluginDirectory,
+        m_isPlatformModuleAvailable,
         &error);
     if (!error.isEmpty() || plan.activationEntries.isEmpty()) {
         if (m_stateStore) {

@@ -2,9 +2,8 @@
 #include "widgets/OpticalRegistrationWidget.h"
 #include "internal/OpticalRegistrationVTKWidget.h"
 
-// CTK框架
-#include <ctkPluginContext.h>
-#include <ctkServiceReference.h>
+// Platform service registry
+#include "Framework/Platform/Kernel/platform_service_registry.h"
 
 // Qt
 #include <QDebug>
@@ -30,14 +29,13 @@
 #include <vtkNew.h>
 #endif
 
-// 引入OpticalTrackingService接口（运行时通过CTK获取）
-// 注意：这里只需要头文件，不需要链接库
+// OpticalTrackingService is resolved through the platform service registry at runtime.
 #include "../OpticalTracking/OpticalTrackingService.h"
 
 //-----------------------------------------------------------------------------
-OpticalRegistrationServiceImpl::OpticalRegistrationServiceImpl(ctkPluginContext* context, QObject* parent)
+OpticalRegistrationServiceImpl::OpticalRegistrationServiceImpl(QObject* parent)
     : OpticalRegistrationService(parent)
-    , m_pluginContext(context)
+    , m_serviceRegistry(nullptr)
     , m_trackingService(nullptr)
     , m_trackingServiceConnected(false)
     , m_hasValidResult(false)
@@ -63,6 +61,11 @@ OpticalRegistrationServiceImpl::OpticalRegistrationServiceImpl(ctkPluginContext*
     logMessage("INFO", "光学配准服务实现创建完成");
 }
 
+void OpticalRegistrationServiceImpl::setServiceRegistry(PlatformServiceRegistry* serviceRegistry)
+{
+    m_serviceRegistry = serviceRegistry;
+}
+
 //-----------------------------------------------------------------------------
 OpticalRegistrationServiceImpl::~OpticalRegistrationServiceImpl()
 {
@@ -77,19 +80,17 @@ OpticalRegistrationServiceImpl::~OpticalRegistrationServiceImpl()
 //-----------------------------------------------------------------------------
 void OpticalRegistrationServiceImpl::initializeOptionalServiceConnections()
 {
-    if (!m_pluginContext) {
+    if (!m_serviceRegistry) {
         logMessage("WARNING", "插件上下文为空，无法连接跟踪服务");
         return;
     }
 
     // 尝试获取OpticalTrackingService
-    m_trackingServiceRef = m_pluginContext->getServiceReference<OpticalTrackingService>();
-    if (m_trackingServiceRef) {
-        m_trackingService = m_pluginContext->getService<OpticalTrackingService>(m_trackingServiceRef);
-        if (m_trackingService) {
-            m_trackingServiceConnected = true;
+    m_trackingService = qobject_cast<OpticalTrackingService*>(
+        m_serviceRegistry->service(QStringLiteral("OpticalTrackingService")));
+    if (m_trackingService) {
+        m_trackingServiceConnected = true;
             logMessage("INFO", "已连接到OpticalTrackingService");
-        }
     } else {
         logMessage("INFO", "OpticalTrackingService暂不可用，将在运行时动态获取");
     }
@@ -103,15 +104,13 @@ OpticalTrackingService* OpticalRegistrationServiceImpl::getTrackingService()
     }
 
     // 动态获取服务
-    if (m_pluginContext) {
-        m_trackingServiceRef = m_pluginContext->getServiceReference<OpticalTrackingService>();
-        if (m_trackingServiceRef) {
-            m_trackingService = m_pluginContext->getService<OpticalTrackingService>(m_trackingServiceRef);
-            if (m_trackingService) {
+    if (m_serviceRegistry) {
+        m_trackingService = qobject_cast<OpticalTrackingService*>(
+            m_serviceRegistry->service(QStringLiteral("OpticalTrackingService")));
+        if (m_trackingService) {
                 m_trackingServiceConnected = true;
                 logMessage("INFO", "动态获取OpticalTrackingService成功");
                 return m_trackingService;
-            }
         }
     }
 

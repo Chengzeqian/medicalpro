@@ -87,25 +87,32 @@ bool isSkippedByMode(
 PlatformStartupCoordinator::PlatformStartupCoordinator(
     PlatformRuntimeMode runtimeMode,
     StartPluginFn startPluginFn,
-    const QHash<QString, QString>& platformPluginIdToCtkSymbolicName,
+    const QHash<QString, QString>& platformPluginIdToSymbolicName,
     PlatformLifecycleTraceRecorder* recorder)
     : m_runtimeMode(runtimeMode)
     , m_startPluginFn(std::move(startPluginFn))
-    , m_platformPluginIdToCtkSymbolicName(platformPluginIdToCtkSymbolicName)
+    , m_platformPluginIdToSymbolicName(platformPluginIdToSymbolicName)
     , m_recorder(recorder)
 {
-    for (auto it = m_platformPluginIdToCtkSymbolicName.constBegin();
-         it != m_platformPluginIdToCtkSymbolicName.constEnd();
+    for (auto it = m_platformPluginIdToSymbolicName.constBegin();
+         it != m_platformPluginIdToSymbolicName.constEnd();
          ++it) {
-        const auto ctkSymbolicName = it.value().trimmed();
-        if (ctkSymbolicName.isEmpty()) continue;
-        m_ctkSymbolicNameToPlatformPluginId.insert(ctkSymbolicName, it.key());
+        const auto symbolicName = it.value().trimmed();
+        if (symbolicName.isEmpty()) continue;
+        m_symbolicNameToPlatformPluginId.insert(symbolicName, it.key());
     }
 }
 
 bool PlatformStartupCoordinator::shouldInitializeFramework() const
 {
     return m_runtimeMode != PlatformRuntimeMode::ObserveOnly;
+}
+
+bool PlatformStartupCoordinator::shouldInitializeFramework(bool ctkRuntimeRequired) const
+{
+    if (m_runtimeMode == PlatformRuntimeMode::ObserveOnly) return false;
+    if (m_runtimeMode == PlatformRuntimeMode::FacadeMode) return ctkRuntimeRequired;
+    return true;
 }
 
 bool PlatformStartupCoordinator::shouldInstallPlugins() const
@@ -135,10 +142,28 @@ bool PlatformStartupCoordinator::installManagedPlugins(
     if (!shouldInstallPlugins()) return true;
 
     for (const auto& entry : plan.installEntries) {
+        if (!entry.requiresBundleInstall) {
+            if (m_recorder) {
+                m_recorder->recordPluginStepStarted(
+                    entry.pluginId,
+                    entry.symbolicName,
+                    PlatformLifecycleStep::Install,
+                    false);
+                m_recorder->recordPluginStepFinished(
+                    entry.pluginId,
+                    entry.symbolicName,
+                    PlatformLifecycleStep::Install,
+                    PlatformLifecycleResult::Skipped,
+                    QStringLiteral("platform_module_pre_registered"),
+                    QStringLiteral("Platform module is pre-registered; bundle install skipped"));
+            }
+            continue;
+        }
+
         if (m_recorder) {
             m_recorder->recordPluginStepStarted(
                 entry.pluginId,
-                entry.ctkSymbolicName,
+                entry.symbolicName,
                 PlatformLifecycleStep::Install,
                 false);
         }
@@ -148,7 +173,7 @@ bool PlatformStartupCoordinator::installManagedPlugins(
             if (m_recorder) {
                 m_recorder->recordPluginStepFinished(
                     entry.pluginId,
-                    entry.ctkSymbolicName,
+                    entry.symbolicName,
                     PlatformLifecycleStep::Install,
                     PlatformLifecycleResult::Failed,
                     QStringLiteral("install_failed"),
@@ -160,7 +185,7 @@ bool PlatformStartupCoordinator::installManagedPlugins(
         if (m_recorder) {
             m_recorder->recordPluginStepFinished(
                 entry.pluginId,
-                entry.ctkSymbolicName,
+                entry.symbolicName,
                 PlatformLifecycleStep::Install,
                 PlatformLifecycleResult::Succeeded,
                 QStringLiteral("install_succeeded"),
@@ -180,10 +205,10 @@ bool PlatformStartupCoordinator::startCorePlugin(const QString& pluginId)
 bool PlatformStartupCoordinator::startDeferredPlugins(const QStringList& pluginIds, bool stopOnFailure)
 {
     bool success = true;
-    for (const auto& ctkSymbolicName : pluginIds) {
-        if (ctkSymbolicName.isEmpty()) continue;
+    for (const auto& symbolicName : pluginIds) {
+        if (symbolicName.isEmpty()) continue;
 
-        const auto outcome = startPluginForPath(resolveDeferredPluginTarget(ctkSymbolicName), PluginStartPath::Deferred);
+        const auto outcome = startPluginForPath(resolveDeferredPluginTarget(symbolicName), PluginStartPath::Deferred);
         if (outcome == StartOutcome::Failed) {
             success = false;
             if (stopOnFailure) break;
@@ -211,7 +236,7 @@ PlatformServiceReadyOutcome PlatformStartupCoordinator::waitForServiceReady(
     if (m_recorder) {
         m_recorder->recordPluginStepStarted(
             entry.pluginId,
-            entry.ctkSymbolicName,
+            entry.symbolicName,
             PlatformLifecycleStep::ServiceReady,
             false);
     }
@@ -233,7 +258,7 @@ PlatformServiceReadyOutcome PlatformStartupCoordinator::waitForServiceReady(
             if (m_recorder) {
                 m_recorder->recordPluginStepFinished(
                     entry.pluginId,
-                    entry.ctkSymbolicName,
+                    entry.symbolicName,
                     PlatformLifecycleStep::ServiceReady,
                     PlatformLifecycleResult::Succeeded,
                     outcome.reasonCode,
@@ -252,7 +277,7 @@ PlatformServiceReadyOutcome PlatformStartupCoordinator::waitForServiceReady(
     if (m_recorder) {
         m_recorder->recordPluginStepFinished(
             entry.pluginId,
-            entry.ctkSymbolicName,
+            entry.symbolicName,
             PlatformLifecycleStep::ServiceReady,
             PlatformLifecycleResult::Timeout,
             outcome.reasonCode,
@@ -281,7 +306,7 @@ PlatformOnDemandActivationOutcome PlatformStartupCoordinator::activateOnDemand(
         ResolvedPluginTarget target;
         target.managed = true;
         target.platformPluginId = entry.pluginId.trimmed();
-        target.ctkSymbolicName = entry.ctkSymbolicName.trimmed();
+        target.symbolicName = entry.symbolicName.trimmed();
         return target;
     };
 
@@ -310,7 +335,7 @@ PlatformOnDemandActivationOutcome PlatformStartupCoordinator::activateOnDemand(
     }
 
     for (const auto& entry : plan.activationEntries) {
-        if (!installOnDemandPluginFn || !installOnDemandPluginFn(entry)) {
+        if (entry.requiresBundleInstall && (!installOnDemandPluginFn || !installOnDemandPluginFn(entry))) {
             outcome.reasonCode = QStringLiteral("install_failed");
             outcome.detail = QStringLiteral("On-demand bundle install failed");
             return outcome;
@@ -326,7 +351,7 @@ PlatformOnDemandActivationOutcome PlatformStartupCoordinator::activateOnDemand(
         PlatformManagedPluginPlanEntry managedEntry;
         managedEntry.pluginId = entry.pluginId;
         managedEntry.displayName = entry.displayName;
-        managedEntry.ctkSymbolicName = entry.ctkSymbolicName;
+        managedEntry.symbolicName = entry.symbolicName;
         managedEntry.bundleFilePath = entry.bundleFilePath;
         managedEntry.bootstrapLevel = PlatformBootstrapLevel::Deferred;
         managedEntry.startupPolicy = PlatformStartupPolicy::OnDemand;
@@ -382,21 +407,21 @@ PlatformStartupCoordinator::ResolvedPluginTarget PlatformStartupCoordinator::res
     ResolvedPluginTarget target;
     target.platformPluginId = platformPluginId.trimmed();
     if (target.platformPluginId.isEmpty()) return target;
-    if (m_platformPluginIdToCtkSymbolicName.contains(target.platformPluginId)) {
-        target.ctkSymbolicName = m_platformPluginIdToCtkSymbolicName.value(target.platformPluginId).trimmed();
-        target.managed = !target.ctkSymbolicName.isEmpty();
+    if (m_platformPluginIdToSymbolicName.contains(target.platformPluginId)) {
+        target.symbolicName = m_platformPluginIdToSymbolicName.value(target.platformPluginId).trimmed();
+        target.managed = !target.symbolicName.isEmpty();
     }
     return target;
 }
 
 PlatformStartupCoordinator::ResolvedPluginTarget PlatformStartupCoordinator::resolveDeferredPluginTarget(
-    const QString& ctkSymbolicName) const
+    const QString& symbolicName) const
 {
     ResolvedPluginTarget target;
-    target.ctkSymbolicName = ctkSymbolicName.trimmed();
-    if (target.ctkSymbolicName.isEmpty()) return target;
-    if (m_ctkSymbolicNameToPlatformPluginId.contains(target.ctkSymbolicName)) {
-        target.platformPluginId = m_ctkSymbolicNameToPlatformPluginId.value(target.ctkSymbolicName).trimmed();
+    target.symbolicName = symbolicName.trimmed();
+    if (target.symbolicName.isEmpty()) return target;
+    if (m_symbolicNameToPlatformPluginId.contains(target.symbolicName)) {
+        target.platformPluginId = m_symbolicNameToPlatformPluginId.value(target.symbolicName).trimmed();
         target.managed = !target.platformPluginId.isEmpty();
     }
     return target;
@@ -413,12 +438,12 @@ void PlatformStartupCoordinator::recordPluginFailure(
 
     m_recorder->recordPluginStepStarted(
         target.platformPluginId,
-        target.ctkSymbolicName,
+        target.symbolicName,
         PlatformLifecycleStep::Start,
         blockingStartup);
     m_recorder->recordPluginStepFinished(
         target.platformPluginId,
-        target.ctkSymbolicName,
+        target.symbolicName,
         PlatformLifecycleStep::Start,
         PlatformLifecycleResult::Failed,
         reasonCode,
@@ -429,7 +454,7 @@ PlatformStartupCoordinator::StartOutcome PlatformStartupCoordinator::startPlugin
     const ResolvedPluginTarget& target,
     PluginStartPath path)
 {
-    if (target.ctkSymbolicName.isEmpty()) {
+    if (target.symbolicName.isEmpty()) {
         recordPluginFailure(
             target,
             path,
@@ -452,12 +477,12 @@ PlatformStartupCoordinator::StartOutcome PlatformStartupCoordinator::startPlugin
 
     const QString startupKey = target.managed
         ? target.platformPluginId
-        : QStringLiteral("ctk:%1").arg(target.ctkSymbolicName);
+        : QStringLiteral("symbolic:%1").arg(target.symbolicName);
 
     if (!target.managed && path == PluginStartPath::Deferred) {
         if (isSkippedByMode(m_runtimeMode, path)) return StartOutcome::Skipped;
         if (m_startedPlugins.contains(startupKey)) return StartOutcome::AlreadyStarted;
-        if (!m_startPluginFn || !m_startPluginFn(target.ctkSymbolicName)) return StartOutcome::Failed;
+        if (!m_startPluginFn || !m_startPluginFn(target.symbolicName)) return StartOutcome::Failed;
         m_startedPlugins.insert(startupKey);
         return StartOutcome::Started;
     }
@@ -466,12 +491,12 @@ PlatformStartupCoordinator::StartOutcome PlatformStartupCoordinator::startPlugin
         if (m_recorder) {
             m_recorder->recordPluginStepStarted(
                 target.platformPluginId,
-                target.ctkSymbolicName,
+                target.symbolicName,
                 PlatformLifecycleStep::Start,
                 blockingStartup);
             m_recorder->recordPluginStepFinished(
                 target.platformPluginId,
-                target.ctkSymbolicName,
+                target.symbolicName,
                 PlatformLifecycleStep::Start,
                 PlatformLifecycleResult::Skipped,
                 QStringLiteral("skipped_by_mode"),
@@ -485,16 +510,16 @@ PlatformStartupCoordinator::StartOutcome PlatformStartupCoordinator::startPlugin
     if (m_recorder) {
         m_recorder->recordPluginStepStarted(
             target.platformPluginId,
-            target.ctkSymbolicName,
+            target.symbolicName,
             PlatformLifecycleStep::Start,
             blockingStartup);
     }
 
-    if (!m_startPluginFn || !m_startPluginFn(target.ctkSymbolicName)) {
+    if (!m_startPluginFn || !m_startPluginFn(target.symbolicName)) {
         if (m_recorder) {
             m_recorder->recordPluginStepFinished(
                 target.platformPluginId,
-                target.ctkSymbolicName,
+                target.symbolicName,
                 PlatformLifecycleStep::Start,
                 PlatformLifecycleResult::Failed,
                 QStringLiteral("plugin_start_failed"),
@@ -507,7 +532,7 @@ PlatformStartupCoordinator::StartOutcome PlatformStartupCoordinator::startPlugin
     if (m_recorder) {
         m_recorder->recordPluginStepFinished(
             target.platformPluginId,
-            target.ctkSymbolicName,
+            target.symbolicName,
             PlatformLifecycleStep::Start,
             PlatformLifecycleResult::Succeeded,
             startReasonCode(path),

@@ -71,9 +71,10 @@ public:
     PlatformStartupCoordinator(
         PlatformRuntimeMode runtimeMode,
         StartPluginFn startPluginFn,
-        const QHash<QString, QString>& platformPluginIdToCtkSymbolicName = {},
+        const QHash<QString, QString>& platformPluginIdToSymbolicName = {},
         PlatformLifecycleTraceRecorder* recorder = nullptr);
     bool shouldInitializeFramework() const;
+    bool shouldInitializeFramework(bool ctkRuntimeRequired) const;
     bool shouldInstallPlugins() const;
     bool shouldStartCorePlugins() const;
     bool shouldStartDeferredPlugins() const;
@@ -100,7 +101,7 @@ private:
     {
         bool managed = false;
         QString platformPluginId;
-        QString ctkSymbolicName;
+        QString symbolicName;
     };
 
     enum class StartOutcome
@@ -112,7 +113,7 @@ private:
     };
 
     ResolvedPluginTarget resolvePlatformPluginTarget(const QString& platformPluginId) const;
-    ResolvedPluginTarget resolveDeferredPluginTarget(const QString& ctkSymbolicName) const;
+    ResolvedPluginTarget resolveDeferredPluginTarget(const QString& symbolicName) const;
     StartOutcome startPluginForPath(const ResolvedPluginTarget& target, PluginStartPath path);
     void recordPluginFailure(
         const ResolvedPluginTarget& target,
@@ -123,8 +124,8 @@ private:
 
     PlatformRuntimeMode m_runtimeMode;
     StartPluginFn m_startPluginFn;
-    QHash<QString, QString> m_platformPluginIdToCtkSymbolicName;
-    QHash<QString, QString> m_ctkSymbolicNameToPlatformPluginId;
+    QHash<QString, QString> m_platformPluginIdToSymbolicName;
+    QHash<QString, QString> m_symbolicNameToPlatformPluginId;
     PlatformLifecycleTraceRecorder* m_recorder = nullptr;
     QSet<QString> m_startedPlugins;
 };

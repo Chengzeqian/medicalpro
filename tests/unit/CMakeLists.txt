@@ -1,3 +1,12 @@
+function(medicalpro_sync_framework_runtime target_name)
+    add_custom_command(TARGET ${target_name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:Framework>"
+            "$<TARGET_FILE_DIR:${target_name}>/$<TARGET_FILE_NAME:Framework>"
+        COMMENT "Syncing Framework runtime for ${target_name}"
+    )
+endfunction()
+
 add_executable(three_page_presentation_utils_test
     ThreePagePresentationUtilsTest.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/ThreePagePresentationUtils.cpp
@@ -58,6 +67,281 @@ target_link_libraries(startup_console_log_policy_test PRIVATE
 add_test(
     NAME startup_console_log_policy_test
     COMMAND startup_console_log_policy_test
+)
+
+add_executable(platform_runtime_host_ports_contract_test
+    PlatformRuntimeHostPortsContractTest.cpp
+)
+
+target_include_directories(platform_runtime_host_ports_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(platform_runtime_host_ports_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(platform_runtime_host_ports_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME platform_runtime_host_ports_contract_test
+    COMMAND platform_runtime_host_ports_contract_test
+)
+
+add_executable(platform_naming_governance_contract_test
+    PlatformNamingGovernanceContractTest.cpp
+)
+
+target_include_directories(platform_naming_governance_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(platform_naming_governance_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(platform_naming_governance_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME platform_naming_governance_contract_test
+    COMMAND platform_naming_governance_contract_test
+)
+
+add_executable(source_encoding_governance_test
+    SourceEncodingGovernanceTest.cpp
+)
+
+target_include_directories(source_encoding_governance_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(source_encoding_governance_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(source_encoding_governance_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME source_encoding_governance_test
+    COMMAND source_encoding_governance_test
+)
+
+add_executable(runtime_host_detachment_contract_test
+    RuntimeHostDetachmentContractTest.cpp
+)
+
+target_include_directories(runtime_host_detachment_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(runtime_host_detachment_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(runtime_host_detachment_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME runtime_host_detachment_contract_test
+    COMMAND runtime_host_detachment_contract_test
+)
+
+add_executable(runtime_build_deployment_contract_test
+    RuntimeBuildDeploymentContractTest.cpp
+)
+
+target_include_directories(runtime_build_deployment_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(runtime_build_deployment_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(runtime_build_deployment_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME runtime_build_deployment_contract_test
+    COMMAND runtime_build_deployment_contract_test
+)
+
+add_executable(platform_plugin_build_governance_contract_test
+    PlatformPluginBuildGovernanceContractTest.cpp
+)
+
+target_include_directories(platform_plugin_build_governance_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(platform_plugin_build_governance_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(platform_plugin_build_governance_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME platform_plugin_build_governance_contract_test
+    COMMAND platform_plugin_build_governance_contract_test
+)
+
+add_executable(platform_plugin_host_primitives_contract_test
+    PlatformPluginHostPrimitivesContractTest.cpp
+)
+
+target_include_directories(platform_plugin_host_primitives_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(platform_plugin_host_primitives_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(platform_plugin_host_primitives_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME platform_plugin_host_primitives_contract_test
+    COMMAND platform_plugin_host_primitives_contract_test
+)
+
+add_executable(platform_plugin_host_lifecycle_behavior_test
+    PlatformPluginHostLifecycleBehaviorTest.cpp
+)
+
+target_include_directories(platform_plugin_host_lifecycle_behavior_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_plugin_host_lifecycle_behavior_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_plugin_host_lifecycle_behavior_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:platform_plugin_host_lifecycle_behavior_test>;$<TARGET_FILE_DIR:medicalpro>;$<TARGET_FILE_DIR:Framework>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Sql>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Network>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::OpenGL>;$ENV{PATH}"
+        $<TARGET_FILE:platform_plugin_host_lifecycle_behavior_test>
+)
+
+set_tests_properties(platform_plugin_host_lifecycle_behavior_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_plugin_host_lifecycle_behavior_test>\;$<TARGET_FILE_DIR:medicalpro>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Sql>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Network>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::OpenGL>\;$ENV{PATH}"
+)
+
+add_executable(platform_built_in_module_bootstrap_behavior_test
+    PlatformBuiltInModuleBootstrapBehaviorTest.cpp
+)
+
+target_include_directories(platform_built_in_module_bootstrap_behavior_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_built_in_module_bootstrap_behavior_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_built_in_module_bootstrap_behavior_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:platform_built_in_module_bootstrap_behavior_test>;$<TARGET_FILE_DIR:medicalpro>;$<TARGET_FILE_DIR:Framework>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Sql>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Network>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::OpenGL>;$ENV{PATH}"
+        $<TARGET_FILE:platform_built_in_module_bootstrap_behavior_test>
+)
+
+set_tests_properties(platform_built_in_module_bootstrap_behavior_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_built_in_module_bootstrap_behavior_test>\;$<TARGET_FILE_DIR:medicalpro>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Sql>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Network>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::OpenGL>\;$ENV{PATH}"
+)
+
+add_executable(platform_runtime_host_adapter_platform_fallback_test
+    PlatformRuntimeHostAdapterPlatformFallbackTest.cpp
+)
+
+target_include_directories(platform_runtime_host_adapter_platform_fallback_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(platform_runtime_host_adapter_platform_fallback_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME platform_runtime_host_adapter_platform_fallback_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:platform_runtime_host_adapter_platform_fallback_test>;$<TARGET_FILE_DIR:medicalpro>;$<TARGET_FILE_DIR:Framework>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Sql>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Network>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::OpenGL>;$ENV{PATH}"
+        $<TARGET_FILE:platform_runtime_host_adapter_platform_fallback_test>
+)
+
+set_tests_properties(platform_runtime_host_adapter_platform_fallback_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_runtime_host_adapter_platform_fallback_test>\;$<TARGET_FILE_DIR:medicalpro>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Sql>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Network>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::OpenGL>\;$ENV{PATH}"
+)
+
+add_executable(platform_plugin_host_core_migration_contract_test
+    PlatformPluginHostCoreMigrationContractTest.cpp
+)
+
+target_include_directories(platform_plugin_host_core_migration_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(platform_plugin_host_core_migration_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(platform_plugin_host_core_migration_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME platform_plugin_host_core_migration_contract_test
+    COMMAND platform_plugin_host_core_migration_contract_test
+)
+
+add_executable(platform_plugin_host_ui_migration_contract_test
+    PlatformPluginHostUiMigrationContractTest.cpp
+)
+
+target_include_directories(platform_plugin_host_ui_migration_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(platform_plugin_host_ui_migration_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(platform_plugin_host_ui_migration_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME platform_plugin_host_ui_migration_contract_test
+    COMMAND platform_plugin_host_ui_migration_contract_test
 )
 
 add_executable(runtime_console_log_policy_test
@@ -327,27 +611,27 @@ set_tests_properties(platform_on_demand_activation_plan_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_on_demand_activation_plan_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
-add_executable(platform_ctk_policy_bridge_test
-    PlatformCtkPolicyBridgeTest.cpp
+add_executable(platform_plugin_policy_bridge_test
+    PlatformPluginPolicyBridgeTest.cpp
 )
 
-target_include_directories(platform_ctk_policy_bridge_test PRIVATE
+target_include_directories(platform_plugin_policy_bridge_test PRIVATE
     ${CMAKE_SOURCE_DIR}
 )
 
-target_link_libraries(platform_ctk_policy_bridge_test PRIVATE
+target_link_libraries(platform_plugin_policy_bridge_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Test
     Framework
 )
 
 add_test(
-    NAME platform_ctk_policy_bridge_test
-    COMMAND platform_ctk_policy_bridge_test
+    NAME platform_plugin_policy_bridge_test
+    COMMAND platform_plugin_policy_bridge_test
 )
 
-set_tests_properties(platform_ctk_policy_bridge_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_ctk_policy_bridge_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+set_tests_properties(platform_plugin_policy_bridge_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_plugin_policy_bridge_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
 add_executable(platform_startup_trace_recorder_test
@@ -670,26 +954,26 @@ set_tests_properties(login_page_platform_providers_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:login_page_platform_providers_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
-add_executable(ui_ctk_decoupling_acceptance_test
-    UiCtkDecouplingAcceptanceTest.cpp
+add_executable(ui_platform_decoupling_acceptance_test
+    UiPlatformDecouplingAcceptanceTest.cpp
 )
 
-target_include_directories(ui_ctk_decoupling_acceptance_test PRIVATE
+target_include_directories(ui_platform_decoupling_acceptance_test PRIVATE
     ${CMAKE_SOURCE_DIR}
 )
 
-target_compile_definitions(ui_ctk_decoupling_acceptance_test PRIVATE
+target_compile_definitions(ui_platform_decoupling_acceptance_test PRIVATE
     MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
-target_link_libraries(ui_ctk_decoupling_acceptance_test PRIVATE
+target_link_libraries(ui_platform_decoupling_acceptance_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Test
 )
 
 add_test(
-    NAME ui_ctk_decoupling_acceptance_test
-    COMMAND ui_ctk_decoupling_acceptance_test
+    NAME ui_platform_decoupling_acceptance_test
+    COMMAND ui_platform_decoupling_acceptance_test
 )
 
 add_executable(main_interface_entry_api_contract_test
@@ -780,29 +1064,6 @@ add_test(
     COMMAND plugin_legacy_consumer_governance_contract_test
 )
 
-add_executable(ctk_manager_descriptor_policy_context_test
-    CtkManagerDescriptorPolicyContextTest.cpp
-)
-
-target_include_directories(ctk_manager_descriptor_policy_context_test PRIVATE
-    ${CMAKE_SOURCE_DIR}
-)
-
-target_link_libraries(ctk_manager_descriptor_policy_context_test PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Test
-    Framework
-)
-
-add_test(
-    NAME ctk_manager_descriptor_policy_context_test
-    COMMAND ctk_manager_descriptor_policy_context_test
-)
-
-set_tests_properties(ctk_manager_descriptor_policy_context_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:ctk_manager_descriptor_policy_context_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
-)
-
 add_executable(platform_ui_bridge_test
     PlatformUiBridgeTest.cpp
 )
@@ -825,3 +1086,26 @@ add_test(
 set_tests_properties(platform_ui_bridge_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:platform_ui_bridge_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
+
+set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS
+    platform_plugin_host_lifecycle_behavior_test
+    platform_built_in_module_bootstrap_behavior_test
+    platform_runtime_host_adapter_platform_fallback_test
+    startup_bootstrap_controller_test
+    platform_state_store_handoff_test
+    platform_descriptor_loader_test
+    platform_managed_plugin_plan_test
+    platform_on_demand_activation_plan_test
+    platform_plugin_policy_bridge_test
+    platform_startup_trace_recorder_test
+    startup_orchestrator_lifecycle_test
+    platform_dependency_graph_test
+    platform_facades_test
+    platform_startup_coordinator_test
+    platform_warmup_coordinator_test
+    platform_ui_bridge_test
+)
+
+foreach(_medicalpro_framework_unit_test IN LISTS MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS)
+    medicalpro_sync_framework_runtime(${_medicalpro_framework_unit_test})
+endforeach()

@@ -6,7 +6,7 @@ set(QT_CREATOR_SKIP_MAINTENANCE_TOOL_PROVIDER ON CACHE BOOL "Skip Qt Creator mai
 project(medicalpro VERSION 0.1 LANGUAGES CXX)
 
 if(MSVC AND CMAKE_VS_PLATFORM_NAME STREQUAL "arm64")
-    message(FATAL_ERROR "medicalpro 当前依赖的 Qt/CTK/VTK/ITK 为 x64 版本，请使用 x64 Kit 或 cmake -A x64 重新配置。")
+    message(FATAL_ERROR "medicalpro 当前依赖的 Qt/VTK/ITK 运行环境为 x64 版本，请使用 x64 Kit 或 cmake -A x64 重新配置。")
 endif()
 
 # 寮哄埗浣跨敤 Release 鏋勫缓锛堝崟閰嶇疆鐢熸垚鍣級锛涘閰嶇疆鐢熸垚鍣ㄧ敱 IDE/鏋勫缓鍛戒护閫夋嫨 --config Release
@@ -16,40 +16,6 @@ if(CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(MEDICALPRO_ENABLE_CONSOLE "Enable console window for runtime log debugging" ON)
-
-set(MEDICALPRO_CTK_INCLUDE_DIRS "")
-macro(medicalpro_collect_ctk_includes)
-    set(_medicalpro_ctk_dirs "")
-    if(DEFINED CTK_INCLUDE_DIRS)
-        list(APPEND _medicalpro_ctk_dirs ${CTK_INCLUDE_DIRS})
-    endif()
-    if(DEFINED CTK_DIR)
-        get_filename_component(_ctk_dir_abs "${CTK_DIR}" ABSOLUTE)
-        foreach(_candidate
-            "${_ctk_dir_abs}"
-            "${_ctk_dir_abs}/CTK"
-            "${_ctk_dir_abs}/CTK/Libs"
-            "${_ctk_dir_abs}/CTK/Libs/PluginFramework"
-            "${_ctk_dir_abs}/CTK/Plugins"
-            "${_ctk_dir_abs}/CTK-build"
-            "${_ctk_dir_abs}/CTK-build/Libs"
-            "${_ctk_dir_abs}/CTK-build/Libs/PluginFramework"
-            "${_ctk_dir_abs}/Libs/PluginFramework"
-            "${_ctk_dir_abs}/../CTK"
-            "${_ctk_dir_abs}/../CTK/Libs"
-            "${_ctk_dir_abs}/../CTK/Libs/PluginFramework"
-            "${_ctk_dir_abs}/../CTK-build"
-            "${_ctk_dir_abs}/../CTK-build/Libs"
-            "${_ctk_dir_abs}/../CTK-build/Libs/PluginFramework"
-        )
-            if(EXISTS "${_candidate}")
-                list(APPEND _medicalpro_ctk_dirs "${_candidate}")
-            endif()
-        endforeach()
-    endif()
-    list(REMOVE_DUPLICATES _medicalpro_ctk_dirs)
-    set(MEDICALPRO_CTK_INCLUDE_DIRS "${_medicalpro_ctk_dirs}")
-endmacro()
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -153,88 +119,12 @@ else()
     message(WARNING "ITK directory not found in any search paths")
 endif()
 
-# === CTK Plugin Framework 閰嶇疆 ===
-option(ENABLE_CTK_PLUGIN_FRAMEWORK "Enable CTK Plugin Framework support" ON)
-
-if(ENABLE_CTK_PLUGIN_FRAMEWORK)
-    # 澶栭儴 CTK 鏌ユ壘
-    set(CTK_POSSIBLE_PATHS
-        "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/CTK/CTK_install"
-        "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/CTK/CTK-build"
-        "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/CTK"
-        "$ENV{CTK_DIR}"
-        "D:/CTK/CTK_install"
-        "C:/CTK/CTK_install"
-    )
-
-    foreach(CTK_PATH ${CTK_POSSIBLE_PATHS})
-        if(EXISTS "${CTK_PATH}")
-            set(CTK_DIR "${CTK_PATH}")
-            break()
-        endif()
-    endforeach()
-
-    if(CTK_DIR)
-        message(STATUS "Searching for CTK in: ${CTK_DIR}")
-        set(CTK_INSTALL_DIR "${CTK_DIR}")
-
-        # Prefer importing CTK targets directly from the install tree to avoid
-        # CTKConfig.cmake forcing optional dependencies (PythonQt/QtSOAP/qRestAPI/...).
-        set(_ctk_config_dir "${CTK_INSTALL_DIR}/lib/ctk-0.1/CMake")
-        set(_ctk_exports_file "${_ctk_config_dir}/CTKExports.cmake")
-        if(EXISTS "${_ctk_exports_file}")
-            include("${_ctk_exports_file}")
-            set(CTK_FOUND TRUE)
-            set(CTK_USE_FILE "${_ctk_config_dir}/UseCTK.cmake")
-            set(CTK_INCLUDE_DIRS "${CTK_INSTALL_DIR}/include/ctk-0.1")
-
-            add_definitions(-DCTK_PLUGIN_FRAMEWORK -DCTK_PLUGIN_FRAMEWORK_EXPORT)
-            set(CTK_LIBRARIES CTKCore CTKWidgets CTKPluginFramework)
-            message(STATUS "CTK Plugin Framework enabled successfully (ThirdParty CTK install)")
-            medicalpro_collect_ctk_includes()
-        else()
-            set(CTK_FOUND FALSE)
-            message(WARNING "CTK install exports not found at: ${_ctk_exports_file}")
-        endif()
-    else()
-        set(CTK_FOUND FALSE)
-        message(WARNING "CTK not found in any search paths")
-    endif()
-
-    if(CTK_FOUND)
-        set(_ctk_pf_header_found FALSE)
-        foreach(_dir ${MEDICALPRO_CTK_INCLUDE_DIRS})
-            if(EXISTS "${_dir}/ctkPluginFrameworkFactory.h")
-                set(_ctk_pf_header_found TRUE)
-                break()
-            endif()
-        endforeach()
-        if(NOT _ctk_pf_header_found)
-            message(FATAL_ERROR "CTK PluginFramework headers not found. Ensure your CTK build enables PluginFramework.")
-        endif()
-
-        set(_ctk_pf_export_found FALSE)
-        foreach(_dir ${MEDICALPRO_CTK_INCLUDE_DIRS})
-            if(EXISTS "${_dir}/ctkPluginFrameworkExport.h")
-                set(_ctk_pf_export_found TRUE)
-                break()
-            endif()
-        endforeach()
-        if(NOT _ctk_pf_export_found)
-            message(FATAL_ERROR "ctkPluginFrameworkExport.h not found. CTK PluginFramework appears disabled in the selected CTK build.")
-        endif()
-    endif()
-else()
-    set(CTK_FOUND FALSE)
-    message(STATUS "CTK Plugin Framework disabled by user option")
-endif()
+# CTK runtime build integration has been removed. Platform modules are the only supported host model.
 
 set(TS_FILES medicalpro_zh_CN.ts)
 
 # Framework sources
 set(FRAMEWORK_SOURCES
-    Framework/CTKManager.h
-    Framework/CTKManager.cpp
     Framework/StartupOrchestrator.h
     Framework/StartupOrchestrator.cpp
     Framework/VTKWidgetPool.h
@@ -275,8 +165,8 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Kernel/PlatformManagedPluginPlan.cpp
     Framework/Platform/Kernel/PlatformRuntimeConfig.h
     Framework/Platform/Kernel/PlatformRuntimeConfig.cpp
-    Framework/Platform/Kernel/PlatformCtkPolicyBridge.h
-    Framework/Platform/Kernel/PlatformCtkPolicyBridge.cpp
+    Framework/Platform/Kernel/PlatformPluginPolicyBridge.h
+    Framework/Platform/Kernel/PlatformPluginPolicyBridge.cpp
     Framework/Platform/Kernel/PlatformStartupCoordinator.h
     Framework/Platform/Kernel/PlatformStartupCoordinator.cpp
     Framework/Platform/Kernel/PlatformOnDemandActivationPlan.h
@@ -289,10 +179,14 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Kernel/PlatformStateStore.cpp
     Framework/Platform/Bootstrap/StartupBootstrapController.h
     Framework/Platform/Bootstrap/StartupBootstrapController.cpp
+    Framework/Platform/Bootstrap/platform_built_in_module_bootstrap.h
+    Framework/Platform/Bootstrap/platform_built_in_module_bootstrap.cpp
     Framework/Platform/Bootstrap/PlatformStateStoreHandoff.h
     Framework/Platform/Bootstrap/PlatformStateStoreHandoff.cpp
-    Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.h
-    Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.cpp
+    Framework/Platform/Diagnostics/PlatformRuntimeSnapshotCollector.h
+    Framework/Platform/Diagnostics/PlatformRuntimeSnapshotCollector.cpp
+    Framework/Platform/Kernel/platform_runtime_host_adapter.h
+    Framework/Platform/Kernel/platform_runtime_host_adapter.cpp
     Framework/Platform/Diagnostics/PlatformDiagnosticsService.h
     Framework/Platform/Diagnostics/PlatformDiagnosticsService.cpp
     Framework/Platform/Diagnostics/PlatformPluginLifecycleAggregator.h
@@ -301,10 +195,12 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.cpp
     Framework/Platform/Contracts/PlatformFacadePorts.h
     Framework/Platform/Contracts/PlatformUiPorts.h
-    Framework/Platform/CtkBridge/CoreUiRuntimeStatusProvider.h
-    Framework/Platform/CtkBridge/CoreUiRuntimeStatusProvider.cpp
-    Framework/Platform/CtkBridge/NavigationPageServiceAccess.h
-    Framework/Platform/CtkBridge/NavigationPageServiceAccess.cpp
+    Framework/Platform/Contracts/platform_runtime_host_ports.h
+    Framework/Platform/Contracts/platform_module_ports.h
+    Framework/Platform/UiBridge/CoreUiRuntimeStatusProvider.h
+    Framework/Platform/UiBridge/CoreUiRuntimeStatusProvider.cpp
+    Framework/Platform/UiBridge/NavigationPageServiceAccess.h
+    Framework/Platform/UiBridge/NavigationPageServiceAccess.cpp
     Framework/Platform/LegacyAdapters/LegacyUserManagementAdapter.h
     Framework/Platform/LegacyAdapters/LegacyUserManagementAdapter.cpp
     Framework/Platform/LegacyAdapters/LegacyImagingAdapter.h
@@ -321,24 +217,25 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Facades/ImagingAppService.cpp
     Framework/Platform/Facades/NavigationAppService.h
     Framework/Platform/Facades/NavigationAppService.cpp
+    Framework/Platform/Kernel/platform_service_registry.h
+    Framework/Platform/Kernel/platform_service_registry.cpp
+    Framework/Platform/Kernel/platform_event_bus.h
+    Framework/Platform/Kernel/platform_event_bus.cpp
+    Framework/Platform/Kernel/platform_plugin_host.h
+    Framework/Platform/Kernel/platform_plugin_host.cpp
 )
-
-# Additional CTK-dependent framework sources
-if(CTK_FOUND)
-    message(STATUS "CTK plugin framework enabled")
-endif()
 
 # ============================================================================
 # Framework Library Configuration (Requirement 1.1, 1.5)
 # ============================================================================
 # Framework is a SHARED library that provides:
 # - VTK initialization and management utilities
-# - CTK plugin framework integration
+# - platform runtime hosting and diagnostics
 # - Common data structures and utilities
 # - Base classes for UI components
 #
 # Design Decision (ADR-001): Why SHARED library?
-# - Ensures single instance of singletons (e.g., CTKManager)
+# - Ensures single instance of shared runtime services
 # - Reduces total binary size by sharing code across main app and plugins
 # - Allows unified updates to Framework without recompiling all plugins
 # - Enables proper symbol export/import for cross-module usage
@@ -394,44 +291,69 @@ if(ITK_FOUND)
 endif()
 
 # ============================================================================
-# CTK Dependencies (PUBLIC - Requirement 1.3)
-# ============================================================================
-# Linking Strategy: PUBLIC
-# Reason: Plugins implement CTK service interfaces (ctkPluginActivator,
-#         QObject-based services) that require CTK headers. PUBLIC linking
-#         allows plugins to access CTK through Framework.
-# ============================================================================
-if(CTK_FOUND)
-    target_link_libraries(Framework PUBLIC ${CTK_LIBRARIES})
-    if(DEFINED CTK_INCLUDE_DIRS)
-        target_include_directories(Framework PUBLIC ${CTK_INCLUDE_DIRS})
-    elseif(DEFINED CTK_INCLUDE_PATH)
-        target_include_directories(Framework PUBLIC ${CTK_INCLUDE_PATH})
-    endif()
-    target_compile_definitions(Framework PUBLIC
-        CTK_PLUGIN_FRAMEWORK
-        CTK_PLUGIN_FRAMEWORK_EXPORT
-    )
-    message(STATUS "Framework: CTK linked as PUBLIC (plugins inherit CTK access)")
-endif()
-
-# ============================================================================
 # Framework Public Headers
 # ============================================================================
 set(_framework_public_includes
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/Framework
 )
-if(MEDICALPRO_CTK_INCLUDE_DIRS)
-    list(APPEND _framework_public_includes ${MEDICALPRO_CTK_INCLUDE_DIRS})
-endif()
 list(REMOVE_DUPLICATES _framework_public_includes)
 target_include_directories(Framework PUBLIC ${_framework_public_includes})
 
 # 鎻掍欢鐩綍鏀惧湪 Framework 瀹氫箟涔嬪悗锛岄伩鍏?PCH 澶嶇敤鏃舵壘涓嶅埌 Framework 鐩爣
-if(CTK_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Plugins")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Plugins")
     add_subdirectory(Plugins)
     message(STATUS "Added Plugins subdirectory")
+endif()
+
+if(TARGET UserManagementPlatformModuleLib)
+    target_link_libraries(Framework PRIVATE UserManagementPlatformModuleLib)
+    target_compile_definitions(Framework PRIVATE MEDICALPRO_HAS_USER_MANAGEMENT_PLATFORM_MODULE)
+endif()
+
+if(TARGET DicomViewerPlatformModuleLib)
+    target_link_libraries(Framework PRIVATE DicomViewerPlatformModuleLib)
+    target_compile_definitions(Framework PRIVATE MEDICALPRO_HAS_DICOM_VIEWER_PLATFORM_MODULE)
+endif()
+
+if(TARGET FourViewDisplayPlatformModuleLib)
+    target_link_libraries(Framework PRIVATE FourViewDisplayPlatformModuleLib)
+    target_compile_definitions(Framework PRIVATE MEDICALPRO_HAS_FOUR_VIEW_DISPLAY_PLATFORM_MODULE)
+endif()
+
+if(TARGET RegistrationCorePlatformModuleLib)
+    target_link_libraries(Framework PRIVATE RegistrationCorePlatformModuleLib)
+    target_compile_definitions(Framework PRIVATE MEDICALPRO_HAS_REGISTRATION_CORE_PLATFORM_MODULE)
+endif()
+
+if(TARGET Registration2D3DPlatformModuleLib)
+    target_link_libraries(Framework PRIVATE Registration2D3DPlatformModuleLib)
+    target_compile_definitions(Framework PRIVATE MEDICALPRO_HAS_REGISTRATION_2D3D_PLATFORM_MODULE)
+endif()
+
+if(TARGET OpticalTrackingPlatformModuleLib)
+    target_link_libraries(Framework PRIVATE OpticalTrackingPlatformModuleLib)
+    target_compile_definitions(Framework PRIVATE MEDICALPRO_HAS_OPTICAL_TRACKING_PLATFORM_MODULE)
+endif()
+
+if(TARGET OpticalRegistrationPlatformModuleLib)
+    target_link_libraries(Framework PRIVATE OpticalRegistrationPlatformModuleLib)
+    target_compile_definitions(Framework PRIVATE MEDICALPRO_HAS_OPTICAL_REGISTRATION_PLATFORM_MODULE)
+endif()
+
+if(TARGET PointRegistrationPlatformModuleLib)
+    target_link_libraries(Framework PRIVATE PointRegistrationPlatformModuleLib)
+    target_compile_definitions(Framework PRIVATE MEDICALPRO_HAS_POINT_REGISTRATION_PLATFORM_MODULE)
+endif()
+
+if(TARGET InstrumentManagementPlatformModuleLib)
+    target_link_libraries(Framework PRIVATE InstrumentManagementPlatformModuleLib)
+    target_compile_definitions(Framework PRIVATE MEDICALPRO_HAS_INSTRUMENT_MANAGEMENT_PLATFORM_MODULE)
+endif()
+
+if(TARGET BoneSegmentationPlatformModuleLib)
+    target_link_libraries(Framework PRIVATE BoneSegmentationPlatformModuleLib)
+    target_compile_definitions(Framework PRIVATE MEDICALPRO_HAS_BONE_SEGMENTATION_PLATFORM_MODULE)
 endif()
 
 # ============================================================================
@@ -492,16 +414,10 @@ set(PROJECT_SOURCES
 
 # 娣诲姞鎻掍欢鎺ュ彛澶存枃浠讹紝浣縌t MOC鑳藉涓哄畠浠敓鎴愬厓瀵硅薄浠ｇ爜
 # 杩欏浜庡湪涓荤▼搴忎腑杩炴帴鎻掍欢淇″彿鏄繀闇€鐨?
-if(CTK_FOUND)
-    list(APPEND PROJECT_SOURCES
-        # 鍖呭惈鏈塓_OBJECT鍜宻ignals鐨勬湇鍔℃帴鍙ｅご鏂囦欢
-        # Plugins/ProsthesisPlanning/ProsthesisPlanningService.h  # 宸茬Щ闄?- 鎻掍欢宸插垹闄?
-        Plugins/InstrumentManagement/InstrumentManagementService.h
-        # 鍏朵粬甯︽湁Q_OBJECT鍜宻ignals鐨勬湇鍔℃帴鍙ｄ篃搴旀坊鍔犲湪姝?
-        # Plugins/UserManagement/UserManagementService.h  # 宸茬粡鍙互姝ｅ父宸ヤ綔
-    )
-    message(STATUS "Added plugin service interface headers for MOC processing")
-endif()
+list(APPEND PROJECT_SOURCES
+    Plugins/InstrumentManagement/InstrumentManagementService.h
+)
+message(STATUS "Added plugin service interface headers for MOC processing")
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(medicalpro
@@ -538,7 +454,7 @@ target_link_libraries(medicalpro PRIVATE
     Qt${QT_VERSION_MAJOR}::Sql
     Qt${QT_VERSION_MAJOR}::Concurrent
     Qt${QT_VERSION_MAJOR}::PrintSupport
-    Framework  # Link Framework (gets VTK/CTK transitively through PUBLIC)
+    Framework
 )
 
 # 閾炬帴鏂癠I妗嗘灦搴?
@@ -547,32 +463,6 @@ if(TARGET NewPagesLib)
     message(STATUS "Main app: NewPagesLib linked")
 endif()
 
-# ========== 涓嶅啀浣跨敤鐩存帴澶嶅埗锛屾彃浠跺壇鏈敱鍚勬彃浠剁洰褰曞唴鐨凜Make閰嶇疆 ==========
-# 鎻掍欢鐨凱OST_BUILD浜嬩欢鍦ㄥ悇鑷殑CMakeLists.txt涓厤缃?
-if(CTK_FOUND)
-    add_plugin_dependency(medicalpro
-        UserManagement
-        DicomViewer
-        FourViewDisplay
-        InstrumentManagement
-        OpticalTracking
-        Registration2D3D
-        PointRegistration
-        OpticalRegistration
-        BoneSegmentation
-        RegistrationCore
-    )
-
-# Keep runtime copying disabled here; plugin-specific rules handle it
-    # configure_plugin_runtime_copy(medicalpro)
-    message(STATUS "Plugin runtime handled by individual plugin configurations")
-endif()
-
-register_platform_descriptor(UserManagement "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/UserManagement/platform/plugin.json")
-register_platform_descriptor(DicomViewer "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/DicomViewer/platform/plugin.json")
-register_platform_descriptor(FourViewDisplay "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/FourViewDisplay/platform/plugin.json")
-register_platform_descriptor(RegistrationCore "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/RegistrationCore/platform/plugin.json")
-register_platform_descriptor(OpticalTracking "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/OpticalTracking/platform/plugin.json")
 configure_platform_descriptor_runtime_copy(medicalpro)
 
 # ============================================================================
@@ -613,34 +503,16 @@ if(ITK_FOUND)
 endif()
 
 # ============================================================================
-# CTK Linking for Main App (PRIVATE - Requirement 1.3)
+# Main App Compile Definitions
 # ============================================================================
-# Linking Strategy: PRIVATE
-# Reason: Main app uses CTK for plugin framework initialization (CTKManager).
-#         Framework already links CTK as PUBLIC, so main app gets CTK
-#         transitively. Explicit PRIVATE linking here is for direct CTK usage
-#         in main.cpp and MainInterfaceWidget.
-# ============================================================================
-if(CTK_FOUND)
-    target_link_libraries(medicalpro PRIVATE ${CTK_LIBRARIES})
-    
-    if(DEFINED CTK_INCLUDE_DIRS)
-        target_include_directories(medicalpro PRIVATE ${CTK_INCLUDE_DIRS})
-    elseif(DEFINED CTK_INCLUDE_PATH)
-        target_include_directories(medicalpro PRIVATE ${CTK_INCLUDE_PATH})
-    endif()
-    
-    target_compile_definitions(medicalpro PRIVATE
-        CTK_PLUGIN_FRAMEWORK
-        CTK_PLUGIN_FRAMEWORK_EXPORT
-        MEDICALPRO_MAIN_APPLICATION  # 鏍囪瘑涓荤▼搴忥紝鐢ㄤ簬VTK_MODULE_INIT鏉′欢缂栬瘧
-    )
-    
-    # 娣诲姞椤圭洰鏍圭洰褰曞埌鍖呭惈璺緞锛屼娇鎻掍欢澶存枃浠跺彲浠ヨ鎵惧埌
-    target_include_directories(medicalpro PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    
-    message(STATUS "Main app: CTK linked as PRIVATE (direct usage in main.cpp)")
-endif()
+target_compile_definitions(medicalpro PRIVATE
+    MEDICALPRO_MAIN_APPLICATION
+)
+
+# 娣诲姞椤圭洰鏍圭洰褰曞埌鍖呭惈璺緞锛屼娇鎻掍欢澶存枃浠跺彲浠ヨ鎵惧埌
+target_include_directories(medicalpro PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+message(STATUS "Main app: platform runtime host only")
 
 
 
@@ -688,104 +560,21 @@ if(BUILD_TESTING)
     endif()
 endif()
 
-# 澶嶅埗EventAdmin鎻掍欢鍒拌緭鍑虹洰褰曪紝骞剁‘淇?CTK / VTK 杩愯鏃?DLL 鍦?exe 鐩綍鍙
-if(CTK_FOUND)
-    # 鍦?CTK 杈撳嚭鐩綍涓煡鎵捐繍琛屾椂 DLL锛岃嫢鏈壘鍒板啀鍥為€€鍒版湰浠撳簱 ThirdParty/CTK
-    set(_ctk_runtime_roots)
-    list(APPEND _ctk_runtime_roots
-        "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/CTK/CTK_install"  # 鍏滃簳
-    )
-    set(_filtered_ctk_runtime_roots)
-    foreach(_root ${_ctk_runtime_roots})
-        if(_root AND EXISTS "${_root}")
-            list(APPEND _filtered_ctk_runtime_roots "${_root}")
-        endif()
-    endforeach()
-    list(REMOVE_DUPLICATES _filtered_ctk_runtime_roots)
+add_custom_command(TARGET medicalpro POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+        -DOUTPUT_DIR="$<TARGET_FILE_DIR:medicalpro>"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/remove_stale_runtime_host_artifacts.cmake"
+    COMMENT "Removing stale legacy runtime host artifacts"
+)
 
-    # 鏋勯€犲€欓€夎矾寰勫苟閫夊嚭绗竴涓瓨鍦ㄧ殑 EventAdmin 鎻掍欢
-    set(EVENTADMIN_PLUGIN_PATH "")
-    set(_eventadmin_candidates)
-    foreach(_root ${_filtered_ctk_runtime_roots})
-        list(APPEND _eventadmin_candidates
-            "${_root}/lib/ctk-0.1/plugins/liborg_commontk_eventadmin.dll"
-            "${_root}/bin/plugins/liborg_commontk_eventadmin.dll"
-            "${_root}/bin/Release/plugins/liborg_commontk_eventadmin.dll"
-            "${_root}/bin/liborg_commontk_eventadmin.dll"
-        )
-    endforeach()
-    foreach(_candidate ${_eventadmin_candidates})
-        if(EXISTS "${_candidate}")
-            set(EVENTADMIN_PLUGIN_PATH "${_candidate}")
-            break()
-        endif()
-    endforeach()
+add_custom_command(TARGET medicalpro POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+        -DOUTPUT_DIR="$<TARGET_FILE_DIR:medicalpro>"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/remove_stale_legacy_plugin_artifacts.cmake"
+    COMMENT "Removing stale legacy plugin artifacts"
+)
 
-    if(EVENTADMIN_PLUGIN_PATH)
-        message(STATUS "Found EventAdmin plugin at: ${EVENTADMIN_PLUGIN_PATH}")
-        add_custom_command(TARGET medicalpro POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${EVENTADMIN_PLUGIN_PATH}"
-                "$<TARGET_FILE_DIR:medicalpro>/plugins/liborg_commontk_eventadmin.dll"
-            COMMENT "Copying EventAdmin plugin to output directory"
-        )
-    else()
-        message(WARNING "EventAdmin plugin not found in CTK runtime locations. Please ensure CTK PluginFramework plugins are built.")
-    endif()
-
-    # 鏌ユ壘 CTKPluginFramework.dll
-    set(CTK_PLUGIN_FRAMEWORK_DLL "")
-    set(_ctk_fw_candidates)
-    foreach(_root ${_filtered_ctk_runtime_roots})
-        list(APPEND _ctk_fw_candidates
-            "${_root}/lib/ctk-0.1/CTKPluginFramework.dll"
-            "${_root}/bin/CTKPluginFramework.dll"
-            "${_root}/bin/Release/CTKPluginFramework.dll"
-        )
-    endforeach()
-    foreach(_candidate ${_ctk_fw_candidates})
-        if(EXISTS "${_candidate}")
-            set(CTK_PLUGIN_FRAMEWORK_DLL "${_candidate}")
-            break()
-        endif()
-    endforeach()
-
-    if(CTK_PLUGIN_FRAMEWORK_DLL)
-        add_custom_command(TARGET medicalpro POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${CTK_PLUGIN_FRAMEWORK_DLL}"
-                "$<TARGET_FILE_DIR:medicalpro>/CTKPluginFramework.dll"
-            COMMENT "Copying CTKPluginFramework.dll to output directory"
-        )
-    else()
-        message(WARNING "CTKPluginFramework.dll not found in CTK runtime locations. Please ensure CTK PluginFramework is built.")
-    endif()
-
-endif()
-
-# Copy CTK runtime DLLs (beyond PluginFramework) to output directory
-if(WIN32 AND ENABLE_CTK_PLUGIN_FRAMEWORK AND DEFINED CTK_INSTALL_DIR)
-    set(_ctk_runtime_dirs
-        "${CTK_INSTALL_DIR}/lib/ctk-0.1"
-        "${CTK_INSTALL_DIR}/bin"
-        "${CTK_INSTALL_DIR}/bin/Release"
-    )
-    foreach(_dir ${_ctk_runtime_dirs})
-        if(EXISTS "${_dir}")
-            file(GLOB _ctk_dlls "${_dir}/CTK*.dll")
-            if(_ctk_dlls)
-                add_custom_command(TARGET medicalpro POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        ${_ctk_dlls}
-                        "$<TARGET_FILE_DIR:medicalpro>"
-                    COMMENT "Copying CTK runtime DLLs from ${_dir} to output directory"
-                )
-            endif()
-        endif()
-    endforeach()
-endif()
-
-# Qt SQL driver (QSQLITE) - required by CTK plugin database (plugins.db)
+# Qt SQL driver (QSQLITE)
 if(WIN32)
     set(_qt_qmake_executable "")
     get_target_property(_qt_qmake_executable Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
@@ -1004,18 +793,6 @@ if(BUILD_NEWUI_TEST AND TARGET NewPagesLib)
         Framework
     )
 
-    # CTK鏀寔
-    if(CTK_FOUND)
-        target_link_libraries(medicalpro_newui PRIVATE ${CTK_LIBRARIES})
-        target_compile_definitions(medicalpro_newui PRIVATE
-            CTK_PLUGIN_FRAMEWORK
-            CTK_PLUGIN_FRAMEWORK_EXPORT
-        )
-        if(DEFINED CTK_INCLUDE_DIRS)
-            target_include_directories(medicalpro_newui PRIVATE ${CTK_INCLUDE_DIRS})
-        endif()
-    endif()
-
     # VTK鏀寔
     if(VTK_FOUND)
         target_link_libraries(medicalpro_newui PRIVATE ${VTK_LIBRARIES})
@@ -1093,28 +870,26 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/data")
 endif()
 
 # Clean legacy plugin artifacts that can break plugin discovery order in runtime output
-if(CTK_FOUND)
-    set(MEDICALPRO_LEGACY_PLUGIN_FILES
-        SlicerBridge.dll
-        SlicerBridge.lib
-        SlicerBridge.exp
-        SlicerBridge.pdb
-        Segmentation.dll
-        Segmentation.lib
-        Segmentation.exp
-        Segmentation.pdb
-        SegmentationCore.dll
-        SegmentationCore.lib
-        SegmentationCore.exp
-        SegmentationCore.pdb
-    )
+set(MEDICALPRO_LEGACY_PLUGIN_FILES
+    SlicerBridge.dll
+    SlicerBridge.lib
+    SlicerBridge.exp
+    SlicerBridge.pdb
+    Segmentation.dll
+    Segmentation.lib
+    Segmentation.exp
+    Segmentation.pdb
+    SegmentationCore.dll
+    SegmentationCore.lib
+    SegmentationCore.exp
+    SegmentationCore.pdb
+)
 
-    foreach(_legacy_plugin_file ${MEDICALPRO_LEGACY_PLUGIN_FILES})
-        add_custom_command(TARGET medicalpro POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:medicalpro>/plugins/${_legacy_plugin_file}"
-            COMMENT "Removing legacy plugin artifact: ${_legacy_plugin_file}"
-        )
-    endforeach()
-endif()
+foreach(_legacy_plugin_file ${MEDICALPRO_LEGACY_PLUGIN_FILES})
+    add_custom_command(TARGET medicalpro POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -f "$<TARGET_FILE_DIR:medicalpro>/plugins/${_legacy_plugin_file}"
+        COMMENT "Removing legacy plugin artifact: ${_legacy_plugin_file}"
+    )
+endforeach()
 
 

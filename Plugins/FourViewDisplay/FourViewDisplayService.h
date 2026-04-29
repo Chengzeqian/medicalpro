@@ -16,7 +16,7 @@ class vtkImageData;
  * 
  * 提供轴位、矢状位、冠状位和3D视图的显示服务接口。
  * 支持加载和显示nii.gz医学影像文件。
- * 这是一个纯虚接口，遵循CTK服务架构设计原则。
+ * 这是一个纯虚接口，遵循平台服务契约。
  */
 class FourViewDisplayService : public QObject
 {
@@ -304,7 +304,7 @@ signals:
     void volumeDataReady(const ImageData& data);
 };
 
-// 声明为CTK服务接口
+// 服务接口声明
 Q_DECLARE_INTERFACE(FourViewDisplayService, "com.medicalpro.FourViewDisplayService")
 
 #endif // FOUR_VIEW_DISPLAY_SERVICE_H

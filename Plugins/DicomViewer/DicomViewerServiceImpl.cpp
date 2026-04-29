@@ -45,7 +45,6 @@ DicomViewerServiceImpl::DicomViewerServiceImpl(QObject *parent)
     , m_databaseName("dicom_viewer.db")
     , m_initialized(false)
     , m_renderingPaused(false)
-    , m_pluginContext(nullptr)
 {
     // 初始化足踝CT预设窗宽窗位
     m_ankleCtPresets = {

@@ -10,7 +10,7 @@
  * @brief 器械管理服务接口
  * 
  * 提供器械管理的完整服务接口，包括器械CRUD、追踪、校准、统计等功能。
- * 这是一个纯虚接口，遵循CTK服务架构设计原则。
+ * 这是一个纯虚接口，遵循平台服务契约。
  */
 class InstrumentManagementService : public QObject
 {
@@ -365,8 +365,7 @@ signals:
     void databaseError(const QString& errorMessage);
 };
 
-// CTK服务接口声明（必需）
+// 服务接口声明（必需）
 Q_DECLARE_INTERFACE(InstrumentManagementService, "com.medicalpro.InstrumentManagementService")
 
 #endif // INSTRUMENT_MANAGEMENT_SERVICE_H
-

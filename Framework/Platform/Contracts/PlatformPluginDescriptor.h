@@ -14,7 +14,7 @@ struct PlatformServiceSet
 
 struct PlatformRuntimeDescriptor
 {
-    QString ctkSymbolicName;
+    QString symbolicName;
     PlatformStartupPolicy startupPolicy = PlatformStartupPolicy::Disabled;
     PlatformBootstrapLevel bootstrapLevel = PlatformBootstrapLevel::Deferred;
     QString entryCapability;

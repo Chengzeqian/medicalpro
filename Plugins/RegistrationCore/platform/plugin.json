@@ -5,7 +5,7 @@
   "domain": "navigation",
   "enabled": true,
   "runtime": {
-    "ctk_symbolic_name": "RegistrationCore",
+    "symbolic_name": "RegistrationCore",
     "startup_policy": "on_demand",
     "bootstrap_level": "deferred",
     "entry_capability": "navigation.registration"

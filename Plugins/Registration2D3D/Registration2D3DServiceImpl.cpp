@@ -21,7 +21,7 @@
 
 Registration2D3DServiceImpl::Registration2D3DServiceImpl(QObject* parent)
     : Registration2D3DService(parent)
-    , m_context(nullptr)
+    , m_serviceRegistry(nullptr)
     , m_pythonInitialized(false)
     , m_mainThreadState(nullptr)
     , m_renderingPaused(false)

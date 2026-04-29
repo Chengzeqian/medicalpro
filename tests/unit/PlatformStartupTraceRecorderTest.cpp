@@ -74,7 +74,7 @@ void PlatformStartupTraceRecorderTest::records_phase_and_plugin_spans()
     QCOMPARE(pluginSpan.phaseKey, QStringLiteral("org.medicalpro.viewer"));
     QCOMPARE(pluginSpan.phaseLabel, QStringLiteral("start"));
     QCOMPARE(pluginSpan.pluginId, QStringLiteral("org.medicalpro.viewer"));
-    QCOMPARE(pluginSpan.ctkSymbolicName, QStringLiteral("ViewerPlugin"));
+    QCOMPARE(pluginSpan.symbolicName, QStringLiteral("ViewerPlugin"));
     QCOMPARE(pluginSpan.step, PlatformLifecycleStep::Start);
     QCOMPARE(pluginSpan.result, PlatformLifecycleResult::Succeeded);
     QVERIFY(pluginSpan.success);
@@ -128,7 +128,7 @@ void PlatformStartupTraceRecorderTest::records_skipped_step_for_runtime_mode()
     QCOMPARE(entry.phaseKey, QStringLiteral("org.medicalpro.viewer"));
     QCOMPARE(entry.phaseLabel, QStringLiteral("start"));
     QCOMPARE(entry.pluginId, QStringLiteral("org.medicalpro.viewer"));
-    QCOMPARE(entry.ctkSymbolicName, QStringLiteral("ViewerPlugin"));
+    QCOMPARE(entry.symbolicName, QStringLiteral("ViewerPlugin"));
     QCOMPARE(entry.step, PlatformLifecycleStep::Start);
     QCOMPARE(entry.result, PlatformLifecycleResult::Skipped);
     QVERIFY(entry.success);

@@ -103,18 +103,15 @@ target_link_libraries(NewPagesLib PUBLIC
 # 链接Framework库（提供CTK/VTK支持）
 if(TARGET Framework)
     target_link_libraries(NewPagesLib PUBLIC Framework)
-    message(STATUS "NewPagesLib: Framework linked (provides CTK/VTK access)")
+    message(STATUS "NewPagesLib: Framework linked (provides shared platform/VTK access)")
+endif()
+
+if(TARGET PointRegistrationPlatformModuleLib)
+    target_link_libraries(NewPagesLib PUBLIC PointRegistrationPlatformModuleLib)
+    message(STATUS "NewPagesLib: PointRegistrationPlatformModuleLib linked")
 endif()
 
 # CTK编译定义（从父项目继承）
-if(CTK_FOUND)
-    target_sources(NewPagesLib PRIVATE
-        ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/RegistrationWorkflow.h
-        ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/PointRegistrationService.h
-        ${CMAKE_SOURCE_DIR}/Plugins/PointRegistration/RegistrationWorkflow.cpp
-    )
-    target_compile_definitions(NewPagesLib PRIVATE CTK_PLUGIN_FRAMEWORK)
-endif()
 
 # 消息输出
 message(STATUS "NewPages UI Framework configured")

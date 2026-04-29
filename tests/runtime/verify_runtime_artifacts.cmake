@@ -54,12 +54,10 @@ function(require_manifest_symbolic_name manifest_file expected_value failure_cod
     endif()
 endfunction()
 
-set(required_files
-    "${user_management_plugin}"
-    "${dicom_viewer_plugin}"
-    "${four_view_display_plugin}"
-    "${meshgpu_runtime_dll}"
-)
+set(required_files)
+if(meshgpu_runtime_dll)
+    list(APPEND required_files "${meshgpu_runtime_dll}")
+endif()
 
 set(missing_artifacts)
 foreach(required_file IN LISTS required_files)
@@ -86,6 +84,23 @@ if(require_platform_descriptors)
             list(APPEND missing_artifacts "${descriptor_file}")
         endif()
     endforeach()
+endif()
+
+file(GLOB stale_runtime_host_artifacts
+    "${runtime_dir}/CTK*.dll"
+    "${runtime_dir}/plugins/liborg_commontk_eventadmin.dll"
+)
+if(stale_runtime_host_artifacts)
+    string(JOIN "\n - " stale_runtime_host_report ${stale_runtime_host_artifacts})
+    message(FATAL_ERROR "legacy runtime host artifacts still exist in runtime layout:\n - ${stale_runtime_host_report}")
+endif()
+
+file(GLOB stale_legacy_plugin_manifests
+    "${runtime_dir}/plugins/*.manifest"
+)
+if(stale_legacy_plugin_manifests)
+    string(JOIN "\n - " stale_manifest_report ${stale_legacy_plugin_manifests})
+    message(FATAL_ERROR "legacy plugin manifests still exist in runtime layout:\n - ${stale_manifest_report}")
 endif()
 
 if(verify_plugin_truth_source_runtime_contract)
@@ -115,47 +130,6 @@ if(verify_plugin_truth_source_runtime_contract)
         "descriptor_directory"
         "plugins/descriptors"
         "platform_descriptor_directory_mismatch"
-    )
-endif()
-
-if(verify_user_management_runtime_contract)
-    set(user_management_runtime_bundle "${runtime_dir}/plugins/UserManagement.dll")
-    set(user_management_runtime_descriptor "${runtime_dir}/plugins/descriptors/UserManagement.json")
-    set(user_management_runtime_manifest "${runtime_dir}/plugins/UserManagement.manifest")
-
-    append_missing_artifact("${user_management_runtime_bundle}")
-    append_missing_artifact("${user_management_runtime_descriptor}")
-    append_missing_artifact("${user_management_runtime_manifest}")
-
-    if(missing_artifacts)
-        string(JOIN "\n - " missing_report ${missing_artifacts})
-        message(FATAL_ERROR "user_management_runtime_layout_mismatch:\n - ${missing_report}")
-    endif()
-
-    get_filename_component(runtime_bundle_base "${user_management_runtime_bundle}" NAME_WE)
-    if(NOT runtime_bundle_base STREQUAL "UserManagement")
-        message(FATAL_ERROR "user_management_runtime_layout_mismatch: expected runtime bundle base name UserManagement but got ${runtime_bundle_base}")
-    endif()
-
-    require_json_field_value(
-        "${user_management_runtime_descriptor}"
-        "id"
-        "org.medicalpro.user_management"
-        "user_management_descriptor_missing"
-    )
-
-    require_nested_json_field_value(
-        "${user_management_runtime_descriptor}"
-        "runtime"
-        "ctk_symbolic_name"
-        "UserManagement"
-        "user_management_symbolic_name_mismatch"
-    )
-
-    require_manifest_symbolic_name(
-        "${user_management_runtime_manifest}"
-        "UserManagement"
-        "user_management_symbolic_name_mismatch"
     )
 endif()
 

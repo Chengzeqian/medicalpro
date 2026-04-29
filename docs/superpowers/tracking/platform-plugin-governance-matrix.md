@@ -1,10 +1,20 @@
 # Platform Plugin Governance Matrix
 
-Updated: 2026-04-23
+Updated: 2026-04-27
+
+## CTK Runtime Exit Status
+
+| Area | Governed State | Status | Notes |
+| --- | --- | --- | --- |
+| Product mainline runtime owner | `PlatformPluginHost` + platform runtime/service ports | accepted | Default configure path is `ENABLE_CTK_PLUGIN_FRAMEWORK=OFF`. |
+| Legacy CTK runtime path | deleted | accepted | Bridge-only runtime host sources are removed from the repository. |
+| Core/UI plugin activation | Platform module activators | accepted | Legacy `ctkPluginActivator` source files for migrated plugins are deleted. |
+| Build/runtime artifact policy | No `EventAdmin`, no `CTKPluginFramework.dll`, no `CTK*.dll`, no plugin `.manifest` | accepted | Enforced by runtime layout verification and build/deployment contract tests. |
+| Legacy build toggles | fatal on use | accepted | `MEDICALPRO_DEPLOY_CTK_RUNTIME` and `MEDICALPRO_BUILD_LEGACY_CTK_PLUGINS` now stop configuration instead of reviving old paths. |
 
 ## Core Plugin Governance Matrix
 
-| Plugin | Descriptor Id | CTK Symbolic Name | Bootstrap | Startup Policy | Facade Owner | Legacy Adapter | UI Entry |
+| Plugin | Descriptor Id | Runtime Symbolic Name | Bootstrap | Startup Policy | Facade Owner | Legacy Adapter | UI Entry |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | UserManagement | `org.medicalpro.user_management` | `UserManagement` | core | eager | `IdentityAppService` | `LegacyUserManagementAdapter` | Welcome / Management |
 | DicomViewer | `org.medicalpro.dicom_viewer` | `DicomViewer` | core | eager | `ImagingAppService` | `LegacyImagingAdapter` | Welcome / Dashboard |
@@ -34,20 +44,19 @@ Updated: 2026-04-23
 
 - `config/platform_runtime.json` stores platform descriptor ids, not CTK symbolic names.
 - Product startup truth is explicitly `platform_runtime.json + plugins/descriptors/*.json + PlatformDescriptorLoader`.
-- `main.cpp` performs explicit descriptor policy handoff through `ctkManager->setDescriptorPolicyContext(runtimeConfig, descriptors)` before plugin install/start orchestration.
-- `CTKManager::setDescriptorPolicyContext()` is the governed descriptor policy handoff boundary between startup assembly and CTK runtime classification.
-- `CTKManager` runtime bucket classification now resolves through `PlatformCtkPolicyBridge` instead of legacy load-policy lookup.
+- `main.cpp` no longer exposes descriptor policy handoff or any bridge-only CTK runtime variable.
+- `PlatformPluginPolicyBridge` remains only as internal descriptor/runtime classification logic.
 - Safe mode criticality now follows `platform_runtime.json.core_plugin_ids`.
 - Plugin load policy compatibility shell deletion is complete.
 - There is no repository-recognized legacy load-policy entry point or directory-scan startup side path.
 - `runtime_artifact_layout_test` covers product-mainline runtime artifacts only.
 - The authoritative human-readable inventory for remaining legacy consumers is `docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md`.
 - `CriticalPluginStart` starts only the core startup set declared in runtime config.
-- `DeferredPluginStart` goes through `CTKManager::startDeferredPlugins(false)` instead of a hard-coded plugin list in `main.cpp`.
+- The default Release runtime layout must not contain `CTKPluginFramework.dll`, `CTK*.dll`, `plugins/liborg_commontk_eventadmin.dll`, or plugin `.manifest` files.
 - Descriptor governance includes a dedicated `diagnostics` block with `required_services`, `service_ready_timeout_ms`, `warmup_tasks`, `warmup_timeout_ms`, `warmup_impacts_ready`, and `degrade_on`.
 - Lifecycle diagnostics are modeled through `PlatformLifecycleEvent` rather than ad-hoc logs, so `install`, `start`, `service_ready`, `warmup`, `failed`, `degraded`, and `skipped_by_mode` are first-class governed facts.
 - Runtime mode behavior is explicit in diagnostics output:
   - `observe_only` emits `skipped_by_mode` for governed stages.
   - `facade_mode` times framework/core startup while keeping deferred start and warmup outside the governed ready-path.
   - `orchestrate_core` records the full ready-path and warmup-tail contract.
-- Recovery-hint governance is standardized for `descriptor_missing`, `plugin_install_failed`, `plugin_start_failed`, `service_missing`, `service_ready_timeout`, `warmup_failed`, `skipped_by_mode`, and `ctk_platform_state_mismatch`.
+- Recovery-hint governance is standardized for `descriptor_missing`, `plugin_install_failed`, `plugin_start_failed`, `service_missing`, `service_ready_timeout`, `warmup_failed`, `skipped_by_mode`, and `runtime_platform_state_mismatch`.

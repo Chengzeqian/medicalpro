@@ -2,8 +2,6 @@
 #include "ServiceInterfaces.h"
 
 // CTK框架
-#include <ctkPluginContext.h>
-#include <ctkServiceReference.h>
 
 #include <QDebug>
 #include <QMutexLocker>
@@ -53,9 +51,9 @@
 #include <algorithm>
 
 //-----------------------------------------------------------------------------
-OpticalTrackingServiceImpl::OpticalTrackingServiceImpl(ctkPluginContext* context, QObject* parent)
+OpticalTrackingServiceImpl::OpticalTrackingServiceImpl(QObject* parent)
     : OpticalTrackingService(parent)
-    , m_pluginContext(context)
+    , m_serviceRegistry(nullptr)
     , m_imageService(nullptr)
     , m_interactionService(nullptr)
     , m_imageServiceConnected(false)
@@ -5374,9 +5372,9 @@ void OpticalTrackingServiceImpl::sendPong(const QHostAddress& sender, quint16 se
     m_udpSocket->writeDatagram(datagram, sender, senderPort);
 }
 
-void OpticalTrackingServiceImpl::setPluginContext(ctkPluginContext* context)
+void OpticalTrackingServiceImpl::setServiceRegistry(PlatformServiceRegistry* serviceRegistry)
 {
-    m_pluginContext = context;
+    m_serviceRegistry = serviceRegistry;
 }
 
 // ==================== NDI 硬件驱动集成实现 ====================

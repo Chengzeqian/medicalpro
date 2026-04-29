@@ -14,16 +14,16 @@ void assignError(QString* error, const QString& value)
     if (error) *error = value;
 }
 
-QString resolveBundlePath(const QString& pluginDirectory, const QString& ctkSymbolicName)
+QString resolveBundlePath(const QString& pluginDirectory, const QString& symbolicName)
 {
-    if (pluginDirectory.trimmed().isEmpty() || ctkSymbolicName.trimmed().isEmpty()) return {};
+    if (pluginDirectory.trimmed().isEmpty() || symbolicName.trimmed().isEmpty()) return {};
 
     const QDir directory(pluginDirectory);
     const auto bundleFiles = directory.entryInfoList(QDir::Files | QDir::NoDotAndDotDot, QDir::Name);
     for (const auto& bundleFile : bundleFiles) {
         const auto baseName = bundleFile.completeBaseName();
-        if (baseName.compare(ctkSymbolicName, Qt::CaseInsensitive) == 0) return bundleFile.absoluteFilePath();
-        if (baseName.compare(QStringLiteral("lib%1").arg(ctkSymbolicName), Qt::CaseInsensitive) == 0) {
+        if (baseName.compare(symbolicName, Qt::CaseInsensitive) == 0) return bundleFile.absoluteFilePath();
+        if (baseName.compare(QStringLiteral("lib%1").arg(symbolicName), Qt::CaseInsensitive) == 0) {
             return bundleFile.absoluteFilePath();
         }
     }
@@ -35,8 +35,8 @@ bool validateManagedDescriptor(const PlatformPluginDescriptor& descriptor, QStri
 {
     QStringList missingFields;
 
-    if (descriptor.runtime.ctkSymbolicName.trimmed().isEmpty()) {
-        missingFields.append(QStringLiteral("runtime.ctk_symbolic_name"));
+    if (descriptor.runtime.symbolicName.trimmed().isEmpty()) {
+        missingFields.append(QStringLiteral("runtime.symbolic_name"));
     }
     if (descriptor.diagnostics.requiredServices.isEmpty()) {
         missingFields.append(QStringLiteral("diagnostics.required_services"));
@@ -117,6 +117,16 @@ PlatformManagedPluginPlan PlatformManagedPluginPlanBuilder::build(
     const QString& pluginDirectory,
     QString* error)
 {
+    return build(runtimeConfig, descriptors, pluginDirectory, {}, error);
+}
+
+PlatformManagedPluginPlan PlatformManagedPluginPlanBuilder::build(
+    const PlatformRuntimeConfig& runtimeConfig,
+    const QVector<PlatformPluginDescriptor>& descriptors,
+    const QString& pluginDirectory,
+    const PlatformModuleAvailabilityFn& isPlatformModuleAvailable,
+    QString* error)
+{
     if (error) error->clear();
 
     QHash<QString, PlatformPluginDescriptor> descriptorsById;
@@ -167,20 +177,26 @@ PlatformManagedPluginPlan PlatformManagedPluginPlanBuilder::build(
         const auto descriptor = descriptorsById.value(pluginId);
         if (!validateManagedDescriptor(descriptor, error)) return {};
 
-        const auto bundleFilePath = resolveBundlePath(pluginDirectory, descriptor.runtime.ctkSymbolicName.trimmed());
-        if (bundleFilePath.isEmpty()) {
+        const auto symbolicName = descriptor.runtime.symbolicName.trimmed();
+        const bool platformModuleAvailable =
+            isPlatformModuleAvailable && isPlatformModuleAvailable(symbolicName);
+        const auto bundleFilePath = platformModuleAvailable
+            ? QString {}
+            : resolveBundlePath(pluginDirectory, symbolicName);
+        if (bundleFilePath.isEmpty() && !platformModuleAvailable) {
             assignError(
                 error,
-                QStringLiteral("managed bundle path not found for ctk_symbolic_name: %1")
-                    .arg(descriptor.runtime.ctkSymbolicName));
+                QStringLiteral("managed bundle path not found for symbolic_name: %1")
+                    .arg(descriptor.runtime.symbolicName));
             return {};
         }
 
         PlatformManagedPluginPlanEntry entry;
         entry.pluginId = descriptor.id;
         entry.displayName = descriptor.displayName;
-        entry.ctkSymbolicName = descriptor.runtime.ctkSymbolicName.trimmed();
+        entry.symbolicName = symbolicName;
         entry.bundleFilePath = bundleFilePath;
+        entry.requiresBundleInstall = !platformModuleAvailable;
         entry.bootstrapLevel = descriptor.runtime.bootstrapLevel;
         entry.startupPolicy = descriptor.runtime.startupPolicy;
         entry.requiredPlugins = descriptor.required.plugins;

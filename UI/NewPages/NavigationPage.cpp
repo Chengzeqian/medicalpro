@@ -1,8 +1,17 @@
-#include "NavigationPage.h"
+﻿#include "NavigationPage.h"
 #include "ui_NavigationPage.h"
 
-#include "Framework/Platform/CtkBridge/NavigationPageServiceAccess.h"
+#include "Framework/Platform/UiBridge/NavigationPageServiceAccess.h"
 #include "Framework/Platform/LegacyAdapters/LegacyNavigationPageServiceAdapter.h"
+#include "Plugins/BoneSegmentation/SegmentationService.h"
+#include "Plugins/DicomViewer/DicomViewerService.h"
+#include "Plugins/FourViewDisplay/FourViewDisplayService.h"
+#include "Plugins/InstrumentManagement/InstrumentManagementService.h"
+#include "Plugins/OpticalTracking/OpticalTrackingService.h"
+#include "Plugins/PointRegistration/PointRegistrationDataStructures.h"
+#include "Plugins/PointRegistration/PointRegistrationService.h"
+#include "Plugins/PointRegistration/RegistrationWorkflow.h"
+#include "UI/Dialogs/InstrumentPreviewDialog.h"
 
 #include <QFileDialog>
 #include <QVBoxLayout>
@@ -12,24 +21,13 @@
 #include <QTabWidget>
 #include <cmath>
 
-// 导航3D视图和模拟器
+// 瀵艰埅3D瑙嗗浘鍜屾ā鎷熷櫒
 #include "UI/Widgets/Navigation3DViewWidget.h"
 #include "Plugins/OpticalTracking/BoneSurfaceMotionSimulator.h"
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-#include "UI/Dialogs/InstrumentPreviewDialog.h"
-#include "Plugins/InstrumentManagement/InstrumentManagementService.h"
-#include "Plugins/DicomViewer/DicomViewerService.h"
-#include "Plugins/FourViewDisplay/FourViewDisplayService.h"
-#include "Plugins/OpticalTracking/OpticalTrackingService.h"
-#include "Plugins/BoneSegmentation/SegmentationService.h"
-#include "Plugins/PointRegistration/PointRegistrationService.h"
-#include "Plugins/PointRegistration/PointRegistrationDataStructures.h"
-#include "Plugins/PointRegistration/RegistrationWorkflow.h"
 #include <vtkSTLWriter.h>
 #include <vtkSmartPointer.h>
 #include <vtkPolyData.h>
-#endif
 
 NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAccess* serviceAccess)
     : BasePage(parent)
@@ -47,12 +45,10 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
     , m_navigation3DView(nullptr)
     , m_motionSimulator(nullptr)
     , m_navigationTimer(nullptr)
-#ifdef CTK_PLUGIN_FRAMEWORK
     , m_registrationWorkflow(nullptr)
     , m_fourViewService(nullptr)
     , m_trackingService(nullptr)
     , m_pointRegistrationService(nullptr)
-#endif
 {
     ui->setupUi(this);
     setObjectName("NavigationPage");
@@ -62,28 +58,26 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
         m_serviceAccess = new NavigationPageServiceAccess(m_ownedServiceAdapter, this);
     }
 
-    // 创建导航3D视图和运动模拟器
+    // 鍒涘缓瀵艰埅3D瑙嗗浘鍜岃繍鍔ㄦā鎷熷櫒
     m_navigation3DView = new Navigation3DViewWidget(this);
     m_motionSimulator = new BoneSurfaceMotionSimulator();
 
-    // 连接骨骼模型加载完成信号
+    // 杩炴帴楠ㄩ妯″瀷鍔犺浇瀹屾垚淇″彿
     connect(m_navigation3DView, &Navigation3DViewWidget::boneModelLoaded,
             this, &NavigationPageNew::onNavigation3DBoneLoaded);
 
-    // 创建导航更新定时器（30fps）
+    // 鍒涘缓瀵艰埅鏇存柊瀹氭椂鍣紙30fps锛?
     m_navigationTimer = new QTimer(this);
-    m_navigationTimer->setInterval(33);  // 约30fps
+    m_navigationTimer->setInterval(33);  // 绾?0fps
     connect(m_navigationTimer, &QTimer::timeout,
             this, &NavigationPageNew::onNavigationTimerUpdate);
 
     connect(ui->tabWidget, &QTabWidget::currentChanged,
             this, [this](int) {
                 updateFourViewWidgetPlacement();
-#ifdef CTK_PLUGIN_FRAMEWORK
                 if (ui->tabWidget->currentWidget() == ui->registrationTab) {
                     setupRegistration();
                 }
-#endif
             });
 
     if (m_serviceAccess) {
@@ -94,14 +88,14 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
         });
     }
 
-    // 设置跟踪器更新定时器（30fps）
+    // 璁剧疆璺熻釜鍣ㄦ洿鏂板畾鏃跺櫒锛?0fps锛?
     m_trackerTimer->setInterval(33);
     connect(m_trackerTimer, &QTimer::timeout, this, &NavigationPageNew::onTrackerDataReceived);
 
-    // 初始状态
+    // 鍒濆鐘舵€?
     updateTrackerStatus(false);
 
-    // 初始化配准功能
+    // 鍒濆鍖栭厤鍑嗗姛鑳?
     setupRegistration();
 }
 
@@ -113,7 +107,7 @@ NavigationPageNew::~NavigationPageNew()
     }
     cleanupVTKViews();
 
-    // 清理模拟器
+    // 娓呯悊妯℃嫙鍣?
     delete m_motionSimulator;
     m_motionSimulator = nullptr;
 
@@ -125,51 +119,47 @@ void NavigationPageNew::onActivated()
 {
     BasePage::onActivated();
 
-    // 更新患者信息显示
+    // 鏇存柊鎮ｈ€呬俊鎭樉绀?
     if (!m_patientName.isEmpty()) {
-        ui->patientInfoLabel->setText(QString("患者：%1").arg(m_patientName));
+        ui->patientInfoLabel->setText(QString("鎮ｈ€咃細%1").arg(m_patientName));
     }
 
     loadInstruments();
     setupVTKViews();
     updateFourViewWidgetPlacement();
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    // 恢复VTK渲染
+    // 鎭㈠VTK娓叉煋
     if (m_fourViewService) {
         m_fourViewService->resumeRendering();
     }
-#endif
 }
 
 void NavigationPageNew::onDeactivated()
 {
     BasePage::onDeactivated();
 
-    // 停止跟踪器定时器
+    // 鍋滄璺熻釜鍣ㄥ畾鏃跺櫒
     m_trackerTimer->stop();
 
-    // 停止导航定时器
+    // 鍋滄瀵艰埅瀹氭椂鍣?
     if (m_navigationTimer) {
         m_navigationTimer->stop();
     }
 
-    // 暂停模拟器
+    // 鏆傚仠妯℃嫙鍣?
     if (m_motionSimulator) {
         m_motionSimulator->setPaused(true);
     }
 
-    // 停止导航
+    // 鍋滄瀵艰埅
     if (m_navigationActive) {
         m_navigationActive = false;
     }
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    // 暂停VTK渲染（防止页面切换时闪烁）
+    // 鏆傚仠VTK娓叉煋锛堥槻姝㈤〉闈㈠垏鎹㈡椂闂儊锛?
     if (m_fourViewService) {
         m_fourViewService->pauseRendering();
     }
-#endif
 }
 
 void NavigationPageNew::setPatientId(int patientId)
@@ -180,17 +170,17 @@ void NavigationPageNew::setPatientId(int patientId)
 void NavigationPageNew::setPatientName(const QString& name)
 {
     m_patientName = name;
-    ui->patientInfoLabel->setText(QString("患者：%1").arg(name));
+    ui->patientInfoLabel->setText(QString("鎮ｈ€咃細%1").arg(name));
 }
 
 void NavigationPageNew::beginTransitionMask()
 {
-    // 预留过渡遮罩钩子，当前不做处理
+    // 棰勭暀杩囨浮閬僵閽╁瓙锛屽綋鍓嶄笉鍋氬鐞?
 }
 
 void NavigationPageNew::endTransitionMask()
 {
-    // 预留过渡遮罩钩子，当前不做处理
+    // 棰勭暀杩囨浮閬僵閽╁瓙锛屽綋鍓嶄笉鍋氬鐞?
 }
 
 void NavigationPageNew::resetPage()
@@ -199,10 +189,10 @@ void NavigationPageNew::resetPage()
     m_trackerConnected = false;
     m_trackerTimer->stop();
     updateTrackerStatus(false);
-    // 清理患者显示
+    // 娓呯悊鎮ｈ€呮樉绀?
     m_patientId = -1;
     m_patientName.clear();
-    ui->patientInfoLabel->setText("患者：-");
+    ui->patientInfoLabel->setText("鎮ｈ€咃細-");
 }
 
 bool NavigationPageNew::eventFilter(QObject* obj, QEvent* event)
@@ -220,7 +210,6 @@ bool NavigationPageNew::eventFilter(QObject* obj, QEvent* event)
 
 void NavigationPageNew::onInstrumentCardClicked(int instrumentId)
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
     if (!instrumentService) {
         showWarning("预览", "器械服务不可用");
@@ -229,19 +218,16 @@ void NavigationPageNew::onInstrumentCardClicked(int instrumentId)
 
     InstrumentItem instrument = instrumentService->getInstrument(instrumentId);
     if (!instrument.isValid()) {
-        showWarning("预览", "无法获取器械信息");
+        showWarning("棰勮", "鏃犳硶鑾峰彇鍣ㄦ淇℃伅");
         return;
     }
 
-    // 创建并显示预览对话框
+    // 鍒涘缓骞舵樉绀洪瑙堝璇濇
     InstrumentPreviewDialog* dialog = new InstrumentPreviewDialog(instrumentService, this);
     dialog->setPreviewContent(instrument.name, instrument.modelFilePath, instrument.id);
     dialog->exec();
     delete dialog;
-#else
-    Q_UNUSED(instrumentId);
-    showInfo("预览", "器械预览功能需要CTK框架支持");
-#endif
+
 }
 
 void NavigationPageNew::on_backButton_clicked()
@@ -254,11 +240,11 @@ void NavigationPageNew::on_backButton_clicked()
         m_trackerTimer->stop();
     }
 
-    emit backToMainRequested();  // MainInterfaceWidget期望的信号
+    emit backToMainRequested();  // MainInterfaceWidget鏈熸湜鐨勪俊鍙?
     emit navigateTo(toInt(PageIndex::Dashboard));
 }
 
-// ========== 器械管理 ==========
+// ========== 鍣ㄦ绠＄悊 ==========
 
 void NavigationPageNew::on_importInstrumentButton_clicked()
 {
@@ -269,14 +255,12 @@ void NavigationPageNew::on_importInstrumentButton_clicked()
         return;
     }
 
-#ifdef CTK_PLUGIN_FRAMEWORK
     auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
     if (instrumentService) {
         // The InstrumentManagementService API does not support direct file import here;
         // integrate a real importer when available.
         showInfo("导入", "器械导入服务功能尚未实现。");
     }
-#endif
 
     showInfo("导入", "器械导入功能将通过CTK服务实现。");
 }
@@ -293,7 +277,6 @@ void NavigationPageNew::on_refreshInstrumentButton_clicked()
 
 void NavigationPageNew::on_clearAllInstrumentButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
     if (!instrumentService) {
         showWarning("清除", "器械服务不可用");
@@ -302,7 +285,7 @@ void NavigationPageNew::on_clearAllInstrumentButton_clicked()
 
     auto instruments = instrumentService->getAllInstruments();
     if (instruments.isEmpty()) {
-        showInfo("清除", "器械库已为空");
+        showInfo("娓呴櫎", "鍣ㄦ搴撳凡涓虹┖");
         return;
     }
 
@@ -317,19 +300,16 @@ void NavigationPageNew::on_clearAllInstrumentButton_clicked()
         }
     }
 
-    // 重置自增ID
+    // 閲嶇疆鑷ID
     instrumentService->resetAutoIncrement();
 
     showInfo("清除", QString("成功删除 %1 个器械").arg(successCount));
-    loadInstruments();  // 刷新显示
-#else
-    showInfo("清除", "器械管理功能需要CTK框架支持");
-#endif
+    loadInstruments();  // 鍒锋柊鏄剧ず
+
 }
 
 void NavigationPageNew::on_generateThumbnailButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
     if (!instrumentService) {
         showWarning("生成缩略图", "器械服务不可用");
@@ -360,15 +340,13 @@ void NavigationPageNew::on_generateThumbnailButton_clicked()
     }
 
     showInfo("生成缩略图", QString("完成！成功: %1, 失败: %2").arg(successCount).arg(failCount));
-    loadInstruments();  // 刷新显示
-#else
-    showInfo("生成缩略图", "器械管理功能需要CTK框架支持");
-#endif
+    loadInstruments();  // 鍒锋柊鏄剧ず
+
 }
 
 void NavigationPageNew::loadInstruments()
 {
-    // 清空现有器械网格
+    // 娓呯┖鐜版湁鍣ㄦ缃戞牸
     QLayoutItem* child;
     while ((child = ui->instrumentGridLayout->takeAt(0)) != nullptr) {
         if (child->widget()) {
@@ -377,7 +355,6 @@ void NavigationPageNew::loadInstruments()
         delete child;
     }
 
-#ifdef CTK_PLUGIN_FRAMEWORK
     auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
     if (instrumentService) {
         auto instruments = instrumentService->getAllInstruments();
@@ -394,7 +371,7 @@ void NavigationPageNew::loadInstruments()
             card->setMinimumSize(180, 200);
             card->setMaximumSize(180, 200);
 
-            // 添加点击事件支持
+            // 娣诲姞鐐瑰嚮浜嬩欢鏀寔
             card->setProperty("instrumentId", instrument.id);
             card->installEventFilter(this);
             card->setCursor(Qt::PointingHandCursor);
@@ -406,7 +383,7 @@ void NavigationPageNew::loadInstruments()
             thumbLabel->setAlignment(Qt::AlignCenter);
 
             if (!instrument.thumbnailPath.isEmpty()) {
-                // 将相对路径转换为绝对路径
+                // 灏嗙浉瀵硅矾寰勮浆鎹负缁濆璺緞
                 QString absolutePath = instrument.thumbnailPath;
                 if (!QFileInfo(absolutePath).isAbsolute()) {
                     QString projectPath = instrumentService->getProjectPath();
@@ -418,7 +395,7 @@ void NavigationPageNew::loadInstruments()
                     thumbLabel->setPixmap(thumb.scaled(140, 110, Qt::KeepAspectRatio, Qt::SmoothTransformation));
                 } else {
                     qWarning() << "[NavigationPage] Failed to load thumbnail:" << absolutePath;
-                    thumbLabel->setText("加载失败");
+                    thumbLabel->setText("鍔犺浇澶辫触");
                 }
             } else {
                 thumbLabel->setText("无预览");
@@ -442,9 +419,9 @@ void NavigationPageNew::loadInstruments()
         }
         return;
     }
-#endif
 
-    // 测试占位符（无CTK框架时显示）
+
+    // 娴嬭瘯鍗犱綅绗︼紙鏃燙TK妗嗘灦鏃舵樉绀猴級
     for (int i = 0; i < 4; ++i) {
         QFrame* card = new QFrame();
         card->setStyleSheet(
@@ -461,9 +438,9 @@ void NavigationPageNew::loadInstruments()
         thumbLabel->setFixedSize(150, 120);
         thumbLabel->setStyleSheet("background-color: #0d0d1a; border-radius: 6px; color: #808080;");
         thumbLabel->setAlignment(Qt::AlignCenter);
-        thumbLabel->setText(QString("器械 %1").arg(i + 1));
+        thumbLabel->setText(QString("鍣ㄦ %1").arg(i + 1));
 
-        QLabel* nameLabel = new QLabel(QString("工具 %1").arg(i + 1));
+        QLabel* nameLabel = new QLabel(QString("宸ュ叿 %1").arg(i + 1));
         nameLabel->setStyleSheet("color: #ffffff; font-size: 14px; font-weight: bold;");
         nameLabel->setAlignment(Qt::AlignCenter);
 
@@ -474,7 +451,7 @@ void NavigationPageNew::loadInstruments()
     }
 }
 
-// ========== 术前规划 ==========
+// ========== 鏈墠瑙勫垝 ==========
 
 void NavigationPageNew::on_loadDicomButton_clicked()
 {
@@ -484,7 +461,6 @@ void NavigationPageNew::on_loadDicomButton_clicked()
     }
     m_lastDicomDirPath = dirPath;
 
-#ifdef CTK_PLUGIN_FRAMEWORK
     auto* dicomService = m_serviceAccess ? m_serviceAccess->dicomViewerService() : nullptr;
     if (dicomService) {
         const int pid = m_patientId >= 0 ? m_patientId : 0;
@@ -495,37 +471,35 @@ void NavigationPageNew::on_loadDicomButton_clicked()
         }
         return;
     }
-#endif
 
     showInfo("加载DICOM", "DICOM加载功能将通过CTK服务实现。");
 }
 
 void NavigationPageNew::on_autoSegmentButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
-    // 获取分割服务（ServiceHelper 已处理 CTKManager 备用获取逻辑）
+    // 鑾峰彇鍒嗗壊鏈嶅姟锛圫erviceHelper 宸插鐞?CTKManager 澶囩敤鑾峰彇閫昏緫锛?
     auto* segService = m_serviceAccess ? m_serviceAccess->segmentationService() : nullptr;
     if (!segService) {
-        showError("自动分割", "分割服务不可用，请检查BoneSegmentation插件是否正确加载");
+        showError("鑷姩鍒嗗壊", "鍒嗗壊鏈嶅姟涓嶅彲鐢紝璇锋鏌oneSegmentation鎻掍欢鏄惁姝ｇ‘鍔犺浇");
         return;
     }
 
-    // 获取DICOM数据路径
+    // 鑾峰彇DICOM鏁版嵁璺緞
     QString dicomPath = m_lastDicomDirPath;
 
     if (dicomPath.isEmpty()) {
-        // 选择 NIfTI 文件或 DICOM 目录中的任意文件
-        // 支持 .nii, .nii.gz 文件直接选择，或选择 .dcm 文件后自动使用其所在目录
+        // 閫夋嫨 NIfTI 鏂囦欢鎴?DICOM 鐩綍涓殑浠绘剰鏂囦欢
+        // 鏀寔 .nii, .nii.gz 鏂囦欢鐩存帴閫夋嫨锛屾垨閫夋嫨 .dcm 鏂囦欢鍚庤嚜鍔ㄤ娇鐢ㄥ叾鎵€鍦ㄧ洰褰?
         dicomPath = QFileDialog::getOpenFileName(this,
-            "选择NIfTI文件或DICOM目录中的任意文件",
+            "閫夋嫨NIfTI鏂囦欢鎴朌ICOM鐩綍涓殑浠绘剰鏂囦欢",
             QString(),
-            "医学影像 (*.nii *.nii.gz *.dcm);;NIfTI文件 (*.nii *.nii.gz);;DICOM文件 (*.dcm);;所有文件 (*)");
+            "鍖诲褰卞儚 (*.nii *.nii.gz *.dcm);;NIfTI鏂囦欢 (*.nii *.nii.gz);;DICOM鏂囦欢 (*.dcm);;鎵€鏈夋枃浠?(*)");
 
         if (dicomPath.isEmpty()) {
             return;
         }
 
-        // 如果选择的是 .dcm 文件，自动获取其所在目录作为 DICOM 目录
+        // 濡傛灉閫夋嫨鐨勬槸 .dcm 鏂囦欢锛岃嚜鍔ㄨ幏鍙栧叾鎵€鍦ㄧ洰褰曚綔涓?DICOM 鐩綍
         if (dicomPath.endsWith(".dcm", Qt::CaseInsensitive)) {
             dicomPath = QFileInfo(dicomPath).absolutePath();
         }
@@ -533,7 +507,7 @@ void NavigationPageNew::on_autoSegmentButton_clicked()
         m_lastDicomDirPath = dicomPath;
     }
 
-    // 连接分割服务信号（只连接一次）
+    // 杩炴帴鍒嗗壊鏈嶅姟淇″彿锛堝彧杩炴帴涓€娆★級
     static bool segSignalsConnected = false;
     if (!segSignalsConnected) {
         connect(segService, SIGNAL(segmentationProgress(QString,int,QString)),
@@ -545,22 +519,20 @@ void NavigationPageNew::on_autoSegmentButton_clicked()
         segSignalsConnected = true;
     }
 
-    // 启动分割任务
+    // 鍚姩鍒嗗壊浠诲姟
     QString taskName = QString("患者%1_骨骼分割").arg(m_patientId >= 0 ? m_patientId : 0);
     m_currentSegmentationTaskId = segService->runBoneSegmentation(dicomPath, QString(), taskName);
 
     if (m_currentSegmentationTaskId.isEmpty()) {
-        showError("自动分割", "启动分割任务失败，请检查Python环境配置");
+        showError("鑷姩鍒嗗壊", "鍚姩鍒嗗壊浠诲姟澶辫触锛岃妫€鏌ython鐜閰嶇疆");
         return;
     }
 
-    // 更新UI状态
+    // 鏇存柊UI鐘舵€?
     ui->autoSegmentButton->setEnabled(false);
-    ui->autoSegmentButton->setText("分割中...");
-    showInfo("自动分割", "分割任务已启动，请等待AI处理...");
-#else
-    showInfo("自动分割", "需要CTK框架支持");
-#endif
+    ui->autoSegmentButton->setText("鍒嗗壊涓?..");
+    showInfo("鑷姩鍒嗗壊", "鍒嗗壊浠诲姟宸插惎鍔紝璇风瓑寰匒I澶勭悊...");
+
 }
 
 void NavigationPageNew::on_manualSegmentButton_clicked()
@@ -580,14 +552,13 @@ void NavigationPageNew::on_adjustProsthesisButton_clicked()
 
 void NavigationPageNew::on_exportSTLButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     auto* segService = m_serviceAccess ? m_serviceAccess->segmentationService() : nullptr;
     if (!segService) {
         showError("导出STL", "分割服务不可用");
         return;
     }
 
-    // 让用户选择 NIfTI 分割结果文件
+    // 璁╃敤鎴烽€夋嫨 NIfTI 鍒嗗壊缁撴灉鏂囦欢
     QString defaultDir = m_lastSegmentationOutputDir.isEmpty() ? m_lastDicomDirPath : m_lastSegmentationOutputDir;
     QString niftiPath = QFileDialog::getOpenFileName(this,
         "选择分割结果文件（NIfTI格式）",
@@ -598,22 +569,22 @@ void NavigationPageNew::on_exportSTLButton_clicked()
         return;
     }
 
-    // 选择保存路径
+    // 閫夋嫨淇濆瓨璺緞
     QString baseName = QFileInfo(niftiPath).completeBaseName();
     if (baseName.endsWith(".nii")) {
-        baseName = baseName.left(baseName.length() - 4);  // 去掉 .nii 后缀
+        baseName = baseName.left(baseName.length() - 4);  // 鍘绘帀 .nii 鍚庣紑
     }
     QString defaultSavePath = QFileInfo(niftiPath).absolutePath() + "/" + baseName + ".stl";
     QString savePath = QFileDialog::getSaveFileName(this,
-        "保存STL文件",
+        "淇濆瓨STL鏂囦欢",
         defaultSavePath,
-        "STL文件 (*.stl)");
+        "STL鏂囦欢 (*.stl)");
 
     if (savePath.isEmpty()) {
         return;
     }
 
-    // 使用服务的 convertMaskToMesh 功能转换并导出
+    // 浣跨敤鏈嶅姟鐨?convertMaskToMesh 鍔熻兘杞崲骞跺鍑?
     auto mesh = segService->convertNiftiToMeshAuto(niftiPath);
     if (mesh) {
         vtkSmartPointer<vtkSTLWriter> writer = vtkSmartPointer<vtkSTLWriter>::New();
@@ -624,19 +595,16 @@ void NavigationPageNew::on_exportSTLButton_clicked()
     } else {
         showError("导出STL", QString("转换失败：%1").arg(segService->getLastError()));
     }
-#else
-    showInfo("导出STL", "需要CTK框架支持");
-#endif
+
 }
 
 void NavigationPageNew::on_loadModelButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
-    // 选择 STL 文件
+    // 閫夋嫨 STL 鏂囦欢
     QString filePath = QFileDialog::getOpenFileName(this,
-        "选择3D模型文件",
+        "閫夋嫨3D妯″瀷鏂囦欢",
         QString(),
-        "3D模型 (*.stl *.obj *.ply *.vtk);;STL文件 (*.stl);;所有文件 (*)");
+        "3D妯″瀷 (*.stl *.obj *.ply *.vtk);;STL鏂囦欢 (*.stl);;鎵€鏈夋枃浠?(*)");
 
     if (filePath.isEmpty()) {
         return;
@@ -645,15 +613,15 @@ void NavigationPageNew::on_loadModelButton_clicked()
     bool fourViewSuccess = false;
     bool registrationSuccess = false;
 
-    // 1. 加载到 FourViewDisplay（规划视图）
+    // 1. 鍔犺浇鍒?FourViewDisplay锛堣鍒掕鍥撅級
     if (m_fourViewService && m_fourViewService->loadToolModel(filePath)) {
         m_fourViewService->setToolModelVisible(true);
         m_modelVisible = true;
-        ui->toggleModelButton->setText("隐藏模型");
+        ui->toggleModelButton->setText("闅愯棌妯″瀷");
         fourViewSuccess = true;
     }
 
-    // 2. 同时加载到配准VTK Widget（用于取点）
+    // 2. 鍚屾椂鍔犺浇鍒伴厤鍑哣TK Widget锛堢敤浜庡彇鐐癸級
     if (ensurePointRegistrationService(true)) {
         // Ensure the registration 3D view exists before loading so the service can push the model into it.
         embedRegistrationVTKWidget();
@@ -662,10 +630,10 @@ void NavigationPageNew::on_loadModelButton_clicked()
         }
     }
 
-    // 3. 保存路径供后续使用
+    // 3. 淇濆瓨璺緞渚涘悗缁娇鐢?
     m_lastLoadedModelPath = filePath;
 
-    // 4. 反馈结果
+    // 4. 鍙嶉缁撴灉
     if (fourViewSuccess && registrationSuccess) {
         showInfo("加载模型", QString("模型已加载到规划视图和配准视图：%1\n\n提示：切换到\"配准\"Tab后点击模型表面即可选取配准点")
                      .arg(QFileInfo(filePath).fileName()));
@@ -674,36 +642,31 @@ void NavigationPageNew::on_loadModelButton_clicked()
     } else {
         showError("加载模型", "模型加载失败，请检查文件格式");
     }
-#else
-    showInfo("加载模型", "需要CTK框架支持");
-#endif
+
 }
 
 void NavigationPageNew::on_toggleModelButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (!m_fourViewService) {
-        showError("显示模型", "四视图服务不可用");
+        showError("鏄剧ず妯″瀷", "鍥涜鍥炬湇鍔′笉鍙敤");
         return;
     }
 
     m_modelVisible = !m_modelVisible;
     m_fourViewService->setToolModelVisible(m_modelVisible);
-    ui->toggleModelButton->setText(m_modelVisible ? "隐藏模型" : "显示模型");
-#else
-    showInfo("显示模型", "需要CTK框架支持");
-#endif
+    ui->toggleModelButton->setText(m_modelVisible ? "闅愯棌妯″瀷" : "鏄剧ず妯″瀷");
+
 }
 
-// ========== 配准 ==========
+// ========== 閰嶅噯 ==========
 
 void NavigationPageNew::on_load2DImageButton_clicked()
 {
-    QString filePath = QFileDialog::getOpenFileName(this, "加载2D图像",
-        QString(), "图像文件 (*.png *.jpg *.bmp *.dcm);;所有文件 (*)");
+    QString filePath = QFileDialog::getOpenFileName(this, "鍔犺浇2D鍥惧儚",
+        QString(), "鍥惧儚鏂囦欢 (*.png *.jpg *.bmp *.dcm);;鎵€鏈夋枃浠?(*)");
 
     if (!filePath.isEmpty()) {
-        showInfo("加载2D图像", QString("已加载：%1").arg(filePath));
+        showInfo("鍔犺浇2D鍥惧儚", QString("宸插姞杞斤細%1").arg(filePath));
     }
 }
 
@@ -714,7 +677,6 @@ void NavigationPageNew::on_start2D3DRegButton_clicked()
 
 void NavigationPageNew::on_collectPointButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (!m_registrationWorkflow) {
         setupRegistration();
     }
@@ -726,29 +688,29 @@ void NavigationPageNew::on_collectPointButton_clicked()
     // Ensure the registration 3D view exists before collecting points/loading models.
     embedRegistrationVTKWidget();
 
-    // 检查是否已加载模型
+    // 妫€鏌ユ槸鍚﹀凡鍔犺浇妯″瀷
     if (!m_pointRegistrationService->hasModel()) {
-        // 提示用户先加载STL模型
+        // 鎻愮ず鐢ㄦ埛鍏堝姞杞絊TL妯″瀷
         QString filePath = QFileDialog::getOpenFileName(this,
-            "选择STL模型文件（用于配准取点）",
+            "閫夋嫨STL妯″瀷鏂囦欢锛堢敤浜庨厤鍑嗗彇鐐癸級",
             m_lastSegmentationOutputDir.isEmpty() ? m_lastDicomDirPath : m_lastSegmentationOutputDir,
-            "3D模型 (*.stl *.obj *.ply);;STL文件 (*.stl);;所有文件 (*)");
+            "3D妯″瀷 (*.stl *.obj *.ply);;STL鏂囦欢 (*.stl);;鎵€鏈夋枃浠?(*)");
 
         if (filePath.isEmpty()) {
             return;
         }
 
-        // 加载模型到配准VTK Widget
+        // 鍔犺浇妯″瀷鍒伴厤鍑哣TK Widget
         embedRegistrationVTKWidget();
         if (!m_pointRegistrationService->loadModelFromFile(filePath)) {
-            showError("加载模型", m_pointRegistrationService->getLastError());
+            showError("鍔犺浇妯″瀷", m_pointRegistrationService->getLastError());
             return;
         }
         showInfo("加载模型", QString("模型已加载，请在3D视图中点击选取配准点"));
         return;
     }
 
-    // 使用模拟数据生成探针点
+    // 浣跨敤妯℃嫙鏁版嵁鐢熸垚鎺㈤拡鐐?
     m_registrationWorkflow->setProbeSource(ProbePointSource::Simulated);
 
     int generatedCount = m_registrationWorkflow->generateSimulatedProbePoints(0.5);
@@ -759,14 +721,11 @@ void NavigationPageNew::on_collectPointButton_clicked()
     } else {
         showWarning("采集点", "请先在3D模型上选择CT点（点击3D视图中的模型表面）");
     }
-#else
-    showInfo("采集点", "点采集模式已激活。");
-#endif
+
 }
 
 void NavigationPageNew::on_computeRegButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (!m_registrationWorkflow) {
         setupRegistration();
     }
@@ -781,22 +740,17 @@ void NavigationPageNew::on_computeRegButton_clicked()
         return;
     }
 
-    // 执行配准
+    // 鎵ц閰嶅噯
     if (!m_registrationWorkflow->executeRegistration()) {
-        showError("计算配准", m_pointRegistrationService ? m_pointRegistrationService->getLastError()
-                                                          : "配准计算失败");
+        showError("璁＄畻閰嶅噯", m_pointRegistrationService ? m_pointRegistrationService->getLastError()
+                                                          : "閰嶅噯璁＄畻澶辫触");
     }
-    // 成功时由信号回调处理
-#else
-    // 模拟配准计算
-    ui->regErrorLabel->setText("1.23 mm");
-    showInfo("计算配准", "配准计算成功！");
-#endif
+    // 鎴愬姛鏃剁敱淇″彿鍥炶皟澶勭悊
+
 }
 
 void NavigationPageNew::on_calibrateButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (!m_registrationWorkflow) {
         setupRegistration();
     }
@@ -805,36 +759,32 @@ void NavigationPageNew::on_calibrateButton_clicked()
         return;
     }
 
-    // 应用配准结果到导航
+    // 搴旂敤閰嶅噯缁撴灉鍒板鑸?
     if (m_registrationWorkflow->applyToNavigation()) {
         showInfo("应用配准", "配准结果已应用到导航系统！");
     } else {
         showWarning("应用配准", "请先完成配准计算");
     }
-#else
-    showInfo("校准", "光学校准功能将在此实现。");
-#endif
+
 }
 
-// ========== 导航控制 ==========
+// ========== 瀵艰埅鎺у埗 ==========
 
 void NavigationPageNew::on_connectTrackerButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     // Tracking service integration not wired yet; fall back to simulation.
     m_trackingService = nullptr;
-#endif
 
-    // 模拟连接
+
+    // 妯℃嫙杩炴帴
     updateTrackerStatus(true);
     showInfo("追踪器", "追踪器已连接（模拟）。");
 }
 
 void NavigationPageNew::on_disconnectTrackerButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     m_trackingService = nullptr;
-#endif
+
 
     m_trackerTimer->stop();
     updateTrackerStatus(false);
@@ -847,39 +797,38 @@ void NavigationPageNew::on_startNavigationButton_clicked()
         return;
     }
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    // 检查是否完成配准
+    // 妫€鏌ユ槸鍚﹀畬鎴愰厤鍑?
     if (!m_pointRegistrationService) {
         showWarning("导航", "配准服务不可用，请先完成配准。");
         return;
     }
 
-    // 获取配准变换矩阵
+    // 鑾峰彇閰嶅噯鍙樻崲鐭╅樀
     m_registrationTransform = m_pointRegistrationService->getTransformMatrix();
     if (m_registrationTransform.isIdentity()) {
         showWarning("导航", "尚未完成配准，请先在配准Tab中完成点配准。");
         return;
     }
-#endif
 
-    // 加载骨骼模型到导航3D视图
+
+    // 鍔犺浇楠ㄩ妯″瀷鍒板鑸?D瑙嗗浘
     if (m_navigation3DView && !m_lastLoadedModelPath.isEmpty()) {
         m_navigation3DView->loadBoneModel(m_lastLoadedModelPath);
     } else if (m_navigation3DView) {
-        // 如果没有预加载的模型，提示用户选择
+        // 濡傛灉娌℃湁棰勫姞杞界殑妯″瀷锛屾彁绀虹敤鎴烽€夋嫨
         QString modelPath = QFileDialog::getOpenFileName(this,
-            "选择骨骼模型用于导航显示",
+            "閫夋嫨楠ㄩ妯″瀷鐢ㄤ簬瀵艰埅鏄剧ず",
             m_lastSegmentationOutputDir.isEmpty() ? QString() : m_lastSegmentationOutputDir,
-            "3D模型 (*.stl *.obj);;STL文件 (*.stl);;所有文件 (*)");
+            "3D妯″瀷 (*.stl *.obj);;STL鏂囦欢 (*.stl);;鎵€鏈夋枃浠?(*)");
         if (!modelPath.isEmpty()) {
             m_lastLoadedModelPath = modelPath;
             m_navigation3DView->loadBoneModel(modelPath);
         }
     }
 
-    // 将导航3D视图嵌入到导航Tab（如果还没有嵌入）
+    // 灏嗗鑸?D瑙嗗浘宓屽叆鍒板鑸猅ab锛堝鏋滆繕娌℃湁宓屽叆锛?
     if (m_navigation3DView && ui->fourViewLayout) {
-        // 检查是否已经在布局中
+        // 妫€鏌ユ槸鍚﹀凡缁忓湪甯冨眬涓?
         bool alreadyInLayout = false;
         for (int i = 0; i < ui->fourViewLayout->count(); ++i) {
             if (ui->fourViewLayout->itemAt(i)->widget() == m_navigation3DView) {
@@ -889,7 +838,7 @@ void NavigationPageNew::on_startNavigationButton_clicked()
         }
 
         if (!alreadyInLayout) {
-            // 隐藏四视图Widget（如果有的话），显示导航3D视图
+            // 闅愯棌鍥涜鍥網idget锛堝鏋滄湁鐨勮瘽锛夛紝鏄剧ず瀵艰埅3D瑙嗗浘
             if (m_fourViewWidget) {
                 m_fourViewWidget->hide();
             }
@@ -902,17 +851,17 @@ void NavigationPageNew::on_startNavigationButton_clicked()
     ui->startNavigationButton->setEnabled(false);
     ui->pauseNavigationButton->setEnabled(true);
 
-    // 重置并启动模拟器
+    // 閲嶇疆骞跺惎鍔ㄦā鎷熷櫒
     if (m_motionSimulator) {
         m_motionSimulator->reset();
     }
 
-    // 启动导航定时器
+    // 鍚姩瀵艰埅瀹氭椂鍣?
     if (m_navigationTimer) {
         m_navigationTimer->start();
     }
 
-    // 启动跟踪器数据更新（旧的定时器，保留兼容）
+    // 鍚姩璺熻釜鍣ㄦ暟鎹洿鏂帮紙鏃х殑瀹氭椂鍣紝淇濈暀鍏煎锛?
     m_trackerTimer->start();
 
     showInfo("导航", "实时导航已开始。探针位置将实时显示在3D视图中。");
@@ -923,17 +872,17 @@ void NavigationPageNew::on_pauseNavigationButton_clicked()
     m_navigationActive = false;
     m_trackerTimer->stop();
 
-    // 停止导航定时器
+    // 鍋滄瀵艰埅瀹氭椂鍣?
     if (m_navigationTimer) {
         m_navigationTimer->stop();
     }
 
-    // 暂停模拟器
+    // 鏆傚仠妯℃嫙鍣?
     if (m_motionSimulator) {
         m_motionSimulator->setPaused(true);
     }
 
-    // 隐藏探针
+    // 闅愯棌鎺㈤拡
     if (m_navigation3DView) {
         m_navigation3DView->setProbeVisible(false);
     }
@@ -944,12 +893,11 @@ void NavigationPageNew::on_pauseNavigationButton_clicked()
 
 void NavigationPageNew::on_resetViewButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (m_fourViewService) {
         m_fourViewService->resetViews();
         return;
     }
-#endif
+
     showInfo("重置视图", "视图已重置为默认状态。");
 }
 
@@ -959,7 +907,7 @@ void NavigationPageNew::onTrackerDataReceived()
         return;
     }
 
-    // 模拟数据更新
+    // 妯℃嫙鏁版嵁鏇存柊
     static double simX = 0, simY = 0, simZ = 0;
     simX += 0.1;
     simY = 10.0 * sin(simX * 0.1);
@@ -970,7 +918,7 @@ void NavigationPageNew::onTrackerDataReceived()
 
 void NavigationPageNew::setupVTKViews()
 {
-    // 如果已经嵌入了VTK Widget，直接返回
+    // 濡傛灉宸茬粡宓屽叆浜哣TK Widget锛岀洿鎺ヨ繑鍥?
     if (m_fourViewWidget) {
         updateFourViewWidgetPlacement();
         return;
@@ -981,7 +929,6 @@ void NavigationPageNew::setupVTKViews()
 
 void NavigationPageNew::embedFourViewWidget()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     m_fourViewService = m_serviceAccess ? m_serviceAccess->fourViewDisplayService() : nullptr;
     if (!m_fourViewService) {
         qWarning() << "[NavigationPage] FourViewDisplayService not available";
@@ -989,7 +936,7 @@ void NavigationPageNew::embedFourViewWidget()
     }
 
     if (!m_fourViewWidget) {
-        // 使用服务创建纯VTK四视图Widget
+        // 浣跨敤鏈嶅姟鍒涘缓绾疺TK鍥涜鍥網idget
         m_fourViewWidget = m_fourViewService->createFourViewVTKWidget(this);
         if (!m_fourViewWidget) {
             qWarning() << "[NavigationPage] Failed to create FourView widget";
@@ -998,17 +945,16 @@ void NavigationPageNew::embedFourViewWidget()
     }
 
     updateFourViewWidgetPlacement();
-#endif
+
 }
 
 void NavigationPageNew::updateFourViewWidgetPlacement()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (!ui || !m_fourViewWidget) {
         return;
     }
 
-    // 先从可能的布局中移除（避免一个widget同时被多个layout管理）
+    // 鍏堜粠鍙兘鐨勫竷灞€涓Щ闄わ紙閬垮厤涓€涓獁idget鍚屾椂琚涓猯ayout绠＄悊锛?
     if (ui->fourViewLayout) {
         ui->fourViewLayout->removeWidget(m_fourViewWidget);
     }
@@ -1018,7 +964,7 @@ void NavigationPageNew::updateFourViewWidgetPlacement()
 
     QWidget* currentTab = ui->tabWidget ? ui->tabWidget->currentWidget() : nullptr;
 
-    // 规划Tab：替换“3D规划视图”占位控件
+    // 瑙勫垝Tab锛氭浛鎹⑩€?D瑙勫垝瑙嗗浘鈥濆崰浣嶆帶浠?
     if (currentTab == ui->planningTab && ui->planningViewLayout) {
         if (ui->planningViewPlaceholder) {
             ui->planningViewPlaceholder->hide();
@@ -1027,9 +973,9 @@ void NavigationPageNew::updateFourViewWidgetPlacement()
         m_fourViewWidget->show();
         qDebug() << "[NavigationPage] FourView VTK widget embedded in planning view";
     }
-    // 导航Tab：嵌入四视图区域
+    // 瀵艰埅Tab锛氬祵鍏ュ洓瑙嗗浘鍖哄煙
     else if (currentTab == ui->navigationTab && ui->fourViewLayout) {
-        // 清空现有的fourViewLayout内容（隐藏占位Frame/Label）
+        // 娓呯┖鐜版湁鐨刦ourViewLayout鍐呭锛堥殣钘忓崰浣岶rame/Label锛?
         QLayoutItem* child;
         while ((child = ui->fourViewLayout->takeAt(0)) != nullptr) {
             if (child->widget()) {
@@ -1040,7 +986,7 @@ void NavigationPageNew::updateFourViewWidgetPlacement()
         m_fourViewWidget->show();
         qDebug() << "[NavigationPage] FourView VTK widget embedded in navigation view";
     }
-    // 其他Tab：默认放到规划区（隐藏状态下也不影响）
+    // 鍏朵粬Tab锛氶粯璁ゆ斁鍒拌鍒掑尯锛堥殣钘忕姸鎬佷笅涔熶笉褰卞搷锛?
     else if (ui->planningViewLayout) {
         if (ui->planningViewPlaceholder) {
             ui->planningViewPlaceholder->hide();
@@ -1052,18 +998,17 @@ void NavigationPageNew::updateFourViewWidgetPlacement()
     if (m_fourViewService) {
         m_fourViewService->resumeRendering();
     }
-#endif
+
 }
 
 void NavigationPageNew::cleanupVTKViews()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (m_fourViewWidget) {
         m_fourViewWidget->hide();
-        // 不删除Widget，由服务管理
+        // 涓嶅垹闄idget锛岀敱鏈嶅姟绠＄悊
         m_fourViewWidget = nullptr;
     }
-#endif
+
 }
 
 void NavigationPageNew::updateTrackerStatus(bool connected)
@@ -1098,7 +1043,7 @@ void NavigationPageNew::updateAccuracyDisplay(double accuracy)
 {
     ui->accuracyValueLabel->setText(QString("%1 mm").arg(accuracy, 0, 'f', 2));
 
-    // 根据精度设置颜色
+    // 鏍规嵁绮惧害璁剧疆棰滆壊
     if (accuracy <= 1.0) {
         ui->accuracyValueLabel->setStyleSheet("color: #27ae60; font-weight: bold; font-size: 16px;");
     } else if (accuracy <= 2.0) {
@@ -1107,56 +1052,55 @@ void NavigationPageNew::updateAccuracyDisplay(double accuracy)
         ui->accuracyValueLabel->setStyleSheet("color: #e74c3c; font-weight: bold; font-size: 16px;");
     }
 
-    // 更新进度条（假设5mm是最大误差）
+    // 鏇存柊杩涘害鏉★紙鍋囪5mm鏄渶澶ц宸級
     int progress = qBound(0, static_cast<int>((5.0 - accuracy) / 5.0 * 100), 100);
     ui->accuracyBar->setValue(progress);
 }
 
-// ========== 分割任务回调 ==========
+// ========== 鍒嗗壊浠诲姟鍥炶皟 ==========
 
 void NavigationPageNew::onSegmentationProgress(const QString& taskId, int progress, const QString& message)
 {
-    // 只处理当前任务的进度
+    // 鍙鐞嗗綋鍓嶄换鍔＄殑杩涘害
     if (taskId != m_currentSegmentationTaskId) {
         return;
     }
 
     qDebug() << "[NavigationPage] Segmentation progress:" << progress << "%" << message;
 
-    // 更新按钮文字显示进度
-    ui->autoSegmentButton->setText(QString("分割中... %1%").arg(progress));
+    // 鏇存柊鎸夐挳鏂囧瓧鏄剧ず杩涘害
+    ui->autoSegmentButton->setText(QString("鍒嗗壊涓?.. %1%").arg(progress));
 }
 
 void NavigationPageNew::onSegmentationCompleted(const QString& taskId, const QVariantMap& result)
 {
-    // 只处理当前任务
+    // 鍙鐞嗗綋鍓嶄换鍔?
     if (taskId != m_currentSegmentationTaskId) {
         return;
     }
 
     qDebug() << "[NavigationPage] Segmentation completed:" << taskId;
 
-    // 恢复按钮状态
+    // 鎭㈠鎸夐挳鐘舵€?
     ui->autoSegmentButton->setEnabled(true);
-    ui->autoSegmentButton->setText("自动分割");
+    ui->autoSegmentButton->setText("鑷姩鍒嗗壊");
     m_currentSegmentationTaskId.clear();
 
-    // 获取结果文件列表
+    // 鑾峰彇缁撴灉鏂囦欢鍒楄〃
     const QString outputDir = result.value("outputDir").toString();
 
-    // 保存分割结果信息，供导出STL功能使用
+    // 淇濆瓨鍒嗗壊缁撴灉淇℃伅锛屼緵瀵煎嚭STL鍔熻兘浣跨敤
     m_lastSegmentationTaskId = taskId;
     m_lastSegmentationOutputDir = outputDir;
 
-    // 启用导出STL按钮
+    // 鍚敤瀵煎嚭STL鎸夐挳
     ui->exportSTLButton->setEnabled(true);
 
     showInfo("自动分割", outputDir.isEmpty()
                              ? QString("分割完成！")
                              : QString("分割完成！\n输出目录：%1").arg(outputDir));
 
-#ifdef CTK_PLUGIN_FRAMEWORK
-    // 尝试导出并显示分割结果
+    // 灏濊瘯瀵煎嚭骞舵樉绀哄垎鍓茬粨鏋?
     auto* segService = m_serviceAccess ? m_serviceAccess->segmentationService() : nullptr;
     if (m_fourViewService && segService && !outputDir.isEmpty()) {
         const QString stlPath = QDir(outputDir).filePath("segmentation_mesh.stl");
@@ -1164,35 +1108,34 @@ void NavigationPageNew::onSegmentationCompleted(const QString& taskId, const QVa
             && m_fourViewService->loadToolModel(stlPath)) {
             m_fourViewService->setToolModelVisible(true);
             m_modelVisible = true;
-            ui->toggleModelButton->setText("隐藏模型");
+            ui->toggleModelButton->setText("闅愯棌妯″瀷");
             qDebug() << "[NavigationPage] Loaded segmentation mesh STL:" << stlPath;
         } else {
             qWarning() << "[NavigationPage] Failed to export/load segmentation STL:" << stlPath;
         }
     }
-#endif
+
 }
 
 void NavigationPageNew::onSegmentationFailed(const QString& taskId, const QString& error)
 {
-    // 只处理当前任务
+    // 鍙鐞嗗綋鍓嶄换鍔?
     if (taskId != m_currentSegmentationTaskId) {
         return;
     }
 
     qWarning() << "[NavigationPage] Segmentation failed:" << taskId << error;
 
-    // 恢复按钮状态
+    // 鎭㈠鎸夐挳鐘舵€?
     ui->autoSegmentButton->setEnabled(true);
-    ui->autoSegmentButton->setText("自动分割");
+    ui->autoSegmentButton->setText("鑷姩鍒嗗壊");
     m_currentSegmentationTaskId.clear();
 
     showError("自动分割", QString("分割失败：%1").arg(error));
 }
 
-// ========== 配准功能实现 ==========
+// ========== 閰嶅噯鍔熻兘瀹炵幇 ==========
 
-#ifdef CTK_PLUGIN_FRAMEWORK
 bool NavigationPageNew::ensurePointRegistrationService(bool tryStartPlugin)
 {
     if (m_pointRegistrationService) {
@@ -1202,7 +1145,7 @@ bool NavigationPageNew::ensurePointRegistrationService(bool tryStartPlugin)
     auto* serviceAccess = m_serviceAccess;
     if (!serviceAccess || !serviceAccess->isPointRegistrationFrameworkReady()) {
         if (ui && ui->registrationViewPlaceholder) {
-            ui->registrationViewPlaceholder->setText(QStringLiteral("CTK 框架未就绪，配准服务尚不可用"));
+            ui->registrationViewPlaceholder->setText(QStringLiteral("CTK 妗嗘灦鏈氨缁紝閰嶅噯鏈嶅姟灏氫笉鍙敤"));
         }
         return false;
     }
@@ -1220,11 +1163,10 @@ bool NavigationPageNew::ensurePointRegistrationService(bool tryStartPlugin)
 
     return true;
 }
-#endif
+
 
 void NavigationPageNew::setupRegistration()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     // Idempotent: if already initialized, just ensure the view is embedded.
     if (m_registrationWorkflow) {
         ensurePointRegistrationService(true);
@@ -1236,10 +1178,10 @@ void NavigationPageNew::setupRegistration()
         return;
     }
 
-    // 创建配准工作流
+    // 鍒涘缓閰嶅噯宸ヤ綔娴?
     m_registrationWorkflow = new RegistrationWorkflow(m_pointRegistrationService, this);
 
-    // 连接工作流信号
+    // 杩炴帴宸ヤ綔娴佷俊鍙?
     connect(m_registrationWorkflow, &RegistrationWorkflow::stateChanged,
             this, &NavigationPageNew::onRegistrationStateChanged);
     connect(m_registrationWorkflow, &RegistrationWorkflow::progressUpdated,
@@ -1256,10 +1198,10 @@ void NavigationPageNew::setupRegistration()
             this, &NavigationPageNew::onRegistrationFailed);
     connect(m_registrationWorkflow, &RegistrationWorkflow::errorOccurred,
             this, [this](const QString& error) {
-                showError("配准错误", error);
+                showError("閰嶅噯閿欒", error);
             });
 
-    // 连接Service的点更新信号以刷新UI和3D显示
+    // 杩炴帴Service鐨勭偣鏇存柊淇″彿浠ュ埛鏂癠I鍜?D鏄剧ず
     connect(m_pointRegistrationService, &PointRegistrationService::pointAdded,
             this, [this](int, const QString&) {
                 updateRegistrationPointsList();
@@ -1289,30 +1231,29 @@ void NavigationPageNew::setupRegistration()
                 }
             });
 
-    // 启动新会话
+    // 鍚姩鏂颁細璇?
     QString patientIdStr = m_patientId >= 0 ? QString::number(m_patientId) : "";
     m_registrationWorkflow->startNewSession(patientIdStr);
 
-    // 立即嵌入配准VTK Widget（现在插件已改为deferred加载，服务应该可用）
+    // 绔嬪嵆宓屽叆閰嶅噯VTK Widget锛堢幇鍦ㄦ彃浠跺凡鏀逛负deferred鍔犺浇锛屾湇鍔″簲璇ュ彲鐢級
     embedRegistrationVTKWidget();
 
-    // 如果用户在规划页面先加载了模型，但当时配准服务/视图未就绪，则此处补加载
+    // 濡傛灉鐢ㄦ埛鍦ㄨ鍒掗〉闈㈠厛鍔犺浇浜嗘ā鍨嬶紝浣嗗綋鏃堕厤鍑嗘湇鍔?瑙嗗浘鏈氨缁紝鍒欐澶勮ˉ鍔犺浇
     if (!m_lastLoadedModelPath.isEmpty() && !m_pointRegistrationService->hasModel()) {
         m_pointRegistrationService->loadModelFromFile(m_lastLoadedModelPath);
     }
 
     qDebug() << "[NavigationPage] Registration workflow initialized";
-#endif
+
 }
 
 void NavigationPageNew::embedRegistrationVTKWidget()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (m_registrationVTKWidget) {
         return;
     }
 
-    // 创建配准VTK Widget
+    // 鍒涘缓閰嶅噯VTK Widget
     if (!ensurePointRegistrationService(true)) {
         return;
     }
@@ -1326,19 +1267,19 @@ void NavigationPageNew::embedRegistrationVTKWidget()
 
     m_registrationVTKWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-    // 连接点击信号
+    // 杩炴帴鐐瑰嚮淇″彿
     connect(m_registrationVTKWidget, SIGNAL(pointPicked(double,double,double)),
             this, SLOT(onRegistrationPointPicked(double,double,double)));
 
-    // 嵌入到配准Tab的布局中
+    // 宓屽叆鍒伴厤鍑員ab鐨勫竷灞€涓?
     if (ui->registrationViewLayout) {
         ui->registrationViewLayout->setContentsMargins(0, 0, 0, 0);
         ui->registrationViewLayout->setSpacing(0);
-        // 隐藏占位符
+        // 闅愯棌鍗犱綅绗?
         if (ui->registrationViewPlaceholder) {
             ui->registrationViewPlaceholder->hide();
         }
-        // 添加VTK Widget
+        // 娣诲姞VTK Widget
         ui->registrationViewLayout->addWidget(m_registrationVTKWidget, /*stretch*/ 1);
         m_registrationVTKWidget->show();
         qDebug() << "[NavigationPage] Registration VTK widget embedded in registration view";
@@ -1355,12 +1296,11 @@ void NavigationPageNew::embedRegistrationVTKWidget()
     }
 
     qDebug() << "[NavigationPage] Registration VTK widget embedded";
-#endif
+
 }
 
 void NavigationPageNew::updateRegistrationPointsList()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (!m_pointRegistrationService || !ui->registrationPointsTable) return;
 
     auto points = m_pointRegistrationService->getAllPoints();
@@ -1371,15 +1311,15 @@ void NavigationPageNew::updateRegistrationPointsList()
     for (int i = 0; i < points.size(); ++i) {
         const auto& pt = points[i];
 
-        // 序号
+        // 搴忓彿
         QTableWidgetItem* indexItem = new QTableWidgetItem(QString::number(i + 1));
         indexItem->setTextAlignment(Qt::AlignCenter);
         ui->registrationPointsTable->setItem(i, 0, indexItem);
 
-        // 名称
+        // 鍚嶇О
         ui->registrationPointsTable->setItem(i, 1, new QTableWidgetItem(pt.name));
 
-        // 坐标
+        // 鍧愭爣
         if (pt.hasSource) {
             QTableWidgetItem* xItem = new QTableWidgetItem(QString::number(pt.sourcePosition.x(), 'f', 1));
             QTableWidgetItem* yItem = new QTableWidgetItem(QString::number(pt.sourcePosition.y(), 'f', 1));
@@ -1396,18 +1336,18 @@ void NavigationPageNew::updateRegistrationPointsList()
             ui->registrationPointsTable->setItem(i, 4, new QTableWidgetItem("-"));
         }
 
-        // 状态
+        // 鐘舵€?
         QString status;
         QColor statusColor;
         if (pt.hasSource && pt.hasTarget) {
-            status = "完成";
-            statusColor = QColor(39, 174, 96);  // 绿色
+            status = "瀹屾垚";
+            statusColor = QColor(39, 174, 96);  // 缁胯壊
         } else if (pt.hasSource) {
             status = "CT点";
-            statusColor = QColor(52, 152, 219);  // 蓝色
+            statusColor = QColor(52, 152, 219);  // 钃濊壊
         } else {
             status = "待采集";
-            statusColor = QColor(149, 165, 166);  // 灰色
+            statusColor = QColor(149, 165, 166);  // 鐏拌壊
         }
         QTableWidgetItem* statusItem = new QTableWidgetItem(status);
         statusItem->setTextAlignment(Qt::AlignCenter);
@@ -1415,15 +1355,14 @@ void NavigationPageNew::updateRegistrationPointsList()
         ui->registrationPointsTable->setItem(i, 5, statusItem);
     }
 
-    // 调整列宽
+    // 璋冩暣鍒楀
     ui->registrationPointsTable->resizeColumnsToContents();
     ui->registrationPointsTable->horizontalHeader()->setStretchLastSection(true);
-#endif
+
 }
 
 void NavigationPageNew::on_deletePointButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (!m_pointRegistrationService || !ui->registrationPointsTable) return;
 
     int row = ui->registrationPointsTable->currentRow();
@@ -1435,18 +1374,17 @@ void NavigationPageNew::on_deletePointButton_clicked()
     m_pointRegistrationService->removePoint(row);
     updateRegistrationPointsList();
 
-    // 刷新3D视图
+    // 鍒锋柊3D瑙嗗浘
     if (m_registrationVTKWidget) {
         QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
     }
 
     qDebug() << "[NavigationPage] Deleted point at index:" << row;
-#endif
+
 }
 
 void NavigationPageNew::on_clearAllPointsButton_clicked()
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (!m_pointRegistrationService) return;
 
     if (m_pointRegistrationService->pointCount() == 0) {
@@ -1461,13 +1399,13 @@ void NavigationPageNew::on_clearAllPointsButton_clicked()
     m_pointRegistrationService->clearPoints();
     updateRegistrationPointsList();
 
-    // 刷新3D视图
+    // 鍒锋柊3D瑙嗗浘
     if (m_registrationVTKWidget) {
         QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
     }
 
     qDebug() << "[NavigationPage] Cleared all registration points";
-#endif
+
 }
 
 void NavigationPageNew::updateRegistrationResultDisplay(const PointRegistrationResult& result)
@@ -1477,29 +1415,28 @@ void NavigationPageNew::updateRegistrationResultDisplay(const PointRegistrationR
         return;
     }
 
-    // 更新配准误差显示
+    // 鏇存柊閰嶅噯璇樊鏄剧ず
     ui->regErrorLabel->setText(QString("%1 mm").arg(result.rmsError, 0, 'f', 2));
 
-    // 根据误差设置颜色
+    // 鏍规嵁璇樊璁剧疆棰滆壊
     QString color;
     if (result.rmsError < 1.0) {
-        color = "#27ae60";  // 绿色 - 优秀
+        color = "#27ae60";  // 缁胯壊 - 浼樼
     } else if (result.rmsError < 2.0) {
-        color = "#f39c12";  // 黄色 - 良好
+        color = "#f39c12";  // 榛勮壊 - 鑹ソ
     } else {
-        color = "#e74c3c";  // 红色 - 较差
+        color = "#e74c3c";  // 绾㈣壊 - 杈冨樊
     }
     ui->regErrorLabel->setStyleSheet(QString("color: %1; font-weight: bold;").arg(color));
 }
 
-// ========== 配准工作流回调 ==========
+// ========== 閰嶅噯宸ヤ綔娴佸洖璋?==========
 
 void NavigationPageNew::onRegistrationStateChanged(RegistrationSessionState state)
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     qDebug() << "[NavigationPage] Registration state changed:" << sessionStateToString(state);
 
-    // 根据状态更新UI
+    // 鏍规嵁鐘舵€佹洿鏂癠I
     switch (state) {
         case RegistrationSessionState::Idle:
             ui->collectPointButton->setEnabled(true);
@@ -1525,25 +1462,23 @@ void NavigationPageNew::onRegistrationStateChanged(RegistrationSessionState stat
         default:
             break;
     }
-#else
-    Q_UNUSED(state);
-#endif
+
 }
 
 void NavigationPageNew::onRegistrationProgressUpdated(int progress, const QString& message)
 {
     qDebug() << "[NavigationPage] Registration progress:" << progress << "%" << message;
-    // TODO: 更新进度条UI（如果有的话）
+    // TODO: 鏇存柊杩涘害鏉I锛堝鏋滄湁鐨勮瘽锛?
 }
 
 void NavigationPageNew::onRegistrationModelLoaded(bool success, const QString& info)
 {
     if (success) {
-        showInfo("加载模型", info);
-        // 嵌入VTK Widget（如果还没有）
+        showInfo("鍔犺浇妯″瀷", info);
+        // 宓屽叆VTK Widget锛堝鏋滆繕娌℃湁锛?
         embedRegistrationVTKWidget();
     } else {
-        showError("加载模型", info);
+        showError("鍔犺浇妯″瀷", info);
     }
 }
 
@@ -1561,10 +1496,12 @@ void NavigationPageNew::onRegistrationProbePointCaptured(int index, const QVecto
 
 void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& result)
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     updateRegistrationResultDisplay(result);
+    if (!m_registrationWorkflow) {
+        return;
+    }
 
-    // 获取质量描述
+    // 鑾峰彇璐ㄩ噺鎻忚堪
     QString qualityDesc = m_registrationWorkflow->getQualityDescription();
     QStringList suggestions = m_registrationWorkflow->getImprovementSuggestions();
 
@@ -1574,9 +1511,7 @@ void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& r
     }
 
     showInfo("配准完成", message);
-#else
-    Q_UNUSED(result);
-#endif
+
 }
 
 void NavigationPageNew::onRegistrationFailed(const QString& error)
@@ -1587,12 +1522,11 @@ void NavigationPageNew::onRegistrationFailed(const QString& error)
 
 void NavigationPageNew::onRegistrationPointPicked(double x, double y, double z)
 {
-#ifdef CTK_PLUGIN_FRAMEWORK
     if (!m_registrationWorkflow) return;
 
     QVector3D position(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
 
-    // 添加CT点
+    // 娣诲姞CT鐐?
     int index = m_registrationWorkflow->addCtPoint(position);
 
     if (index >= 0) {
@@ -1602,18 +1536,16 @@ void NavigationPageNew::onRegistrationPointPicked(double x, double y, double z)
                              .arg(y, 0, 'f', 1)
                              .arg(z, 0, 'f', 1));
 
-        // 立即更新点列表和3D显示
+        // 绔嬪嵆鏇存柊鐐瑰垪琛ㄥ拰3D鏄剧ず
         updateRegistrationPointsList();
         if (m_registrationVTKWidget) {
             QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
         }
     }
-#else
-    Q_UNUSED(x); Q_UNUSED(y); Q_UNUSED(z);
-#endif
+
 }
 
-// ========== 实时导航功能 ==========
+// ========== 瀹炴椂瀵艰埅鍔熻兘 ==========
 
 void NavigationPageNew::onNavigationTimerUpdate()
 {
@@ -1621,24 +1553,24 @@ void NavigationPageNew::onNavigationTimerUpdate()
         return;
     }
 
-    // 1. 获取模拟探针位置（跟踪空间）
+    // 1. 鑾峰彇妯℃嫙鎺㈤拡浣嶇疆锛堣窡韪┖闂达級
     QVector3D trackingPos = m_motionSimulator->getCurrentPosition();
 
-    // 2. 应用配准变换矩阵，转换到骨骼空间
+    // 2. 搴旂敤閰嶅噯鍙樻崲鐭╅樀锛岃浆鎹㈠埌楠ㄩ绌洪棿
     QVector3D bonePos = m_registrationTransform.map(trackingPos);
 
-    // 3. 更新导航3D视图中的探针位置
+    // 3. 鏇存柊瀵艰埅3D瑙嗗浘涓殑鎺㈤拡浣嶇疆
     m_navigation3DView->updateProbePosition(bonePos);
 
-    // 4. 更新位置数值显示
+    // 4. 鏇存柊浣嶇疆鏁板€兼樉绀?
     updatePositionDisplay(bonePos.x(), bonePos.y(), bonePos.z());
 
-    // 5. 计算并更新精度显示（模拟精度值）
-    // 实际应用中，这里应该计算真实的导航精度
+    // 5. 璁＄畻骞舵洿鏂扮簿搴︽樉绀猴紙妯℃嫙绮惧害鍊硷級
+    // 瀹為檯搴旂敤涓紝杩欓噷搴旇璁＄畻鐪熷疄鐨勫鑸簿搴?
     static double simAccuracy = 0;
     static int frameCount = 0;
     frameCount++;
-    // 模拟精度在0.5-1.5mm之间波动
+    // 妯℃嫙绮惧害鍦?.5-1.5mm涔嬮棿娉㈠姩
     simAccuracy = 0.8 + 0.3 * std::sin(frameCount * 0.05);
     updateAccuracyDisplay(simAccuracy);
 }
@@ -1646,18 +1578,18 @@ void NavigationPageNew::onNavigationTimerUpdate()
 void NavigationPageNew::onNavigation3DBoneLoaded(bool success, const QVector3D& center, const QVector3D& size)
 {
     if (!success) {
-        showWarning("加载模型", "骨骼模型加载失败");
+        showWarning("鍔犺浇妯″瀷", "楠ㄩ妯″瀷鍔犺浇澶辫触");
         return;
     }
 
     qDebug() << "[NavigationPage] Bone model loaded for navigation, center:" << center << "size:" << size;
 
-    // 根据骨骼边界框设置模拟器的椭球参数
+    // 鏍规嵁楠ㄩ杈圭晫妗嗚缃ā鎷熷櫒鐨勬き鐞冨弬鏁?
     if (m_motionSimulator) {
-        // 使用骨骼尺寸的一半作为椭球半轴（稍微放大一点，让探针在表面附近运动）
+        // 浣跨敤楠ㄩ灏哄鐨勪竴鍗婁綔涓烘き鐞冨崐杞达紙绋嶅井鏀惧ぇ涓€鐐癸紝璁╂帰閽堝湪琛ㄩ潰闄勮繎杩愬姩锛?
         QVector3D radii = size * 0.55f;
 
-        // 确保半轴有合理的最小值
+        // 纭繚鍗婅酱鏈夊悎鐞嗙殑鏈€灏忓€?
         radii.setX(qMax(radii.x(), 20.0f));
         radii.setY(qMax(radii.y(), 20.0f));
         radii.setZ(qMax(radii.z(), 30.0f));
@@ -1666,3 +1598,4 @@ void NavigationPageNew::onNavigation3DBoneLoaded(bool success, const QVector3D& 
         qDebug() << "[NavigationPage] Motion simulator configured, center:" << center << "radii:" << radii;
     }
 }
+

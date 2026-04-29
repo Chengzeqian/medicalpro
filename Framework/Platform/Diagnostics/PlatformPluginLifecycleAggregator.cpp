@@ -63,7 +63,7 @@ PlatformPluginState stateFromRuntimeText(const QString& runtimeState)
 
 QString toEventLabel(const PlatformLifecycleEvent& event)
 {
-    const auto pluginLabel = !event.pluginId.isEmpty() ? event.pluginId : event.ctkSymbolicName;
+    const auto pluginLabel = !event.pluginId.isEmpty() ? event.pluginId : event.symbolicName;
     if (!pluginLabel.isEmpty()) {
         switch (event.step) {
         case PlatformLifecycleStep::Install:
@@ -165,8 +165,8 @@ QStringList stableRecoveryHintsForReasonCode(const QString& reasonCode)
     if (reasonCode == QStringLiteral("skipped_by_mode")) {
         return {QStringLiteral("Check whether the current runtime mode intentionally skips this stage.")};
     }
-    if (reasonCode == QStringLiteral("ctk_platform_state_mismatch")) {
-        return {QStringLiteral("Check whether CTK active state and platform ready conditions are aligned.")};
+    if (reasonCode == QStringLiteral("runtime_platform_state_mismatch")) {
+        return {QStringLiteral("Check whether runtime active state and platform ready conditions are aligned.")};
     }
     return {};
 }
@@ -206,47 +206,47 @@ PlatformPluginLifecycleAggregation PlatformPluginLifecycleAggregator::aggregate(
     for (const auto& descriptor : descriptors) {
         PluginContext context;
         context.snapshot.pluginId = descriptor.id;
-        context.snapshot.ctkSymbolicName = descriptor.runtime.ctkSymbolicName;
+        context.snapshot.symbolicName = descriptor.runtime.symbolicName;
         context.snapshot.displayName = descriptor.displayName;
         context.snapshot.bootstrapLevel = descriptor.runtime.bootstrapLevel;
         context.snapshot.startupPolicy = descriptor.runtime.startupPolicy;
         context.impactCapabilities = descriptor.provides.capabilities;
         contextsByPluginId.insert(descriptor.id, context);
-        if (!descriptor.runtime.ctkSymbolicName.isEmpty()) {
-            pluginIdBySymbolicName.insert(descriptor.runtime.ctkSymbolicName.trimmed(), descriptor.id);
+        if (!descriptor.runtime.symbolicName.isEmpty()) {
+            pluginIdBySymbolicName.insert(descriptor.runtime.symbolicName.trimmed(), descriptor.id);
         }
     }
 
     const auto ensureContext = [&contextsByPluginId, &pluginIdBySymbolicName](
                                    const QString& pluginId,
-                                   const QString& ctkSymbolicName) -> PluginContext& {
+                                   const QString& symbolicName) -> PluginContext& {
         QString resolvedPluginId = pluginId.trimmed();
-        if (resolvedPluginId.isEmpty() && !ctkSymbolicName.isEmpty()) {
-            resolvedPluginId = pluginIdBySymbolicName.value(ctkSymbolicName.trimmed());
+        if (resolvedPluginId.isEmpty() && !symbolicName.isEmpty()) {
+            resolvedPluginId = pluginIdBySymbolicName.value(symbolicName.trimmed());
         }
         if (resolvedPluginId.isEmpty()) {
-            resolvedPluginId = !ctkSymbolicName.isEmpty()
-                ? QStringLiteral("ctk:%1").arg(ctkSymbolicName.trimmed())
+            resolvedPluginId = !symbolicName.isEmpty()
+                ? QStringLiteral("symbolic:%1").arg(symbolicName.trimmed())
                 : QStringLiteral("unknown_plugin");
         }
 
         if (!contextsByPluginId.contains(resolvedPluginId)) {
             PluginContext context;
             context.snapshot.pluginId = resolvedPluginId;
-            context.snapshot.ctkSymbolicName = ctkSymbolicName.trimmed();
-            context.snapshot.displayName = ctkSymbolicName.trimmed();
+            context.snapshot.symbolicName = symbolicName.trimmed();
+            context.snapshot.displayName = symbolicName.trimmed();
             contextsByPluginId.insert(resolvedPluginId, context);
-            if (!ctkSymbolicName.isEmpty()) {
-                pluginIdBySymbolicName.insert(ctkSymbolicName.trimmed(), resolvedPluginId);
+            if (!symbolicName.isEmpty()) {
+                pluginIdBySymbolicName.insert(symbolicName.trimmed(), resolvedPluginId);
             }
         }
 
         auto& context = contextsByPluginId[resolvedPluginId];
-        if (context.snapshot.ctkSymbolicName.isEmpty()) {
-            context.snapshot.ctkSymbolicName = ctkSymbolicName.trimmed();
+        if (context.snapshot.symbolicName.isEmpty()) {
+            context.snapshot.symbolicName = symbolicName.trimmed();
         }
         if (context.snapshot.displayName.isEmpty()) {
-            context.snapshot.displayName = ctkSymbolicName.trimmed();
+            context.snapshot.displayName = symbolicName.trimmed();
         }
         return context;
     };
@@ -301,11 +301,11 @@ PlatformPluginLifecycleAggregation PlatformPluginLifecycleAggregator::aggregate(
         }
 
         const bool pluginRelated = !event.pluginId.isEmpty()
-            || !event.ctkSymbolicName.isEmpty()
+            || !event.symbolicName.isEmpty()
             || event.step != PlatformLifecycleStep::None;
         if (!pluginRelated) continue;
 
-        auto& context = ensureContext(event.pluginId, event.ctkSymbolicName);
+        auto& context = ensureContext(event.pluginId, event.symbolicName);
         if (!event.reasonCode.isEmpty()) context.snapshot.lastReasonCode = event.reasonCode;
         if (!event.detail.isEmpty()) context.snapshot.lastDetail = event.detail;
         appendAllUnique(context.snapshot.missingRequiredServices, event.missingServices);

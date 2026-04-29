@@ -75,7 +75,6 @@ FourViewDisplayServiceImpl::FourViewDisplayServiceImpl(QObject* parent)
     , m_axialSlice(0)
     , m_sagittalSlice(0)
     , m_coronalSlice(0)
-    , m_context(nullptr)
     , m_vtkWidget(nullptr)
     , m_toolActor(nullptr)
     , m_toolPolyData(nullptr)
@@ -89,12 +88,6 @@ FourViewDisplayServiceImpl::FourViewDisplayServiceImpl(QObject* parent)
 FourViewDisplayServiceImpl::~FourViewDisplayServiceImpl()
 {
     qDebug() << "[FourViewDisplayServiceImpl] 销毁四视图显示服务";
-}
-
-void FourViewDisplayServiceImpl::setPluginContext(ctkPluginContext* context)
-{
-    m_context = context;
-    qDebug() << "[FourViewDisplayServiceImpl] CTK Context 已设置";
 }
 
 void FourViewDisplayServiceImpl::ensureInitialized()

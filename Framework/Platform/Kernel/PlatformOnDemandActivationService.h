@@ -10,6 +10,7 @@ class FRAMEWORK_EXPORT PlatformOnDemandActivationService
 {
 public:
     using InstallPluginFn = std::function<bool(const PlatformOnDemandActivationPlanEntry&)>;
+    using PlatformModuleAvailabilityFn = PlatformOnDemandActivationPlanBuilder::PlatformModuleAvailabilityFn;
 
     PlatformOnDemandActivationService(
         QVector<PlatformPluginDescriptor> descriptors,
@@ -17,7 +18,8 @@ public:
         PlatformStartupCoordinator* startupCoordinator,
         PlatformStateStore* stateStore,
         InstallPluginFn installPluginFn,
-        PlatformOnDemandProbeSet probeSet);
+        PlatformOnDemandProbeSet probeSet,
+        PlatformModuleAvailabilityFn isPlatformModuleAvailable = {});
 
     void setStateStore(PlatformStateStore* stateStore);
     bool ensureReady(const QString& pluginId);
@@ -29,4 +31,5 @@ private:
     PlatformStateStore* m_stateStore = nullptr;
     InstallPluginFn m_installPluginFn;
     PlatformOnDemandProbeSet m_probeSet;
+    PlatformModuleAvailabilityFn m_isPlatformModuleAvailable;
 };

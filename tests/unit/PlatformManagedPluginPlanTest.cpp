@@ -23,7 +23,7 @@ PlatformPluginDescriptor makeDescriptor(
     descriptor.version = QStringLiteral("1.0.0");
     descriptor.displayName = displayName;
     descriptor.domain = QStringLiteral("test");
-    descriptor.runtime.ctkSymbolicName = ctkSymbolicName;
+    descriptor.runtime.symbolicName = ctkSymbolicName;
     descriptor.runtime.bootstrapLevel = bootstrapLevel;
     descriptor.runtime.startupPolicy = startupPolicy;
     descriptor.provides.capabilities = providesCapabilities;
@@ -41,6 +41,7 @@ class PlatformManagedPluginPlanTest : public QObject
 
 private slots:
     void build_returns_phase1_managed_core_install_plan();
+    void build_marks_platform_hosted_core_plugin_as_not_requiring_bundle_install();
     void build_adds_required_capability_provider_before_dependent_plugin();
     void build_rejects_managed_plugin_missing_phase1_diagnostics_contract();
 };
@@ -108,6 +109,39 @@ void PlatformManagedPluginPlanTest::build_returns_phase1_managed_core_install_pl
     QCOMPARE(plan.corePluginIds, plan.managedPluginIds);
     QCOMPARE(plan.installEntries.size(), 3);
     QVERIFY(plan.installEntries.constFirst().bundleFilePath.endsWith(QStringLiteral("UserManagement.dll")));
+}
+
+void PlatformManagedPluginPlanTest::build_marks_platform_hosted_core_plugin_as_not_requiring_bundle_install()
+{
+    QTemporaryDir pluginDir;
+    QVERIFY(pluginDir.isValid());
+
+    PlatformRuntimeConfig config;
+    config.runtimeMode = PlatformRuntimeMode::FacadeMode;
+    config.corePluginIds = QStringList{QStringLiteral("org.medicalpro.user_management")};
+
+    QString error;
+    const auto plan = PlatformManagedPluginPlanBuilder::build(
+        config,
+        {
+            makeDescriptor(
+                QStringLiteral("org.medicalpro.user_management"),
+                QStringLiteral("UserManagement"),
+                QStringLiteral("UserManagement"),
+                PlatformBootstrapLevel::Core,
+                PlatformStartupPolicy::Eager,
+                {QStringLiteral("identity.core")})
+        },
+        pluginDir.path(),
+        [](const QString& symbolicName) {
+            return symbolicName == QStringLiteral("UserManagement");
+        },
+        &error);
+
+    QVERIFY2(error.isEmpty(), qPrintable(error));
+    QCOMPARE(plan.installEntries.size(), 1);
+    QVERIFY(plan.installEntries.constFirst().bundleFilePath.isEmpty());
+    QVERIFY(!plan.installEntries.constFirst().requiresBundleInstall);
 }
 
 void PlatformManagedPluginPlanTest::build_adds_required_capability_provider_before_dependent_plugin()

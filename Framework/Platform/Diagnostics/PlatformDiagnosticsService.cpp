@@ -20,9 +20,9 @@ QHash<QString, QString> pluginIdBySymbolicName(const QVector<PlatformPluginDescr
     QHash<QString, QString> mapping;
     mapping.reserve(descriptors.size());
     for (const auto& descriptor : descriptors) {
-        const auto ctkSymbolicName = descriptor.runtime.ctkSymbolicName.trimmed();
-        if (ctkSymbolicName.isEmpty()) continue;
-        mapping.insert(ctkSymbolicName, descriptor.id);
+        const auto symbolicName = descriptor.runtime.symbolicName.trimmed();
+        if (symbolicName.isEmpty()) continue;
+        mapping.insert(symbolicName, descriptor.id);
     }
     return mapping;
 }
@@ -136,7 +136,7 @@ PlatformDiagnosticSnapshot PlatformDiagnosticsService::buildSnapshot(const Platf
         appendUnique(
             snapshot.recoveryHints,
             QStringLiteral("%1 missing services: %2")
-                .arg(plugin.ctkSymbolicName, plugin.missingRequiredServices.join(QStringLiteral(", "))));
+                .arg(plugin.symbolicName, plugin.missingRequiredServices.join(QStringLiteral(", "))));
     }
 
     const auto symbolicNameToPluginId = pluginIdBySymbolicName(descriptors);
@@ -152,19 +152,19 @@ PlatformDiagnosticSnapshot PlatformDiagnosticsService::buildSnapshot(const Platf
         if (!platformStateByPluginId.contains(pluginId)) continue;
 
         const auto platformState = platformStateByPluginId.value(pluginId);
-        const auto ctkState = observation.pluginStates.value(startedSymbolicName);
-        const bool ctkLooksActive = ctkState.compare(QStringLiteral("ACTIVE"), Qt::CaseInsensitive) == 0
-            || ctkState.isEmpty();
+        const auto runtimeState = observation.pluginStates.value(startedSymbolicName);
+        const bool runtimeLooksActive = runtimeState.compare(QStringLiteral("ACTIVE"), Qt::CaseInsensitive) == 0
+            || runtimeState.isEmpty();
         const bool platformLooksReady = platformState == PlatformPluginState::Ready
             || platformState == PlatformPluginState::Starting;
-        if (!ctkLooksActive || platformLooksReady) continue;
+        if (!runtimeLooksActive || platformLooksReady) continue;
 
         PlatformDiagnosticProblem problem;
         problem.severity = PlatformDiagnosticSeverity::Error;
         problem.pluginId = pluginId;
         problem.step = PlatformLifecycleStep::Start;
-        problem.reasonCode = QStringLiteral("ctk_platform_state_mismatch");
-        problem.detail = QStringLiteral("CTK reports plugin %1 as started but platform state is %2")
+        problem.reasonCode = QStringLiteral("runtime_platform_state_mismatch");
+        problem.detail = QStringLiteral("Runtime reports plugin %1 as started but platform state is %2")
                              .arg(startedSymbolicName)
                              .arg(static_cast<int>(platformState));
         problem.recoveryHints = QStringList{

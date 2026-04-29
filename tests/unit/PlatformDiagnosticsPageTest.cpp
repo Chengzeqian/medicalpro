@@ -32,7 +32,7 @@ void PlatformDiagnosticsPageTest::refreshSnapshot_renders_mode_plugin_and_trace(
 
     PlatformPluginLifecycleSnapshot pluginSnapshot;
     pluginSnapshot.pluginId = QStringLiteral("org.medicalpro.dicom_viewer");
-    pluginSnapshot.ctkSymbolicName = QStringLiteral("DicomViewer");
+    pluginSnapshot.symbolicName = QStringLiteral("DicomViewer");
     pluginSnapshot.state = PlatformPluginState::Ready;
     snapshot.pluginLifecycle.append(pluginSnapshot);
 
@@ -81,7 +81,7 @@ void PlatformDiagnosticsPageTest::refreshSnapshot_renders_summary_problem_and_so
 
     PlatformPluginLifecycleSnapshot readyPlugin;
     readyPlugin.pluginId = QStringLiteral("org.medicalpro.dicom_viewer");
-    readyPlugin.ctkSymbolicName = QStringLiteral("DicomViewer");
+    readyPlugin.symbolicName = QStringLiteral("DicomViewer");
     readyPlugin.state = PlatformPluginState::Ready;
     readyPlugin.startupBlocked = false;
     readyPlugin.blockingMs = 480;
@@ -89,7 +89,7 @@ void PlatformDiagnosticsPageTest::refreshSnapshot_renders_summary_problem_and_so
 
     PlatformPluginLifecycleSnapshot blockedPlugin;
     blockedPlugin.pluginId = QStringLiteral("org.medicalpro.user_management");
-    blockedPlugin.ctkSymbolicName = QStringLiteral("UserManagement");
+    blockedPlugin.symbolicName = QStringLiteral("UserManagement");
     blockedPlugin.state = PlatformPluginState::Ready;
     blockedPlugin.startupBlocked = true;
     blockedPlugin.blockingMs = 220;
@@ -97,7 +97,7 @@ void PlatformDiagnosticsPageTest::refreshSnapshot_renders_summary_problem_and_so
 
     PlatformPluginLifecycleSnapshot failedPlugin;
     failedPlugin.pluginId = QStringLiteral("org.medicalpro.registration_core");
-    failedPlugin.ctkSymbolicName = QStringLiteral("RegistrationCore");
+    failedPlugin.symbolicName = QStringLiteral("RegistrationCore");
     failedPlugin.state = PlatformPluginState::Failed;
     failedPlugin.startupBlocked = true;
     failedPlugin.blockingMs = 90;
@@ -230,7 +230,7 @@ void PlatformDiagnosticsPageTest::refreshSnapshot_renders_extended_summary_field
 
     PlatformPluginLifecycleSnapshot plugin;
     plugin.pluginId = QStringLiteral("org.medicalpro.registration_core");
-    plugin.ctkSymbolicName = QStringLiteral("RegistrationCore");
+    plugin.symbolicName = QStringLiteral("RegistrationCore");
     plugin.state = PlatformPluginState::Failed;
     snapshot.pluginLifecycle.append(plugin);
 
@@ -284,7 +284,7 @@ void PlatformDiagnosticsPageTest::refreshSnapshot_renders_full_plugin_lifecycle_
 
     PlatformPluginLifecycleSnapshot failedPlugin;
     failedPlugin.pluginId = QStringLiteral("org.medicalpro.registration_core");
-    failedPlugin.ctkSymbolicName = QStringLiteral("RegistrationCore");
+    failedPlugin.symbolicName = QStringLiteral("RegistrationCore");
     failedPlugin.displayName = QStringLiteral("Registration Core");
     failedPlugin.bootstrapLevel = PlatformBootstrapLevel::Core;
     failedPlugin.startupPolicy = PlatformStartupPolicy::Eager;
@@ -300,7 +300,7 @@ void PlatformDiagnosticsPageTest::refreshSnapshot_renders_full_plugin_lifecycle_
 
     PlatformPluginLifecycleSnapshot readyPlugin;
     readyPlugin.pluginId = QStringLiteral("org.medicalpro.user_management");
-    readyPlugin.ctkSymbolicName = QStringLiteral("UserManagement");
+    readyPlugin.symbolicName = QStringLiteral("UserManagement");
     readyPlugin.displayName = QStringLiteral("User Management");
     readyPlugin.bootstrapLevel = PlatformBootstrapLevel::Core;
     readyPlugin.startupPolicy = PlatformStartupPolicy::Eager;
@@ -342,7 +342,7 @@ void PlatformDiagnosticsPageTest::refreshSnapshot_renders_expanded_timeline_fiel
     pluginEntry.phaseKey = QStringLiteral("registration_service_ready");
     pluginEntry.phaseLabel = QStringLiteral("Registration service ready");
     pluginEntry.pluginId = QStringLiteral("org.medicalpro.registration_core");
-    pluginEntry.ctkSymbolicName = QStringLiteral("RegistrationCore");
+    pluginEntry.symbolicName = QStringLiteral("RegistrationCore");
     pluginEntry.step = PlatformLifecycleStep::ServiceReady;
     pluginEntry.result = PlatformLifecycleResult::Timeout;
     pluginEntry.blockingStartup = true;

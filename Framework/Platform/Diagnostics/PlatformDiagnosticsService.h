@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Framework/FrameworkExport.h"
-#include "Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.h"
 #include "Framework/Platform/Contracts/PlatformSnapshots.h"
 #include "Framework/Platform/Diagnostics/PlatformPluginLifecycleAggregator.h"
+#include "Framework/Platform/Diagnostics/PlatformRuntimeSnapshotCollector.h"
 
 class PlatformStateStore;
 

@@ -1,6 +1,6 @@
 # Platform Plugin Legacy Consumer Inventory
 
-Updated: 2026-04-23
+Updated: 2026-04-27
 
 ## Current Consumers
 
@@ -8,6 +8,13 @@ Updated: 2026-04-23
 | --- | --- | --- | --- | --- |
 | `main.cpp` | `forbidden_product_mainline` | enforced | Product startup must remain descriptor-driven and must not call deleted legacy load-policy helpers. | Protected by source contract tests. |
 | `runtime_artifact_layout_test` | `forbidden_product_mainline` | enforced | Default runtime artifact acceptance must validate product artifacts only. | Must not require deleted compatibility artifacts. |
+
+## Accepted Exit Boundaries
+
+- The accepted scope now includes repository-level deletion of the bridge-only CTK runtime host residue.
+- Default configuration may not link, deploy, or require `EventAdmin`, `CTKPluginFramework.dll`, `CTK*.dll`, or plugin `.manifest` files.
+- `MEDICALPRO_DEPLOY_CTK_RUNTIME` and `MEDICALPRO_BUILD_LEGACY_CTK_PLUGINS` are retired switches and must fail configuration if enabled.
+- Migrated plugin activator source files are deleted and must not be reintroduced as compatibility shells.
 
 ## Deleted Compatibility Shell
 
@@ -23,8 +30,8 @@ Updated: 2026-04-23
 
 ## Retained Runtime Ownership
 
-- `CTKManager::applyPolicyForPlugin()` remains an execution helper, but runtime bucket and criticality classification continue to resolve through `PlatformCtkPolicyBridge` with explicit `setDescriptorPolicyContext(...)` handoff.
 - Product startup truth remains `platform_runtime.json + plugins/descriptors/*.json + PlatformDescriptorLoader`.
+- `PlatformPluginPolicyBridge` remains only as descriptor/runtime classification logic; no CTK runtime bridge host remains in the repository.
 
 ## Forbidden New Usage
 

@@ -23,6 +23,8 @@
 #include <vtkPointData.h>
 #include <vtkCell.h>
 
+#include "Framework/Platform/Kernel/platform_service_registry.h"
+
 // MeshGPU DLL header (CUDA-free, pure C++ interface)
 #include "mesh_gpu_interface.h"
 
@@ -30,12 +32,9 @@
 #include "../Registration2D3D/Registration2D3DService.h"
 #include "../Registration2D3D/Registration2D3DDataStructures.h"
 
-// CTK Framework
-#include <ctkServiceReference.h>
-
 RegistrationServiceImpl::RegistrationServiceImpl(QObject* parent)
-    : RegistrationService(parent)
-    , m_context(nullptr)
+    : registration_core::RegistrationService(parent)
+    , m_serviceRegistry(nullptr)
     , m_defaultLandmarkMode(VTK_LANDMARK_RIGIDBODY)
     , m_enableICPCentroids(true)
     , m_defaultICPMaxIterations(100)
@@ -44,28 +43,26 @@ RegistrationServiceImpl::RegistrationServiceImpl(QObject* parent)
     qDebug() << "[RegistrationService] Initialized";
 }
 
-void RegistrationServiceImpl::setPluginContext(ctkPluginContext* context)
+void RegistrationServiceImpl::setServiceRegistry(PlatformServiceRegistry* serviceRegistry)
 {
-    m_context = context;
-    if (m_context) {
-        qDebug() << "[RegistrationService] Plugin context set, can access Registration2D3D service";
-    }
+    m_serviceRegistry = serviceRegistry;
 }
 
 Registration2D3DService* RegistrationServiceImpl::getRegistration2D3DService()
 {
-    if (!m_context) {
-        qWarning() << "[RegistrationService] No plugin context, cannot get Registration2D3D service";
+    if (!m_serviceRegistry) {
+        qWarning() << "[RegistrationService] Platform service registry unavailable";
         return nullptr;
     }
 
-    ctkServiceReference ref = m_context->getServiceReference<Registration2D3DService>();
-    if (!ref) {
+    auto* service = qobject_cast<Registration2D3DService*>(
+        m_serviceRegistry->service(QStringLiteral("Registration2D3DService")));
+    if (!service) {
         qWarning() << "[RegistrationService] Registration2D3D service not available";
         return nullptr;
     }
 
-    return m_context->getService<Registration2D3DService>(ref);
+    return service;
 }
 
 RegistrationServiceImpl::~RegistrationServiceImpl()

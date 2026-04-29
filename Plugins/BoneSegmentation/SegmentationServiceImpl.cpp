@@ -114,7 +114,7 @@ vtkSmartPointer<vtkImageData> readNiftiToVtkImage(const QString& filePath, int v
 } // namespace
 
 SegmentationServiceImpl::SegmentationServiceImpl(QObject* parent)
-    : SegmentationService(parent)
+    : BoneSegmentationService(parent)
     , m_progressTimer(new QTimer(this))
 {
     // 初始化默认参数

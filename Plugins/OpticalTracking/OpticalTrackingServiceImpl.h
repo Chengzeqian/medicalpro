@@ -54,8 +54,8 @@ struct ftkRigidBody {
 #endif
 
 // CTK框架
-#include <ctkPluginContext.h>
-#include <ctkServiceReference.h>
+
+class PlatformServiceRegistry;
 
 // 前向声明（遵循完全CTK架构）
 class UnifiedMedicalImageService;
@@ -82,7 +82,7 @@ public:
      * @param context CTK插件上下文
      * @param parent 父对象
      */
-    explicit OpticalTrackingServiceImpl(ctkPluginContext* context, QObject* parent = nullptr);
+    explicit OpticalTrackingServiceImpl(QObject* parent = nullptr);
 
     /**
      * @brief 析构函数
@@ -93,7 +93,7 @@ public:
      * @brief 设置CTK插件上下文（关键方法，遵循PatientManagement成功模式）
      * @param context CTK插件上下文
      */
-    void setPluginContext(ctkPluginContext* context);
+    void setServiceRegistry(PlatformServiceRegistry* serviceRegistry);
 
     // ==================== 设备管理实现 ====================
     
@@ -612,14 +612,12 @@ private:
     QString createTrackingSession(const QString& deviceId);
 
     // CTK插件上下文
-    ctkPluginContext* m_pluginContext;
+    PlatformServiceRegistry* m_serviceRegistry;
     
     // 可选的医学图像服务引用（CTK服务框架）
-    ctkServiceReference m_imageServiceRef;
     UnifiedMedicalImageService* m_imageService;
     
     // 可选的图像交互服务引用（CTK服务框架）
-    ctkServiceReference m_interactionServiceRef;
     ImageInteractionService* m_interactionService;
     
     // Atracsys SDK 相关成员变量

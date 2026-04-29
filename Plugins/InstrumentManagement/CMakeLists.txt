@@ -7,49 +7,65 @@ project(InstrumentManagement VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Set encoding to UTF-8
 if(MSVC)
     add_compile_options(/utf-8)
 endif()
 
-# Qt组件查找
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets Sql)
 
-# CTK Plugin Framework 配置
-if(CTK_FOUND)
-    set(PLUGIN_SOURCES
-        InstrumentManagementActivator.cpp
+    set(INSTRUMENTMANAGEMENT_PLATFORM_SOURCES
         InstrumentManagementServiceImpl.cpp
+        instrument_management_module.cpp
     )
 
-    set(PLUGIN_HEADERS
-        InstrumentManagementActivator.h
+    set(INSTRUMENTMANAGEMENT_PLATFORM_HEADERS
         InstrumentManagementService.h
         InstrumentManagementServiceImpl.h
         InstrumentDataStructures.h
+        instrument_management_module.h
     )
 
-    set(PLUGIN_RESOURCES
-        InstrumentManagement.qrc
+    add_library(InstrumentManagementPlatformModuleLib STATIC
+        ${INSTRUMENTMANAGEMENT_PLATFORM_SOURCES}
+        ${INSTRUMENTMANAGEMENT_PLATFORM_HEADERS}
     )
 
-    add_medical_plugin(InstrumentManagement
-        SOURCES ${PLUGIN_SOURCES}
-        HEADERS ${PLUGIN_HEADERS}
-        RESOURCES ${PLUGIN_RESOURCES}
-        DEPENDENCIES Qt${QT_VERSION_MAJOR}::Sql
+    target_include_directories(InstrumentManagementPlatformModuleLib PUBLIC
+        ${CMAKE_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}
     )
+
+    target_link_libraries(InstrumentManagementPlatformModuleLib PUBLIC
+        Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Gui
+        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Sql
+    )
+
+    register_platform_descriptor(InstrumentManagement "${CMAKE_CURRENT_SOURCE_DIR}/platform/plugin.json")
 
     if(VTK_FOUND)
-        target_link_libraries(InstrumentManagement PRIVATE ${VTK_LIBRARIES})
-        target_include_directories(InstrumentManagement PRIVATE ${VTK_INCLUDE_DIRS})
-        target_compile_definitions(InstrumentManagement PRIVATE VTK_FOUND)
-        message(STATUS "InstrumentManagement: TODO - Refactor to use Framework's PUBLIC VTK linking")
+        target_compile_definitions(InstrumentManagementPlatformModuleLib PRIVATE VTK_FOUND)
+        if(TARGET VTK::CommonCore)
+            target_link_libraries(InstrumentManagementPlatformModuleLib PUBLIC
+                VTK::CommonCore
+                VTK::CommonDataModel
+                VTK::FiltersCore
+                VTK::FiltersGeneral
+                VTK::IOGeometry
+                VTK::IOImage
+                VTK::RenderingCore
+                VTK::RenderingOpenGL2
+            )
+
+            vtk_module_autoinit(
+                TARGETS InstrumentManagementPlatformModuleLib
+                MODULES ${VTK_LIBRARIES}
+            )
+        endif()
+
+        message(STATUS "InstrumentManagement: VTK support enabled in platform module")
     endif()
 
-    message(STATUS "InstrumentManagement configured successfully")
-else()
-    message(WARNING "CTK Plugin Framework not available - InstrumentManagement will not be built")
-endif()
-
+    message(STATUS "InstrumentManagement configured successfully (platform module)")

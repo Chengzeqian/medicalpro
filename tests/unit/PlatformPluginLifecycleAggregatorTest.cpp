@@ -1,8 +1,8 @@
 #include <QtTest>
 
-#include "Framework/Platform/CtkBridge/CtkRuntimeSnapshotCollector.h"
 #include "Framework/Platform/Contracts/PlatformPluginDescriptor.h"
 #include "Framework/Platform/Diagnostics/PlatformPluginLifecycleAggregator.h"
+#include "Framework/Platform/Diagnostics/PlatformRuntimeSnapshotCollector.h"
 
 namespace
 {
@@ -17,7 +17,7 @@ PlatformPluginDescriptor makeDescriptor(
     descriptor.version = QStringLiteral("1.0.0");
     descriptor.displayName = ctkSymbolicName;
     descriptor.domain = QStringLiteral("test");
-    descriptor.runtime.ctkSymbolicName = ctkSymbolicName;
+    descriptor.runtime.symbolicName = ctkSymbolicName;
     descriptor.runtime.bootstrapLevel = bootstrapLevel;
     descriptor.runtime.startupPolicy = startupPolicy;
     return descriptor;
@@ -38,7 +38,7 @@ PlatformLifecycleEvent makeEvent(
     PlatformLifecycleEvent event;
     event.kind = kind;
     event.pluginId = pluginId;
-    event.ctkSymbolicName = ctkSymbolicName;
+    event.symbolicName = ctkSymbolicName;
     event.step = step;
     event.result = result;
     event.offsetMs = offsetMs;

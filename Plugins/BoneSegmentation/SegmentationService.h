@@ -28,13 +28,13 @@ class vtkImageData;
  * 2. 异步优先：所有耗时操作返回任务ID，通过信号通知完成
  * 3. 标准接口：输入路径，输出 VTK 数据结构
  */
-class SegmentationService : public QObject
+class BoneSegmentationService : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit SegmentationService(QObject* parent = nullptr) : QObject(parent) {}
-    virtual ~SegmentationService() = default;
+    explicit BoneSegmentationService(QObject* parent = nullptr) : QObject(parent) {}
+    virtual ~BoneSegmentationService() = default;
 
     // ==================== 分割任务管理 ====================
 
@@ -263,6 +263,6 @@ signals:
 };
 
 // Qt 接口声明
-Q_DECLARE_INTERFACE(SegmentationService, "medical.SegmentationService")
+Q_DECLARE_INTERFACE(BoneSegmentationService, "medical.SegmentationService")
 
 #endif // SEGMENTATION_SERVICE_H

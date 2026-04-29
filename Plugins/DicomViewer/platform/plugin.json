@@ -5,7 +5,7 @@
   "domain": "imaging",
   "enabled": true,
   "runtime": {
-    "ctk_symbolic_name": "DicomViewer",
+    "symbolic_name": "DicomViewer",
     "startup_policy": "eager",
     "bootstrap_level": "core",
     "entry_capability": "imaging.data"

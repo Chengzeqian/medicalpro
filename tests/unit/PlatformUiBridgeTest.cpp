@@ -3,8 +3,8 @@
 #include <QSignalSpy>
 
 #include "Framework/Platform/Contracts/PlatformUiPorts.h"
-#include "Framework/Platform/CtkBridge/CoreUiRuntimeStatusProvider.h"
-#include "Framework/Platform/CtkBridge/NavigationPageServiceAccess.h"
+#include "Framework/Platform/UiBridge/CoreUiRuntimeStatusProvider.h"
+#include "Framework/Platform/UiBridge/NavigationPageServiceAccess.h"
 
 class FakePluginEventSource : public QObject
 {
@@ -72,7 +72,7 @@ public:
     }
     InstrumentManagementService* instrumentManagementService() const override { return instrumentServiceValue; }
     DicomViewerService* dicomViewerService() const override { return dicomServiceValue; }
-    SegmentationService* segmentationService() const override { return segmentationServiceValue; }
+    BoneSegmentationService* segmentationService() const override { return segmentationServiceValue; }
     FourViewDisplayService* fourViewDisplayService() const override { return fourViewServiceValue; }
     PointRegistrationService* pointRegistrationService() const override { return pointRegistrationServiceValue; }
 
@@ -84,7 +84,7 @@ public:
     QObject* pluginSource = nullptr;
     InstrumentManagementService* instrumentServiceValue = nullptr;
     DicomViewerService* dicomServiceValue = nullptr;
-    SegmentationService* segmentationServiceValue = nullptr;
+    BoneSegmentationService* segmentationServiceValue = nullptr;
     FourViewDisplayService* fourViewServiceValue = nullptr;
     PointRegistrationService* pointRegistrationServiceValue = nullptr;
     mutable QString lastIsPluginStartedName;
@@ -182,7 +182,7 @@ void PlatformUiBridgeTest::navigationServiceAccess_forwards_service_pointers_fro
     FakeNavigationPageServicePort port;
     port.instrumentServiceValue = reinterpret_cast<InstrumentManagementService*>(quintptr(0x11));
     port.dicomServiceValue = reinterpret_cast<DicomViewerService*>(quintptr(0x22));
-    port.segmentationServiceValue = reinterpret_cast<SegmentationService*>(quintptr(0x33));
+    port.segmentationServiceValue = reinterpret_cast<BoneSegmentationService*>(quintptr(0x33));
     port.fourViewServiceValue = reinterpret_cast<FourViewDisplayService*>(quintptr(0x44));
 
     NavigationPageServiceAccess access(&port);

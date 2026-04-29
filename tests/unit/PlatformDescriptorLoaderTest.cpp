@@ -10,6 +10,7 @@ class PlatformDescriptorLoaderTest : public QObject
 
 private slots:
     void loadFromFile_reads_required_fields();
+    void loadFromFile_rejects_legacy_ctk_symbolic_name();
     void loadFromFile_reads_diagnostics_block();
     void loadFromFile_rejects_malformed_diagnostics_block();
     void loadFromFile_rejects_missing_startup_policy();
@@ -29,7 +30,7 @@ void PlatformDescriptorLoaderTest::loadFromFile_reads_required_fields()
       "domain": "imaging",
       "enabled": true,
       "runtime": {
-        "ctk_symbolic_name": "DicomViewer",
+        "symbolic_name": "DicomViewer",
         "startup_policy": "eager",
         "bootstrap_level": "core",
         "entry_capability": "imaging.data"
@@ -46,9 +47,43 @@ void PlatformDescriptorLoaderTest::loadFromFile_reads_required_fields()
 
     QVERIFY2(error.isEmpty(), qPrintable(error));
     QCOMPARE(descriptor.id, QStringLiteral("org.medicalpro.dicom_viewer"));
-    QCOMPARE(descriptor.runtime.ctkSymbolicName, QStringLiteral("DicomViewer"));
+    QCOMPARE(descriptor.runtime.symbolicName, QStringLiteral("DicomViewer"));
     QCOMPARE(descriptor.runtime.startupPolicy, PlatformStartupPolicy::Eager);
     QCOMPARE(descriptor.runtime.bootstrapLevel, PlatformBootstrapLevel::Core);
+}
+
+void PlatformDescriptorLoaderTest::loadFromFile_rejects_legacy_ctk_symbolic_name()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    QFile file(dir.filePath("plugin.json"));
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Text));
+    file.write(R"json({
+      "id": "org.medicalpro.legacy_viewer",
+      "version": "1.0.0",
+      "display_name": "LegacyViewer",
+      "domain": "imaging",
+      "enabled": true,
+      "runtime": {
+        "ctk_symbolic_name": "LegacyViewer",
+        "startup_policy": "eager",
+        "bootstrap_level": "core",
+        "entry_capability": "imaging.data"
+      },
+      "provides": {"services": [], "capabilities": ["imaging.data"]},
+      "requires": {"services": [], "capabilities": [], "plugins": []},
+      "optional": {"services": [], "capabilities": [], "plugins": []},
+      "health_checks": ["service_registered"]
+    })json");
+    file.close();
+
+    QString error;
+    const auto descriptor = PlatformDescriptorLoader::loadFromFile(file.fileName(), &error);
+
+    QVERIFY(!error.isEmpty());
+    QVERIFY(error.contains(QStringLiteral("runtime.symbolic_name")));
+    QVERIFY(descriptor.id.isEmpty());
 }
 
 void PlatformDescriptorLoaderTest::loadFromFile_reads_diagnostics_block()
@@ -65,7 +100,7 @@ void PlatformDescriptorLoaderTest::loadFromFile_reads_diagnostics_block()
       "domain": "platform",
       "enabled": true,
       "runtime": {
-        "ctk_symbolic_name": "LifecycleViewer",
+        "symbolic_name": "LifecycleViewer",
         "startup_policy": "on_demand",
         "bootstrap_level": "deferred",
         "entry_capability": "platform.lifecycle"
@@ -129,7 +164,7 @@ void PlatformDescriptorLoaderTest::loadFromFile_rejects_malformed_diagnostics_bl
       "domain": "platform",
       "enabled": true,
       "runtime": {
-        "ctk_symbolic_name": "BadDiagnostics",
+        "symbolic_name": "BadDiagnostics",
         "startup_policy": "on_demand",
         "bootstrap_level": "deferred",
         "entry_capability": "platform.lifecycle"
@@ -170,7 +205,7 @@ void PlatformDescriptorLoaderTest::loadFromFile_rejects_missing_startup_policy()
       "domain": "core",
       "enabled": true,
       "runtime": {
-        "ctk_symbolic_name": "BrokenPlugin",
+        "symbolic_name": "BrokenPlugin",
         "bootstrap_level": "core",
         "entry_capability": "broken.capability"
       },

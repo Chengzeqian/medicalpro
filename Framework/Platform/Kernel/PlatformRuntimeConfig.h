@@ -13,5 +13,5 @@ struct FRAMEWORK_EXPORT PlatformRuntimeConfig
     QStringList corePluginIds;
 
     static PlatformRuntimeConfig loadFromFile(const QString& filePath, QString* error = nullptr);
-    QStringList resolveCoreCtkPluginNames(const QString& descriptorDirectoryPath, QString* error = nullptr) const;
+    QStringList resolveCoreSymbolicNames(const QString& descriptorDirectoryPath, QString* error = nullptr) const;
 };

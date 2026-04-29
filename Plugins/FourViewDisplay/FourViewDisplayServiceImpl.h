@@ -18,7 +18,6 @@
 // 前向声明
 class vtkPolyData;
 class vtkRenderWindow;
-class ctkPluginContext;
 
 /**
  * @brief 四视图显示服务实现类
@@ -102,8 +101,7 @@ public:
     bool loadToolModel(const QString& modelPath) override;
     void updateToolPose(const QList<double>& position, const QList<double>& orientation) override;
 
-    // CTK Context 管理
-    void setPluginContext(ctkPluginContext* context);
+    // Widget 状态管理
     
 private:
     /**
@@ -177,8 +175,7 @@ private:
     QHash<QString, QStringList> m_patientCacheOrder;
     int m_cacheCapacityPerPatient = 2;  // 每个患者最多缓存2个影像
     
-    // CTK 插件上下文
-    ctkPluginContext* m_context;
+    // Widget 创建辅助状态
 
     // 纯VTK Widget（无控制UI）
     class FourViewVTKWidget* m_vtkWidget;

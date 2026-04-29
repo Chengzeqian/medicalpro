@@ -14,7 +14,7 @@ PlatformPluginDescriptor makeDescriptor(
     PlatformPluginDescriptor descriptor;
     descriptor.id = pluginId;
     descriptor.displayName = pluginId;
-    descriptor.runtime.ctkSymbolicName = symbolicName;
+    descriptor.runtime.symbolicName = symbolicName;
     descriptor.runtime.startupPolicy = PlatformStartupPolicy::Eager;
     descriptor.runtime.bootstrapLevel = PlatformBootstrapLevel::Core;
     descriptor.provides.capabilities = providedCapabilities;

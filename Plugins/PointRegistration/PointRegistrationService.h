@@ -18,7 +18,7 @@ class vtkPolyData;
 /**
  * @brief 点配准服务接口
  *
- * 纯虚接口，遵循CTK服务架构设计原则。
+ * 纯虚接口，遵循平台服务契约。
  * 支持:
  * - 源点和目标点管理
  * - 多种变换模式配准
@@ -327,8 +327,7 @@ signals:
     void sessionStateChanged(RegistrationSessionState state);
 };
 
-// CTK服务接口声明
+// 服务接口声明
 Q_DECLARE_INTERFACE(PointRegistrationService, "org.medicalpro.PointRegistrationService")
 
 #endif // POINT_REGISTRATION_SERVICE_H
-

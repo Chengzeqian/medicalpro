@@ -13,12 +13,11 @@
 #include <QPointer>
 #include <QMutex>
 
-// CTK框架
-#include <ctkPluginContext.h>
-#include <ctkServiceReference.h>
+// Platform service registry
 
 // 前向声明
 class OpticalTrackingService;
+class PlatformServiceRegistry;
 
 #ifdef VTK_FOUND
 #include <vtkSmartPointer.h>
@@ -40,11 +39,12 @@ class OpticalRegistrationServiceImpl : public OpticalRegistrationService
 public:
     /**
      * @brief 构造函数
-     * @param context CTK插件上下文
      * @param parent 父对象
      */
-    explicit OpticalRegistrationServiceImpl(ctkPluginContext* context, QObject* parent = nullptr);
+    explicit OpticalRegistrationServiceImpl(QObject* parent = nullptr);
     ~OpticalRegistrationServiceImpl() override;
+
+    void setServiceRegistry(PlatformServiceRegistry* serviceRegistry);
 
     // ========== 跟踪上下文配置 ==========
     void setTrackingContext(const QString& sessionId,
@@ -130,11 +130,10 @@ private:
     void cleanupDestroyedWidgets();
 
 private:
-    // CTK插件上下文
-    ctkPluginContext* m_pluginContext;
+    // Platform service registry used for cross-module service lookup
+    PlatformServiceRegistry* m_serviceRegistry;
 
     // 跟踪服务引用
-    ctkServiceReference m_trackingServiceRef;
     OpticalTrackingService* m_trackingService;
     bool m_trackingServiceConnected;
 

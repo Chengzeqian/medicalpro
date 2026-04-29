@@ -1,5 +1,47 @@
 ## Platform Kernel Governance
 
+### 2026-04-28 Runtime Descriptor Schema Cleanup
+
+- `PlatformDescriptorLoader` no longer accepts the legacy runtime key `ctk_symbolic_name`; the governed runtime descriptor schema now requires `runtime.symbolic_name`.
+- Repository-owned runtime descriptors for `UserManagement`, `DicomViewer`, `FourViewDisplay`, `RegistrationCore`, and `OpticalTracking` are migrated to `symbolic_name`.
+- The descriptor-governed startup chain remains green after the schema tightening:
+  - `platform_descriptor_loader_test`
+  - `platform_managed_plugin_plan_test`
+  - `platform_on_demand_activation_plan_test`
+  - `platform_startup_coordinator_test`
+- Executed command (build):
+  - `cmake --build build_x64 --config Release --target platform_descriptor_loader_test platform_managed_plugin_plan_test platform_on_demand_activation_plan_test platform_startup_coordinator_test medicalpro`
+- Executed command (ctest):
+  - `ctest --test-dir build_x64 -C Release -R "platform_descriptor_loader_test|platform_managed_plugin_plan_test|platform_on_demand_activation_plan_test|platform_startup_coordinator_test" --output-on-failure`
+- Expected outcomes alignment and actual results:
+  - Descriptor loader schema tightening: PASS.
+  - Managed/on-demand/startup regression chain: PASS.
+  - Remaining CTK residue on the active product path: historical docs and legacy naming only.
+
+### 2026-04-28 Bridge-Only CTK Residue Cleanup
+
+- `Framework/CTKManager.*`, `Framework/Platform/CtkBridge/legacy_ctk_runtime_bridge.*`, and `tests/unit/CtkManagerDescriptorPolicyContextTest.cpp` are deleted from the repository.
+- `main.cpp` now runs only through `PlatformRuntimeHostAdapter`; legacy runtime bridge signal wiring, descriptor-policy handoff, legacy bundle install, and deferred CTK runtime start paths are removed.
+- Governance/build contracts now enforce repository-level removal of the bridge-only CTK runtime path rather than merely detaching the product mainline from it.
+
+### 2026-04-27 CTK Runtime Exit Acceptance
+
+- The product mainline now exits `CTK runtime` by default: `ENABLE_CTK_PLUGIN_FRAMEWORK=OFF` is the governed default and the Release mainline no longer links, deploys, or require CTK runtime DLLs.
+- `main.cpp`, `StartupOrchestrator`, and `MainWindow` now consume platform-owned runtime/service ports for the product-mainline path.
+- Core and UI platform modules now own `UserManagement`, `DicomViewer`, `FourViewDisplay`, `RegistrationCore`, `Registration2D3D`, `OpticalTracking`, `InstrumentManagement`, `OpticalRegistration`, `PointRegistration`, and `BoneSegmentation`; the corresponding legacy CTK activator source files are deleted.
+- Build and runtime cleanup is accepted: `EventAdmin`, `CTKPluginFramework.dll`, `CTK*.dll`, and legacy plugin `.manifest` files are rejected from the Release runtime layout.
+- The last acceptance blocker was not a live CTK fallback in source. It was a stale `build_x64/tests/unit/Release/Framework.dll` shadowing the current runtime and reintroducing CTK-linked behavior into one unit test process. `tests/unit/CMakeLists.txt` now synchronizes the current `Framework.dll` into Framework-linked unit-test output directories so the acceptance suite runs against the real no-CTK mainline binary.
+- Executed command (configure):
+  - `cmake -S . -B build_x64 -DENABLE_CTK_PLUGIN_FRAMEWORK=OFF -DBUILD_TESTING=ON`
+- Executed command (build):
+  - `cmake --build build_x64 --config Release --target medicalpro platform_runtime_host_ports_contract_test runtime_host_detachment_contract_test platform_plugin_host_core_migration_contract_test platform_plugin_host_ui_migration_contract_test runtime_build_deployment_contract_test platform_plugin_build_governance_contract_test platform_runtime_host_adapter_platform_fallback_test platform_built_in_module_bootstrap_behavior_test runtime_console_log_policy_test`
+- Executed command (ctest):
+  - `ctest --test-dir build_x64 -C Release -R "platform_runtime_host_ports_contract_test|runtime_host_detachment_contract_test|platform_plugin_host_core_migration_contract_test|platform_plugin_host_ui_migration_contract_test|runtime_build_deployment_contract_test|platform_plugin_build_governance_contract_test|platform_runtime_host_adapter_platform_fallback_test|platform_built_in_module_bootstrap_behavior_test|runtime_console_log_policy_test|runtime_artifact_layout_test|platform_descriptor_runtime_layout_test|plugin_truth_source_runtime_contract_test" --output-on-failure`
+- Expected outcomes alignment and actual results:
+  - Release mainline build: PASS.
+  - CTK runtime exit acceptance suite: PASS.
+  - Release runtime layout free of CTK runtime artifacts: PASS.
+
 ### 2026-04-23 Plugin Load Policy Compatibility Shell Deletion Acceptance
 
 - `PluginLoadPolicy`, `config/plugin_load_policy.json`, and `config/plugin_load_policy_compatibility.md` are deleted from the repository and runtime layout.
@@ -35,7 +77,7 @@
 
 ### 2026-04-22 CTK Descriptor Policy Bridge Acceptance
 
-- `CTKManager runtime bucket classification now resolves through PlatformCtkPolicyBridge`.
+- `CTKManager runtime bucket classification now resolves through PlatformPluginPolicyBridge`.
 - `main.cpp` performs explicit runtime descriptor handoff through `setDescriptorPolicyContext(runtimeConfig, descriptors)`.
 - Safe mode criticality truth now follows `platform_runtime.json.core_plugin_ids`.
 - `PluginLoadPolicy` is retained as compatibility-only metadata surface (`loadPluginPolicy()` and compatibility runtime artifact checks), not runtime truth for product startup or CTK runtime classification.
@@ -44,11 +86,11 @@
 - Executed command (ctest):
   - `ctest --test-dir build_x64 -C Release -R "platform_ctk_policy_bridge_test|plugin_legacy_consumer_governance_contract_test|plugin_truth_source_governance_contract_test|runtime_artifact_layout_test|plugin_legacy_compatibility_runtime_contract_test|plugin_truth_source_runtime_contract_test|platform_descriptor_runtime_layout_test" --output-on-failure`
 - Executed command (governance rg):
-  - `rg -n "PlatformCtkPolicyBridge|setDescriptorPolicyContext\\(|core_plugin_ids" docs/current_status_and_project_overview.md docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md docs/superpowers/tracking/platform-plugin-governance-matrix.md docs/superpowers/tracking/platform-migration-decision-log.md`
+  - `rg -n "PlatformPluginPolicyBridge|setDescriptorPolicyContext\\(|core_plugin_ids" docs/current_status_and_project_overview.md docs/superpowers/tracking/platform-plugin-legacy-consumer-inventory.md docs/superpowers/tracking/platform-plugin-governance-matrix.md docs/superpowers/tracking/platform-migration-decision-log.md`
 - Expected outcomes alignment and actual results:
   - Build target chain: PASS.
   - Governance/runtime contract suite: PASS.
-  - Governance rg scan: `PlatformCtkPolicyBridge` / `setDescriptorPolicyContext(` / `core_plugin_ids` matched in governance documents.
+  - Governance rg scan: `PlatformPluginPolicyBridge` / `setDescriptorPolicyContext(` / `core_plugin_ids` matched in governance documents.
 
 ### 2026-04-21 Plugin Legacy Consumer Governance Acceptance
 
@@ -83,7 +125,7 @@
 
 ### 2026-04-21 Welcome Entry Rollback Acceptance
 
-- The product entry has been restored to the in-app `MainInterfaceWidget` welcome page, which is the welcome surface backed by `CoreUiRuntimeStatusProvider` and the real runtime status chain.
+- The product entry has been restored to the in-app `MainInterfaceWidget` welcome page, which is the welcome surface backed by `CoreUiRuntimeStatusProvider` in `Framework/Platform/UiBridge` and the real runtime status chain.
 - `main.cpp` no longer shows `StartupShell` as a visible cold-start host, and logout no longer routes back to an external welcome shell.
 - `MainInterfaceWidget` is again created during startup instead of being deferred until `Enter System`, removing the welcome-to-module-selection hitch introduced by lazy construction.
 - `MainInterfaceWidget` and `MainInterfaceFactory` no longer expose the retired `useExternalWelcomeShell` mode in their public entry API.
@@ -180,9 +222,9 @@
 - `warmup tail` now shows `skipped_by_mode` outside `orchestrate_core`.
 - The slowest plugin row and blocking point emphasis are now part of the landed page contract in this worktree.
 - Executed command (build):
-  - `cmake --build build_x64_noctk --config Release --target medicalpro platform_diagnostics_page_test platform_diagnostics_service_test platform_ui_bridge_test ui_ctk_decoupling_acceptance_test`
+  - `cmake --build build_x64_noctk --config Release --target medicalpro platform_diagnostics_page_test platform_diagnostics_service_test platform_ui_bridge_test ui_platform_decoupling_acceptance_test`
 - Executed command (ctest):
-  - `ctest --test-dir build_x64_noctk -C Release -R "platform_diagnostics_page_test|platform_diagnostics_service_test|platform_ui_bridge_test|ui_ctk_decoupling_acceptance_test" --output-on-failure`
+  - `ctest --test-dir build_x64_noctk -C Release -R "platform_diagnostics_page_test|platform_diagnostics_service_test|platform_ui_bridge_test|ui_platform_decoupling_acceptance_test" --output-on-failure`
 - Executed command (CTK direct-call scan):
   - `rg -n "CTKManager::instance\(|getService<" UI\NewPages UI\MainInterfaceWidget.cpp`
 - Expected outcomes alignment and actual results:
@@ -197,9 +239,9 @@
 - After the 2026-04-20 infrastructure acceptance and page-matrix acceptance above, the previous `subset` wording should be read as historical rollout context rather than the current worktree limitation.
 - This section remains a 2026-04-17 supplement for Task 5 startup diagnostics acceptance evidence, not the latest landed-scope statement.
 - Executed command (build):
-  - `cmake --build build_x64_noctk --config Release --target medicalpro platform_startup_trace_recorder_test platform_plugin_lifecycle_aggregator_test platform_startup_coordinator_test platform_diagnostics_service_test platform_diagnostics_page_test platform_ui_bridge_test ui_ctk_decoupling_acceptance_test`
+  - `cmake --build build_x64_noctk --config Release --target medicalpro platform_startup_trace_recorder_test platform_plugin_lifecycle_aggregator_test platform_startup_coordinator_test platform_diagnostics_service_test platform_diagnostics_page_test platform_ui_bridge_test ui_platform_decoupling_acceptance_test`
 - Executed command (ctest):
-  - `ctest --test-dir build_x64_noctk -C Release -R "platform_startup_trace_recorder_test|platform_plugin_lifecycle_aggregator_test|platform_startup_coordinator_test|platform_diagnostics_service_test|platform_diagnostics_page_test|platform_ui_bridge_test|ui_ctk_decoupling_acceptance_test" --output-on-failure`
+  - `ctest --test-dir build_x64_noctk -C Release -R "platform_startup_trace_recorder_test|platform_plugin_lifecycle_aggregator_test|platform_startup_coordinator_test|platform_diagnostics_service_test|platform_diagnostics_page_test|platform_ui_bridge_test|ui_platform_decoupling_acceptance_test" --output-on-failure`
 - Executed command (CTK direct-call scan):
   - `rg -n "CTKManager::instance\(|getService<" UI\NewPages UI\MainInterfaceWidget.cpp`
 - Expected outcomes alignment and actual results:
@@ -211,10 +253,10 @@
 
 - Task 9 startup governance routing is complete in this worktree.
 - Task 10 UI decoupling close-out is complete in this worktree.
-- Verified with `cmake --build build_x64_noctk --config Release --target medicalpro platform_facades_test login_page_platform_providers_test core_pages_platform_providers_test platform_ui_bridge_test ui_ctk_decoupling_acceptance_test`.
-- Verified with `ctest --test-dir build_x64_noctk -C Release -R "platform_facades_test|login_page_platform_providers_test|core_pages_platform_providers_test|platform_startup_coordinator_test|platform_descriptor_runtime_layout_test|platform_ui_bridge_test|ui_ctk_decoupling_acceptance_test" --output-on-failure`.
+- Verified with `cmake --build build_x64_noctk --config Release --target medicalpro platform_facades_test login_page_platform_providers_test core_pages_platform_providers_test platform_ui_bridge_test ui_platform_decoupling_acceptance_test`.
+- Verified with `ctest --test-dir build_x64_noctk -C Release -R "platform_facades_test|login_page_platform_providers_test|core_pages_platform_providers_test|platform_startup_coordinator_test|platform_descriptor_runtime_layout_test|platform_ui_bridge_test|ui_platform_decoupling_acceptance_test" --output-on-failure`.
 - Login, MainWindow, and MainInterface identity flows now enter through facade/provider wiring instead of direct CTK user-service lookups.
-- MainInterface runtime status now enters through `CoreUiRuntimeStatusProvider`, and NavigationPage service loading now enters through `NavigationPageServiceAccess`.
+- MainInterface runtime status now enters through `CoreUiRuntimeStatusProvider`, and NavigationPage service loading now enters through `NavigationPageServiceAccess`; both live under `Framework/Platform/UiBridge`.
 - `rg -n "CTKManager::instance\(|getService<" UI\NewPages UI\MainInterfaceWidget.cpp` now returns no matches.
 
 # MedicalPro 当前状态与项目说明

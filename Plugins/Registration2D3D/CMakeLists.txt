@@ -52,57 +52,63 @@ else()
     message(FATAL_ERROR "Python3 not found! This plugin requires Python.")
 endif()
 
-# CTK Plugin Framework 配置
-if(CTK_FOUND)
-    set(PLUGIN_SOURCES
-        Registration2D3DActivator.cpp
+# Platform 模块配置
+    set(REGISTRATION2D3D_PLATFORM_SOURCES
         Registration2D3DServiceImpl.cpp
         Registration2D3DWidget.cpp
+        registration_2d3d_module.cpp
     )
 
-    set(PLUGIN_HEADERS
-        Registration2D3DActivator.h
+    set(REGISTRATION2D3D_PLATFORM_HEADERS
         Registration2D3DService.h
         Registration2D3DServiceImpl.h
         Registration2D3DDataStructures.h
         Registration2D3DWidget.h
+        registration_2d3d_module.h
     )
 
-    set(PLUGIN_RESOURCES
-        Registration2D3D.qrc
+    add_library(Registration2D3DPlatformModuleLib STATIC
+        ${REGISTRATION2D3D_PLATFORM_SOURCES}
+        ${REGISTRATION2D3D_PLATFORM_HEADERS}
     )
 
-    add_medical_plugin(Registration2D3D
-        SOURCES ${PLUGIN_SOURCES}
-        HEADERS ${PLUGIN_HEADERS}
-        RESOURCES ${PLUGIN_RESOURCES}
-        DEPENDENCIES
-            Qt${QT_VERSION_MAJOR}::Sql
+    target_include_directories(Registration2D3DPlatformModuleLib PUBLIC
+        ${CMAKE_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}
     )
+
+    target_link_libraries(Registration2D3DPlatformModuleLib PUBLIC
+        Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Gui
+        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Sql
+    )
+
+    register_platform_descriptor(Registration2D3D "${CMAKE_CURRENT_SOURCE_DIR}/platform/plugin.json")
 
     # 手动链接 Python 库（不使用 Python3::Python 导入目标）
-    target_link_libraries(Registration2D3D PRIVATE ${Python3_LIBRARIES})
+    target_link_libraries(Registration2D3DPlatformModuleLib PUBLIC ${Python3_LIBRARIES})
 
     # 运行时使用项目目录下的嵌入式 Python39（不是编译时的系统 Python）
     set(RUNTIME_PYTHON39_DIR "D:/Qtproject/medicalpro/Python39")
-    target_compile_definitions(Registration2D3D PRIVATE
+    target_compile_definitions(Registration2D3DPlatformModuleLib PRIVATE
         MEDICALPRO_PYTHONHOME_DEFAULT="${RUNTIME_PYTHON39_DIR}"
     )
     message(STATUS "Registration2D3D: runtime Python home set to ${RUNTIME_PYTHON39_DIR}")
 
-    target_include_directories(Registration2D3D PRIVATE
+    target_include_directories(Registration2D3DPlatformModuleLib PUBLIC
         ${Python3_INCLUDE_DIRS}
     )
 
     if(ITK_FOUND)
-        target_link_libraries(Registration2D3D PRIVATE ${ITK_LIBRARIES})
-        target_include_directories(Registration2D3D PRIVATE ${ITK_INCLUDE_DIRS})
-        target_compile_definitions(Registration2D3D PRIVATE ITK_FOUND)
+        target_link_libraries(Registration2D3DPlatformModuleLib PUBLIC ${ITK_LIBRARIES})
+        target_include_directories(Registration2D3DPlatformModuleLib PUBLIC ${ITK_INCLUDE_DIRS})
+        target_compile_definitions(Registration2D3DPlatformModuleLib PRIVATE ITK_FOUND)
         message(STATUS "Registration2D3D: ITK support enabled")
     endif()
 
     if(VTK_FOUND)
-        target_compile_definitions(Registration2D3D PRIVATE VTK_FOUND)
+        target_compile_definitions(Registration2D3DPlatformModuleLib PRIVATE VTK_FOUND)
         message(STATUS "Registration2D3D: Using Framework-provided VTK linkage")
     else()
         message(WARNING "Registration2D3D: VTK not found - plugin will be built without VTK features")
@@ -113,7 +119,7 @@ if(CTK_FOUND)
         set(PYTHON_DLL_PATH "${RUNTIME_PYTHON39_DIR}/python39.dll")
 
         if(EXISTS "${PYTHON_DLL_PATH}")
-            add_custom_command(TARGET Registration2D3D POST_BUILD
+            add_custom_command(TARGET Registration2D3DPlatformModuleLib POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
                     "${PYTHON_DLL_PATH}"
                     "${CMAKE_BINARY_DIR}/$<CONFIG>/python39.dll"
@@ -125,8 +131,4 @@ if(CTK_FOUND)
         endif()
     endif()
     
-    message(STATUS "Registration2D3D Plugin configured successfully")
-    message(STATUS "  - Plugin will be built to: ${CMAKE_BINARY_DIR}/$<CONFIG>/plugins")
-else()
-    message(WARNING "CTK Plugin Framework not available - Registration2D3D will not be built")
-endif()
+    message(STATUS "Registration2D3D platform module configured successfully")

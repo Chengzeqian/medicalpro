@@ -19,10 +19,10 @@ StartupOrchestrator::StartupOrchestrator()
         {StartupPhase::QApplicationInit, "QApplication creation", "Create the Qt application instance", true, 100},
         {StartupPhase::SplashScreen, "Startup surface", "Prepare the startup surface", false, 50},
         {StartupPhase::MainUICreation, "Main interface creation", "Create and show the main interface", true, 300},
-        {StartupPhase::CTKFrameworkInit, "CTK framework initialization", "Initialize the CTK plugin framework", true, 200},
-        {StartupPhase::PluginInstallation, "Plugin installation", "Install available plugins", false, 500},
-        {StartupPhase::CriticalPluginStart, "Critical plugin activation", "Start critical plugins", true, 300},
-        {StartupPhase::DeferredPluginStart, "Deferred plugin activation", "Start non-critical plugins", false, 500},
+        {StartupPhase::PlatformRuntimeInit, "Platform runtime initialization", "Initialize the active platform runtime host", true, 200},
+        {StartupPhase::PluginInstallation, "Managed plugin preparation", "Prepare governed plugins through the active host", false, 500},
+        {StartupPhase::CriticalPluginStart, "Core service activation", "Start required core services through the active host", true, 300},
+        {StartupPhase::DeferredPluginStart, "Deferred service activation", "Start deferred services through the active host", false, 500},
         {StartupPhase::ServiceWarmup, "Service warmup", "Pre-initialize Python runtime and VTK components", false, 2000},
         {StartupPhase::Completed, "Startup complete", "All startup phases completed", true, 50}
     };

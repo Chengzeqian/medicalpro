@@ -116,10 +116,6 @@ void verifyRuntimeLogFile(const QString& relativePath, const QStringList& expect
 void RuntimeConsoleLogPolicyTest::runtimeLogFiles_useAsciiOnlyMessages()
 {
     verifyRuntimeLogFile(
-        QStringLiteral("Plugins/UserManagement/UserManagementActivator.cpp"),
-        {QStringLiteral("[UserManagementActivator] Starting UserManagement plugin")});
-
-    verifyRuntimeLogFile(
         QStringLiteral("Plugins/UserManagement/UserManagementServiceImpl.cpp"),
         {QStringLiteral("[UserManagementServiceImpl] UserManagement service instance created")});
 
