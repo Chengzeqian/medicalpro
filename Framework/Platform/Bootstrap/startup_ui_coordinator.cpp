@@ -1,6 +1,5 @@
 #include "Framework/Platform/Bootstrap/startup_ui_coordinator.h"
 
-#include "Framework/Platform/Bootstrap/StartupBootstrapController.h"
 #include "Framework/StartupOrchestrator.h"
 #include "UI/MainInterfaceWidget.h"
 
@@ -9,11 +8,10 @@
 #include <QWidget>
 
 StartupUiCoordinator::StartupUiCoordinator(
-    StartupBootstrapController* bootstrapController,
+    StartupBootstrapController*,
     QPointer<MainInterfaceWidget>* mainInterface,
     bool safeMode)
-    : m_bootstrapController(bootstrapController)
-    , m_mainInterface(mainInterface)
+    : m_mainInterface(mainInterface)
     , m_safeMode(safeMode)
 {
 }
@@ -29,10 +27,6 @@ void StartupUiCoordinator::bindToStartupCompletion(QApplication* app)
         if (!success) {
             handleStartupFailure(reportText);
             return;
-        }
-
-        if (m_bootstrapController && !m_bootstrapController->snapshot().canEnterSystem) {
-            m_bootstrapController->markReady();
         }
 
         if (m_safeMode) {

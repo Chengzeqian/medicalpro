@@ -24,7 +24,6 @@ private:
     void handleStartupFailure(const QString& reportText) const;
     void showSafeModeNotice(const QString& reportText) const;
 
-    StartupBootstrapController* m_bootstrapController = nullptr;
     QPointer<MainInterfaceWidget>* m_mainInterface = nullptr;
     bool m_safeMode = false;
 };
