@@ -951,12 +951,12 @@ int main(int argc, char* argv[])
         };
 
         const StartupPhaseRegistrar startupPhaseRegistrar;
-        StartupPhaseRegistrar::RuntimePhaseHandlers runtimePhaseHandlers;
-        runtimePhaseHandlers.platformRuntimeInit = platformRuntimeInitHandler;
-        runtimePhaseHandlers.pluginInstallation = pluginInstallationHandler;
-        runtimePhaseHandlers.criticalPluginStart = criticalPluginStartHandler;
-        runtimePhaseHandlers.deferredPluginStart = deferredPluginStartHandler;
-        runtimePhaseHandlers.serviceWarmup = serviceWarmupHandler;
+        const StartupPhaseRegistrar::RuntimePhaseHandlers runtimePhaseHandlers(
+            platformRuntimeInitHandler,
+            pluginInstallationHandler,
+            criticalPluginStartHandler,
+            deferredPluginStartHandler,
+            serviceWarmupHandler);
         startupPhaseRegistrar.registerRuntimePhases(orchestrator, runtimePhaseHandlers);
 
         QObject::connect(orchestrator, &StartupOrchestrator::startupCompleted, &app, [&mainInterface, safeMode](bool success) {

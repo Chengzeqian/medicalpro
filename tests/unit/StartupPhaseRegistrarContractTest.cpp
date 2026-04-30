@@ -44,6 +44,10 @@ void StartupPhaseRegistrarContractTest::main_cpp_delegates_runtime_phase_registr
         "main.cpp must delegate runtime phase registration through StartupPhaseRegistrar");
     QVERIFY2(mainSource.contains(QStringLiteral("registerRuntimePhases(")),
         "main.cpp must call StartupPhaseRegistrar::registerRuntimePhases()");
+    QVERIFY2(!mainSource.contains(QStringLiteral("StartupPhaseRegistrar::RuntimePhaseHandlers runtimePhaseHandlers;")),
+        "main.cpp must not default-construct RuntimePhaseHandlers");
+    QVERIFY2(mainSource.contains(QStringLiteral("StartupPhaseRegistrar::RuntimePhaseHandlers runtimePhaseHandlers(")),
+        "main.cpp must construct RuntimePhaseHandlers with all runtime handlers at once");
 
     QVERIFY2(
         !mainSource.contains(QStringLiteral("orchestrator->registerPhaseHandler(StartupPhase::PlatformRuntimeInit")),
@@ -69,34 +73,87 @@ void StartupPhaseRegistrarContractTest::registrar_registers_all_runtime_phase_ha
     orchestrator->clearPhaseHandlers();
     orchestrator->setLifecycleRecorder(nullptr);
 
-    std::atomic_int platformRuntimeInitCalls = 0;
-    std::atomic_int pluginInstallationCalls = 0;
-    std::atomic_int criticalPluginStartCalls = 0;
-    std::atomic_int deferredPluginStartCalls = 0;
-    std::atomic_int serviceWarmupCalls = 0;
+    struct PhaseExpectation
+    {
+        QString phaseKey;
+        QString reasonCode;
+        QString detail;
+        std::atomic_int calls = 0;
+    };
+
+    PhaseExpectation platformRuntimeInit {
+        QStringLiteral("Platform runtime initialization"),
+        QStringLiteral("runtime_init_reason"),
+        QStringLiteral("runtime_init_detail")
+    };
+    PhaseExpectation pluginInstallation {
+        QStringLiteral("Managed plugin preparation"),
+        QStringLiteral("plugin_install_reason"),
+        QStringLiteral("plugin_install_detail")
+    };
+    PhaseExpectation criticalPluginStart {
+        QStringLiteral("Core service activation"),
+        QStringLiteral("critical_start_reason"),
+        QStringLiteral("critical_start_detail")
+    };
+    PhaseExpectation deferredPluginStart {
+        QStringLiteral("Deferred service activation"),
+        QStringLiteral("deferred_start_reason"),
+        QStringLiteral("deferred_start_detail")
+    };
+    PhaseExpectation serviceWarmup {
+        QStringLiteral("Service warmup"),
+        QStringLiteral("service_warmup_reason"),
+        QStringLiteral("service_warmup_detail")
+    };
 
     StartupPhaseRegistrar registrar;
-    StartupPhaseRegistrar::RuntimePhaseHandlers handlers;
-    handlers.platformRuntimeInit = [&platformRuntimeInitCalls](QApplication*) {
-        platformRuntimeInitCalls.fetch_add(1);
-        return StartupOrchestrator::PhaseExecutionResult {};
-    };
-    handlers.pluginInstallation = [&pluginInstallationCalls](QApplication*) {
-        pluginInstallationCalls.fetch_add(1);
-        return StartupOrchestrator::PhaseExecutionResult {};
-    };
-    handlers.criticalPluginStart = [&criticalPluginStartCalls](QApplication*) {
-        criticalPluginStartCalls.fetch_add(1);
-        return StartupOrchestrator::PhaseExecutionResult {};
-    };
-    handlers.deferredPluginStart = [&deferredPluginStartCalls](QApplication*) {
-        deferredPluginStartCalls.fetch_add(1);
-        return StartupOrchestrator::PhaseExecutionResult {};
-    };
-    handlers.serviceWarmup = [&serviceWarmupCalls](QApplication*) {
-        serviceWarmupCalls.fetch_add(1);
-        return StartupOrchestrator::PhaseExecutionResult {};
-    };
+    const StartupPhaseRegistrar::RuntimePhaseHandlers handlers(
+        [&platformRuntimeInit](QApplication*) {
+            platformRuntimeInit.calls.fetch_add(1);
+            return StartupOrchestrator::PhaseExecutionResult {
+                true,
+                PlatformLifecycleResult::Succeeded,
+                platformRuntimeInit.reasonCode,
+                platformRuntimeInit.detail
+            };
+        },
+        [&pluginInstallation](QApplication*) {
+            pluginInstallation.calls.fetch_add(1);
+            return StartupOrchestrator::PhaseExecutionResult {
+                true,
+                PlatformLifecycleResult::Succeeded,
+                pluginInstallation.reasonCode,
+                pluginInstallation.detail
+            };
+        },
+        [&criticalPluginStart](QApplication*) {
+            criticalPluginStart.calls.fetch_add(1);
+            return StartupOrchestrator::PhaseExecutionResult {
+                true,
+                PlatformLifecycleResult::Succeeded,
+                criticalPluginStart.reasonCode,
+                criticalPluginStart.detail
+            };
+        },
+        [&deferredPluginStart](QApplication*) {
+            deferredPluginStart.calls.fetch_add(1);
+            return StartupOrchestrator::PhaseExecutionResult {
+                true,
+                PlatformLifecycleResult::Succeeded,
+                deferredPluginStart.reasonCode,
+                deferredPluginStart.detail
+            };
+        },
+        [&serviceWarmup](QApplication*) {
+            serviceWarmup.calls.fetch_add(1);
+            return StartupOrchestrator::PhaseExecutionResult {
+                true,
+                PlatformLifecycleResult::Succeeded,
+                serviceWarmup.reasonCode,
+                serviceWarmup.detail
+            };
+        });
 
     registrar.registerRuntimePhases(orchestrator, handlers);
 
@@ -109,11 +166,31 @@ void StartupPhaseRegistrarContractTest::registrar_registers_all_runtime_phase_ha
 
     QTRY_COMPARE(completedSpy.count(), 1);
     QVERIFY(completedSpy.at(0).at(0).toBool());
-    QCOMPARE(platformRuntimeInitCalls.load(), 1);
-    QCOMPARE(pluginInstallationCalls.load(), 1);
-    QCOMPARE(criticalPluginStartCalls.load(), 1);
-    QCOMPARE(deferredPluginStartCalls.load(), 1);
-    QCOMPARE(serviceWarmupCalls.load(), 1);
+    const auto startupTraceEntries = orchestrator->getStartupTraceEntries();
+
+    const auto assertPhaseTrace = [&startupTraceEntries](const PhaseExpectation& expectation) {
+        bool matched = false;
+        for (const auto& entry : startupTraceEntries) {
+            if (entry.phaseKey != expectation.phaseKey) continue;
+            if (entry.reasonCode != expectation.reasonCode) continue;
+            QCOMPARE(entry.detail, expectation.detail);
+            matched = true;
+            break;
+        }
+        QVERIFY2(matched, qPrintable(QStringLiteral("missing startup trace entry for phase %1")
+            .arg(expectation.phaseKey)));
+    };
+
+    QCOMPARE(platformRuntimeInit.calls.load(), 1);
+    QCOMPARE(pluginInstallation.calls.load(), 1);
+    QCOMPARE(criticalPluginStart.calls.load(), 1);
+    QCOMPARE(deferredPluginStart.calls.load(), 1);
+    QCOMPARE(serviceWarmup.calls.load(), 1);
+    assertPhaseTrace(platformRuntimeInit);
+    assertPhaseTrace(pluginInstallation);
+    assertPhaseTrace(criticalPluginStart);
+    assertPhaseTrace(deferredPluginStart);
+    assertPhaseTrace(serviceWarmup);
 
     orchestrator->clearPhaseHandlers();
     orchestrator->setLifecycleRecorder(nullptr);

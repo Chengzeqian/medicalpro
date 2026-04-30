@@ -7,7 +7,17 @@ void StartupPhaseRegistrar::registerRuntimePhases(
     const RuntimePhaseHandlers& handlers) const
 {
     Q_ASSERT(orchestrator != nullptr);
-    if (!orchestrator) {
+    Q_ASSERT(handlers.platformRuntimeInit);
+    Q_ASSERT(handlers.pluginInstallation);
+    Q_ASSERT(handlers.criticalPluginStart);
+    Q_ASSERT(handlers.deferredPluginStart);
+    Q_ASSERT(handlers.serviceWarmup);
+    if (!orchestrator
+        || !handlers.platformRuntimeInit
+        || !handlers.pluginInstallation
+        || !handlers.criticalPluginStart
+        || !handlers.deferredPluginStart
+        || !handlers.serviceWarmup) {
         return;
     }
 
