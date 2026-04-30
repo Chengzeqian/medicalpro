@@ -466,7 +466,7 @@ add_test(
 )
 
 set_tests_properties(startup_bootstrap_controller_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:startup_bootstrap_controller_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:startup_bootstrap_controller_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
 add_executable(platform_state_store_handoff_test

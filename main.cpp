@@ -4,6 +4,7 @@
 
 #include "Framework/ConsoleLogBridge.h"
 #include "Framework/Platform/Bootstrap/StartupBootstrapController.h"
+#include "Framework/Platform/Bootstrap/startup_ui_coordinator.h"
 #include "Framework/Platform/Bootstrap/startup_phase_registrar.h"
 #include "Framework/Platform/Bootstrap/platform_built_in_module_bootstrap.h"
 #include "Framework/Platform/Kernel/PlatformDescriptorLoader.h"
@@ -725,6 +726,7 @@ int main(int argc, char* argv[])
             }
             app->quit();
         });
+        StartupUiCoordinator startupUiCoordinator(bootstrapController.get(), &mainInterface, safeMode);
 
         bootstrapController->beginBoot(
             QStringLiteral("Main interface welcome shown"),
@@ -959,24 +961,7 @@ int main(int argc, char* argv[])
             StartupPhaseRegistrar::ServiceWarmupPhaseHandler { serviceWarmupHandler });
         startupPhaseRegistrar.registerRuntimePhases(orchestrator, runtimePhaseHandlers);
 
-        QObject::connect(orchestrator, &StartupOrchestrator::startupCompleted, &app, [&mainInterface, safeMode](bool success) {
-            if (!success) {
-                qWarning() << "[Startup] Background startup reported failures; staying on in-app welcome page";
-                qWarning() << StartupOrchestrator::instance()->getDiagnosticReport();
-                return;
-            }
-
-            QWidget* messageHost = mainInterface
-                ? static_cast<QWidget*>(mainInterface.data())
-                : nullptr;
-            if (safeMode && messageHost) {
-                QMessageBox::information(
-                    messageHost,
-                                                              QObject::tr("安全模式"),
-                                                              QObject::tr("应用正在安全模式下运行，部分可选插件已被跳过。\n\n诊断摘要：\n%1")
-                                                                  .arg(StartupOrchestrator::instance()->getDiagnosticReport()));
-                                 }
-                             });
+        startupUiCoordinator.bindToStartupCompletion(&app);
 
             QTimer::singleShot(0, orchestrator, [orchestrator, app = &app]() {
                 orchestrator->start(app);
