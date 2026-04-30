@@ -188,6 +188,8 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Kernel/PlatformStateStore.cpp
     Framework/Platform/Bootstrap/StartupBootstrapController.h
     Framework/Platform/Bootstrap/StartupBootstrapController.cpp
+    Framework/Platform/Bootstrap/startup_phase_registrar.h
+    Framework/Platform/Bootstrap/startup_phase_registrar.cpp
     Framework/Platform/Bootstrap/platform_built_in_module_bootstrap.h
     Framework/Platform/Bootstrap/platform_built_in_module_bootstrap.cpp
     Framework/Platform/Bootstrap/PlatformStateStoreHandoff.h

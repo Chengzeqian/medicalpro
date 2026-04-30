@@ -686,6 +686,28 @@ add_executable(platform_dependency_graph_test
     ${CMAKE_SOURCE_DIR}/Framework/Platform/Kernel/PlatformDependencyGraph.cpp
 )
 
+add_executable(startup_phase_registrar_contract_test
+    StartupPhaseRegistrarContractTest.cpp
+)
+
+target_include_directories(startup_phase_registrar_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(startup_phase_registrar_contract_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_link_libraries(startup_phase_registrar_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME startup_phase_registrar_contract_test
+    COMMAND startup_phase_registrar_contract_test
+)
+
 target_include_directories(platform_dependency_graph_test PRIVATE
     ${CMAKE_SOURCE_DIR}
 )
