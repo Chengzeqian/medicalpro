@@ -2,18 +2,10 @@
 
 #include <stdexcept>
 
-#include <QtGlobal>
-
 void StartupPhaseRegistrar::registerRuntimePhases(
     StartupOrchestrator* orchestrator,
     const RuntimePhaseHandlers& handlers) const
 {
-    Q_ASSERT(orchestrator != nullptr);
-    Q_ASSERT(handlers.platformRuntimeInit());
-    Q_ASSERT(handlers.pluginInstallation());
-    Q_ASSERT(handlers.criticalPluginStart());
-    Q_ASSERT(handlers.deferredPluginStart());
-    Q_ASSERT(handlers.serviceWarmup());
     if (!orchestrator) {
         throw std::invalid_argument("StartupPhaseRegistrar requires a valid StartupOrchestrator");
     }
