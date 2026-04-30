@@ -6,6 +6,7 @@
 #include <QString>
 
 #include <atomic>
+#include <stdexcept>
 
 #include "Framework/Platform/Bootstrap/startup_phase_registrar.h"
 #include "Framework/StartupOrchestrator.h"
@@ -16,11 +17,17 @@ class StartupPhaseRegistrarContractTest : public QObject
 
 private slots:
     void main_cpp_delegates_runtime_phase_registration_to_bootstrap_registrar();
+    void registrar_rejects_null_orchestrator();
+    void registrar_rejects_empty_runtime_phase_handler();
     void registrar_registers_all_runtime_phase_handlers_and_they_execute();
     void build_wiring_includes_registrar_sources_and_contract_test();
 
 private:
     QString readSource(const QString& relativePath) const;
+    QString extractBlock(
+        const QString& source,
+        const QString& startMarker,
+        const QString& endMarker) const;
 };
 
 QString StartupPhaseRegistrarContractTest::readSource(const QString& relativePath) const
@@ -32,6 +39,22 @@ QString StartupPhaseRegistrarContractTest::readSource(const QString& relativePat
     }
 
     return QString::fromUtf8(file.readAll());
+}
+
+QString StartupPhaseRegistrarContractTest::extractBlock(
+    const QString& source,
+    const QString& startMarker,
+    const QString& endMarker) const
+{
+    const int start = source.indexOf(startMarker);
+    if (start < 0) return {};
+
+    const int end = endMarker.isEmpty()
+        ? -1
+        : source.indexOf(endMarker, start + startMarker.size());
+
+    if (end < 0) return source.mid(start);
+    return source.mid(start, end - start);
 }
 
 void StartupPhaseRegistrarContractTest::main_cpp_delegates_runtime_phase_registration_to_bootstrap_registrar()
@@ -48,6 +71,16 @@ void StartupPhaseRegistrarContractTest::main_cpp_delegates_runtime_phase_registr
         "main.cpp must not default-construct RuntimePhaseHandlers");
     QVERIFY2(mainSource.contains(QStringLiteral("StartupPhaseRegistrar::RuntimePhaseHandlers runtimePhaseHandlers(")),
         "main.cpp must construct RuntimePhaseHandlers with all runtime handlers at once");
+    QVERIFY2(mainSource.contains(QStringLiteral("StartupPhaseRegistrar::PlatformRuntimeInitPhaseHandler {")),
+        "main.cpp must use named PlatformRuntimeInitPhaseHandler wiring");
+    QVERIFY2(mainSource.contains(QStringLiteral("StartupPhaseRegistrar::PluginInstallationPhaseHandler {")),
+        "main.cpp must use named PluginInstallationPhaseHandler wiring");
+    QVERIFY2(mainSource.contains(QStringLiteral("StartupPhaseRegistrar::CriticalPluginStartPhaseHandler {")),
+        "main.cpp must use named CriticalPluginStartPhaseHandler wiring");
+    QVERIFY2(mainSource.contains(QStringLiteral("StartupPhaseRegistrar::DeferredPluginStartPhaseHandler {")),
+        "main.cpp must use named DeferredPluginStartPhaseHandler wiring");
+    QVERIFY2(mainSource.contains(QStringLiteral("StartupPhaseRegistrar::ServiceWarmupPhaseHandler {")),
+        "main.cpp must use named ServiceWarmupPhaseHandler wiring");
 
     QVERIFY2(
         !mainSource.contains(QStringLiteral("orchestrator->registerPhaseHandler(StartupPhase::PlatformRuntimeInit")),
@@ -64,6 +97,42 @@ void StartupPhaseRegistrarContractTest::main_cpp_delegates_runtime_phase_registr
     QVERIFY2(
         !mainSource.contains(QStringLiteral("orchestrator->registerPhaseHandler(StartupPhase::ServiceWarmup")),
         "main.cpp must not inline ServiceWarmup phase registration");
+}
+
+void StartupPhaseRegistrarContractTest::registrar_rejects_null_orchestrator()
+{
+    StartupPhaseRegistrar registrar;
+    const StartupPhaseRegistrar::RuntimePhaseHandlers handlers(
+        StartupPhaseRegistrar::PlatformRuntimeInitPhaseHandler { [](QApplication*) { return true; } },
+        StartupPhaseRegistrar::PluginInstallationPhaseHandler { [](QApplication*) { return true; } },
+        StartupPhaseRegistrar::CriticalPluginStartPhaseHandler { [](QApplication*) { return true; } },
+        StartupPhaseRegistrar::DeferredPluginStartPhaseHandler { [](QApplication*) { return true; } },
+        StartupPhaseRegistrar::ServiceWarmupPhaseHandler { [](QApplication*) { return true; } });
+
+    QVERIFY_EXCEPTION_THROWN(
+        registrar.registerRuntimePhases(nullptr, handlers),
+        std::invalid_argument);
+}
+
+void StartupPhaseRegistrarContractTest::registrar_rejects_empty_runtime_phase_handler()
+{
+    auto* orchestrator = StartupOrchestrator::instance();
+    orchestrator->waitForCompletion();
+    orchestrator->clearPhaseHandlers();
+
+    StartupPhaseRegistrar registrar;
+    const StartupPhaseRegistrar::RuntimePhaseHandlers handlers(
+        StartupPhaseRegistrar::PlatformRuntimeInitPhaseHandler { StartupOrchestrator::PhaseHandler {} },
+        StartupPhaseRegistrar::PluginInstallationPhaseHandler { [](QApplication*) { return true; } },
+        StartupPhaseRegistrar::CriticalPluginStartPhaseHandler { [](QApplication*) { return true; } },
+        StartupPhaseRegistrar::DeferredPluginStartPhaseHandler { [](QApplication*) { return true; } },
+        StartupPhaseRegistrar::ServiceWarmupPhaseHandler { [](QApplication*) { return true; } });
+
+    QVERIFY_EXCEPTION_THROWN(
+        registrar.registerRuntimePhases(orchestrator, handlers),
+        std::invalid_argument);
+
+    orchestrator->clearPhaseHandlers();
 }
 
 void StartupPhaseRegistrarContractTest::registrar_registers_all_runtime_phase_handlers_and_they_execute()
@@ -109,7 +178,7 @@ void StartupPhaseRegistrarContractTest::registrar_registers_all_runtime_phase_ha
 
     StartupPhaseRegistrar registrar;
     const StartupPhaseRegistrar::RuntimePhaseHandlers handlers(
-        [&platformRuntimeInit](QApplication*) {
+        StartupPhaseRegistrar::PlatformRuntimeInitPhaseHandler { [&platformRuntimeInit](QApplication*) {
             platformRuntimeInit.calls.fetch_add(1);
             return StartupOrchestrator::PhaseExecutionResult {
                 true,
@@ -117,8 +186,8 @@ void StartupPhaseRegistrarContractTest::registrar_registers_all_runtime_phase_ha
                 platformRuntimeInit.reasonCode,
                 platformRuntimeInit.detail
             };
-        },
-        [&pluginInstallation](QApplication*) {
+        } },
+        StartupPhaseRegistrar::PluginInstallationPhaseHandler { [&pluginInstallation](QApplication*) {
             pluginInstallation.calls.fetch_add(1);
             return StartupOrchestrator::PhaseExecutionResult {
                 true,
@@ -126,8 +195,8 @@ void StartupPhaseRegistrarContractTest::registrar_registers_all_runtime_phase_ha
                 pluginInstallation.reasonCode,
                 pluginInstallation.detail
             };
-        },
-        [&criticalPluginStart](QApplication*) {
+        } },
+        StartupPhaseRegistrar::CriticalPluginStartPhaseHandler { [&criticalPluginStart](QApplication*) {
             criticalPluginStart.calls.fetch_add(1);
             return StartupOrchestrator::PhaseExecutionResult {
                 true,
@@ -135,8 +204,8 @@ void StartupPhaseRegistrarContractTest::registrar_registers_all_runtime_phase_ha
                 criticalPluginStart.reasonCode,
                 criticalPluginStart.detail
             };
-        },
-        [&deferredPluginStart](QApplication*) {
+        } },
+        StartupPhaseRegistrar::DeferredPluginStartPhaseHandler { [&deferredPluginStart](QApplication*) {
             deferredPluginStart.calls.fetch_add(1);
             return StartupOrchestrator::PhaseExecutionResult {
                 true,
@@ -144,8 +213,8 @@ void StartupPhaseRegistrarContractTest::registrar_registers_all_runtime_phase_ha
                 deferredPluginStart.reasonCode,
                 deferredPluginStart.detail
             };
-        },
-        [&serviceWarmup](QApplication*) {
+        } },
+        StartupPhaseRegistrar::ServiceWarmupPhaseHandler { [&serviceWarmup](QApplication*) {
             serviceWarmup.calls.fetch_add(1);
             return StartupOrchestrator::PhaseExecutionResult {
                 true,
@@ -153,7 +222,7 @@ void StartupPhaseRegistrarContractTest::registrar_registers_all_runtime_phase_ha
                 serviceWarmup.reasonCode,
                 serviceWarmup.detail
             };
-        });
+        } });
 
     registrar.registerRuntimePhases(orchestrator, handlers);
 
@@ -200,23 +269,37 @@ void StartupPhaseRegistrarContractTest::build_wiring_includes_registrar_sources_
 {
     const QString rootCMake = readSource(QStringLiteral("CMakeLists.txt"));
     const QString unitTestsCMake = readSource(QStringLiteral("tests/unit/CMakeLists.txt"));
+    const QString targetBlock = extractBlock(
+        unitTestsCMake,
+        QStringLiteral("add_executable(startup_phase_registrar_contract_test"),
+        QStringLiteral("add_executable(platform_dependency_graph_test"));
+    const QString listBlock = extractBlock(
+        unitTestsCMake,
+        QStringLiteral("set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS"),
+        QStringLiteral("foreach(_medicalpro_framework_unit_test IN LISTS MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS)"));
 
     QVERIFY2(rootCMake.contains(QStringLiteral("Framework/Platform/Bootstrap/startup_phase_registrar.h")),
         "CMakeLists.txt must add startup_phase_registrar.h to Framework sources");
     QVERIFY2(rootCMake.contains(QStringLiteral("Framework/Platform/Bootstrap/startup_phase_registrar.cpp")),
         "CMakeLists.txt must add startup_phase_registrar.cpp to Framework sources");
-    QVERIFY2(unitTestsCMake.contains(QStringLiteral("add_executable(startup_phase_registrar_contract_test")),
+    QVERIFY2(!targetBlock.isEmpty(),
         "tests/unit/CMakeLists.txt must define startup_phase_registrar_contract_test");
-    QVERIFY2(unitTestsCMake.contains(QStringLiteral("StartupPhaseRegistrarContractTest.cpp")),
+    QVERIFY2(targetBlock.contains(QStringLiteral("StartupPhaseRegistrarContractTest.cpp")),
         "tests/unit/CMakeLists.txt must compile StartupPhaseRegistrarContractTest.cpp");
-    QVERIFY2(unitTestsCMake.contains(QStringLiteral("target_link_libraries(startup_phase_registrar_contract_test PRIVATE")),
+    QVERIFY2(targetBlock.contains(QStringLiteral("target_link_libraries(startup_phase_registrar_contract_test PRIVATE")),
         "tests/unit/CMakeLists.txt must define startup_phase_registrar_contract_test link dependencies");
-    QVERIFY2(unitTestsCMake.contains(QStringLiteral("Framework")),
-        "tests/unit/CMakeLists.txt must link startup_phase_registrar_contract_test against Framework");
-    QVERIFY2(unitTestsCMake.contains(QStringLiteral("set_tests_properties(startup_phase_registrar_contract_test PROPERTIES")),
+    QVERIFY2(targetBlock.contains(QStringLiteral("Qt${QT_VERSION_MAJOR}::Widgets")),
+        "startup_phase_registrar_contract_test target block must link Qt Widgets");
+    QVERIFY2(targetBlock.contains(QStringLiteral("Framework")),
+        "startup_phase_registrar_contract_test target block must link Framework");
+    QVERIFY2(targetBlock.contains(QStringLiteral("set_tests_properties(startup_phase_registrar_contract_test PROPERTIES")),
         "tests/unit/CMakeLists.txt must define runtime PATH for startup_phase_registrar_contract_test");
-    QVERIFY2(unitTestsCMake.contains(QStringLiteral("MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS")),
-        "tests/unit/CMakeLists.txt must keep framework runtime sync wiring for startup_phase_registrar_contract_test");
+    QVERIFY2(targetBlock.contains(QStringLiteral("$<TARGET_FILE_DIR:Framework>")),
+        "startup_phase_registrar_contract_test target block must include Framework in runtime PATH");
+    QVERIFY2(!listBlock.isEmpty(),
+        "tests/unit/CMakeLists.txt must define MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS");
+    QVERIFY2(listBlock.contains(QStringLiteral("startup_phase_registrar_contract_test")),
+        "MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS block must include startup_phase_registrar_contract_test");
 }
 
 QTEST_MAIN(StartupPhaseRegistrarContractTest)

@@ -952,11 +952,11 @@ int main(int argc, char* argv[])
 
         const StartupPhaseRegistrar startupPhaseRegistrar;
         const StartupPhaseRegistrar::RuntimePhaseHandlers runtimePhaseHandlers(
-            platformRuntimeInitHandler,
-            pluginInstallationHandler,
-            criticalPluginStartHandler,
-            deferredPluginStartHandler,
-            serviceWarmupHandler);
+            StartupPhaseRegistrar::PlatformRuntimeInitPhaseHandler { platformRuntimeInitHandler },
+            StartupPhaseRegistrar::PluginInstallationPhaseHandler { pluginInstallationHandler },
+            StartupPhaseRegistrar::CriticalPluginStartPhaseHandler { criticalPluginStartHandler },
+            StartupPhaseRegistrar::DeferredPluginStartPhaseHandler { deferredPluginStartHandler },
+            StartupPhaseRegistrar::ServiceWarmupPhaseHandler { serviceWarmupHandler });
         startupPhaseRegistrar.registerRuntimePhases(orchestrator, runtimePhaseHandlers);
 
         QObject::connect(orchestrator, &StartupOrchestrator::startupCompleted, &app, [&mainInterface, safeMode](bool success) {

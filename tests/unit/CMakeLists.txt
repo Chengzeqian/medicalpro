@@ -681,10 +681,6 @@ set_tests_properties(startup_orchestrator_lifecycle_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:startup_orchestrator_lifecycle_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
-add_executable(platform_dependency_graph_test
-    PlatformDependencyGraphTest.cpp
-    ${CMAKE_SOURCE_DIR}/Framework/Platform/Kernel/PlatformDependencyGraph.cpp
-)
 
 add_executable(startup_phase_registrar_contract_test
     StartupPhaseRegistrarContractTest.cpp
@@ -713,6 +709,11 @@ add_test(
 set_tests_properties(startup_phase_registrar_contract_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:startup_phase_registrar_contract_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
+add_executable(platform_dependency_graph_test
+    PlatformDependencyGraphTest.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Platform/Kernel/PlatformDependencyGraph.cpp
+)
+
 
 target_include_directories(platform_dependency_graph_test PRIVATE
     ${CMAKE_SOURCE_DIR}

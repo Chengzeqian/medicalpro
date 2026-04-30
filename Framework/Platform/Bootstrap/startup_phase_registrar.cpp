@@ -1,5 +1,7 @@
 #include "Framework/Platform/Bootstrap/startup_phase_registrar.h"
 
+#include <stdexcept>
+
 #include <QtGlobal>
 
 void StartupPhaseRegistrar::registerRuntimePhases(
@@ -7,23 +9,23 @@ void StartupPhaseRegistrar::registerRuntimePhases(
     const RuntimePhaseHandlers& handlers) const
 {
     Q_ASSERT(orchestrator != nullptr);
-    Q_ASSERT(handlers.platformRuntimeInit);
-    Q_ASSERT(handlers.pluginInstallation);
-    Q_ASSERT(handlers.criticalPluginStart);
-    Q_ASSERT(handlers.deferredPluginStart);
-    Q_ASSERT(handlers.serviceWarmup);
-    if (!orchestrator
-        || !handlers.platformRuntimeInit
-        || !handlers.pluginInstallation
-        || !handlers.criticalPluginStart
-        || !handlers.deferredPluginStart
-        || !handlers.serviceWarmup) {
-        return;
+    Q_ASSERT(handlers.platformRuntimeInit());
+    Q_ASSERT(handlers.pluginInstallation());
+    Q_ASSERT(handlers.criticalPluginStart());
+    Q_ASSERT(handlers.deferredPluginStart());
+    Q_ASSERT(handlers.serviceWarmup());
+    if (!orchestrator) {
+        throw std::invalid_argument("StartupPhaseRegistrar requires a valid StartupOrchestrator");
     }
+    if (!handlers.platformRuntimeInit()) throw std::invalid_argument("PlatformRuntimeInit handler must not be empty");
+    if (!handlers.pluginInstallation()) throw std::invalid_argument("PluginInstallation handler must not be empty");
+    if (!handlers.criticalPluginStart()) throw std::invalid_argument("CriticalPluginStart handler must not be empty");
+    if (!handlers.deferredPluginStart()) throw std::invalid_argument("DeferredPluginStart handler must not be empty");
+    if (!handlers.serviceWarmup()) throw std::invalid_argument("ServiceWarmup handler must not be empty");
 
-    orchestrator->registerPhaseHandler(StartupPhase::PlatformRuntimeInit, handlers.platformRuntimeInit);
-    orchestrator->registerPhaseHandler(StartupPhase::PluginInstallation, handlers.pluginInstallation);
-    orchestrator->registerPhaseHandler(StartupPhase::CriticalPluginStart, handlers.criticalPluginStart);
-    orchestrator->registerPhaseHandler(StartupPhase::DeferredPluginStart, handlers.deferredPluginStart);
-    orchestrator->registerPhaseHandler(StartupPhase::ServiceWarmup, handlers.serviceWarmup);
+    orchestrator->registerPhaseHandler(StartupPhase::PlatformRuntimeInit, handlers.platformRuntimeInit());
+    orchestrator->registerPhaseHandler(StartupPhase::PluginInstallation, handlers.pluginInstallation());
+    orchestrator->registerPhaseHandler(StartupPhase::CriticalPluginStart, handlers.criticalPluginStart());
+    orchestrator->registerPhaseHandler(StartupPhase::DeferredPluginStart, handlers.deferredPluginStart());
+    orchestrator->registerPhaseHandler(StartupPhase::ServiceWarmup, handlers.serviceWarmup());
 }
