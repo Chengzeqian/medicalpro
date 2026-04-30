@@ -2,9 +2,53 @@
 
 #include <QApplication>
 #include <QMetaObject>
+#include <QThread>
 
 #include "Framework/Platform/Bootstrap/startup_ui_coordinator.h"
 #include "Framework/StartupOrchestrator.h"
+
+namespace
+{
+
+class StartupCompletedEmitterThread : public QThread
+{
+public:
+    StartupCompletedEmitterThread(StartupOrchestrator* orchestrator, bool success)
+        : m_orchestrator(orchestrator)
+        , m_success(success)
+    {
+    }
+
+protected:
+    void run() override
+    {
+        QVERIFY(QMetaObject::invokeMethod(
+            m_orchestrator,
+            "startupCompleted",
+            Qt::DirectConnection,
+            Q_ARG(bool, m_success)));
+    }
+
+private:
+    StartupOrchestrator* m_orchestrator = nullptr;
+    bool m_success = false;
+};
+
+QString uniqueDiagnosticMarker(const QString& scenario)
+{
+    return QStringLiteral("startup-ui-coordinator-marker:%1:%2")
+        .arg(scenario)
+        .arg(QDateTime::currentMSecsSinceEpoch());
+}
+
+void emitStartupCompletedFromBackgroundThread(StartupOrchestrator* orchestrator, bool success)
+{
+    StartupCompletedEmitterThread emitter(orchestrator, success);
+    emitter.start();
+    QVERIFY(emitter.wait(3000));
+}
+
+} // namespace
 
 class StartupUiCoordinatorTest : public QObject
 {
@@ -40,50 +84,64 @@ void StartupUiCoordinatorTest::startup_failure_only_invokes_failure_handler()
 {
     int failureCount = 0;
     int safeModeCount = 0;
+    QString receivedReportText;
+    QThread* handlerThread = nullptr;
+    auto* app = qobject_cast<QApplication*>(QCoreApplication::instance());
+    QVERIFY(app != nullptr);
+    const QString diagnosticMarker = uniqueDiagnosticMarker(QStringLiteral("failure"));
+
+    auto* orchestrator = StartupOrchestrator::instance();
+    orchestrator->logDiagnostic(ErrorHandler::ErrorLevel::Warning, diagnosticMarker);
 
     StartupUiCoordinator coordinator(
-        [&failureCount](const QString&) { ++failureCount; },
+        [&failureCount, &receivedReportText, &handlerThread](const QString& reportText) {
+            ++failureCount;
+            receivedReportText = reportText;
+            handlerThread = QThread::currentThread();
+        },
         [&safeModeCount](const QString&) { ++safeModeCount; },
         true);
 
-    auto* app = qobject_cast<QApplication*>(QCoreApplication::instance());
-    QVERIFY(app != nullptr);
-
     coordinator.bindToStartupCompletion(app);
 
-    QVERIFY(QMetaObject::invokeMethod(
-        StartupOrchestrator::instance(),
-        "startupCompleted",
-        Qt::DirectConnection,
-        Q_ARG(bool, false)));
+    emitStartupCompletedFromBackgroundThread(orchestrator, false);
 
-    QCOMPARE(failureCount, 1);
+    QTRY_COMPARE(failureCount, 1);
     QCOMPARE(safeModeCount, 0);
+    QVERIFY(receivedReportText.contains(diagnosticMarker));
+    QCOMPARE(handlerThread, app->thread());
 }
 
 void StartupUiCoordinatorTest::startup_success_in_safe_mode_invokes_safe_mode_handler()
 {
     int failureCount = 0;
     int safeModeCount = 0;
+    QString receivedReportText;
+    QThread* handlerThread = nullptr;
+    auto* app = qobject_cast<QApplication*>(QCoreApplication::instance());
+    QVERIFY(app != nullptr);
+    const QString diagnosticMarker = uniqueDiagnosticMarker(QStringLiteral("safe_mode_success"));
+
+    auto* orchestrator = StartupOrchestrator::instance();
+    orchestrator->logDiagnostic(ErrorHandler::ErrorLevel::Info, diagnosticMarker);
 
     StartupUiCoordinator coordinator(
         [&failureCount](const QString&) { ++failureCount; },
-        [&safeModeCount](const QString&) { ++safeModeCount; },
+        [&safeModeCount, &receivedReportText, &handlerThread](const QString& reportText) {
+            ++safeModeCount;
+            receivedReportText = reportText;
+            handlerThread = QThread::currentThread();
+        },
         true);
-
-    auto* app = qobject_cast<QApplication*>(QCoreApplication::instance());
-    QVERIFY(app != nullptr);
 
     coordinator.bindToStartupCompletion(app);
 
-    QVERIFY(QMetaObject::invokeMethod(
-        StartupOrchestrator::instance(),
-        "startupCompleted",
-        Qt::DirectConnection,
-        Q_ARG(bool, true)));
+    emitStartupCompletedFromBackgroundThread(orchestrator, true);
 
     QCOMPARE(failureCount, 0);
-    QCOMPARE(safeModeCount, 1);
+    QTRY_COMPARE(safeModeCount, 1);
+    QVERIFY(receivedReportText.contains(diagnosticMarker));
+    QCOMPARE(handlerThread, app->thread());
 }
 
 void StartupUiCoordinatorTest::startup_success_without_safe_mode_skips_safe_mode_handler()
