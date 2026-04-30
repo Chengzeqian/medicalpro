@@ -700,12 +700,18 @@ target_compile_definitions(startup_phase_registrar_contract_test PRIVATE
 
 target_link_libraries(startup_phase_registrar_contract_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Test
+    Framework
 )
 
 add_test(
     NAME startup_phase_registrar_contract_test
     COMMAND startup_phase_registrar_contract_test
+)
+
+set_tests_properties(startup_phase_registrar_contract_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:startup_phase_registrar_contract_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
 target_include_directories(platform_dependency_graph_test PRIVATE
@@ -1276,6 +1282,7 @@ set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS
     platform_plugin_policy_bridge_test
     platform_startup_trace_recorder_test
     startup_orchestrator_lifecycle_test
+    startup_phase_registrar_contract_test
     platform_dependency_graph_test
     platform_facades_test
     platform_startup_coordinator_test
