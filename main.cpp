@@ -726,7 +726,26 @@ int main(int argc, char* argv[])
             }
             app->quit();
         });
-        StartupUiCoordinator startupUiCoordinator(bootstrapController.get(), &mainInterface, safeMode);
+        StartupUiCoordinator startupUiCoordinator(
+            [](const QString& reportText) {
+                qWarning() << "[Startup] Background startup reported failures; staying on in-app welcome page";
+                qWarning() << reportText;
+            },
+            [&mainInterface](const QString& reportText) {
+                QWidget* messageHost = mainInterface
+                    ? static_cast<QWidget*>(mainInterface.data())
+                    : nullptr;
+                if (!messageHost) {
+                    return;
+                }
+
+                QMessageBox::information(
+                    messageHost,
+                    QObject::tr("安全模式"),
+                    QObject::tr("应用正在安全模式下运行，部分可选插件已被跳过。\n\n诊断摘要：\n%1")
+                        .arg(reportText));
+            },
+            safeMode);
 
         bootstrapController->beginBoot(
             QStringLiteral("Main interface welcome shown"),

@@ -3,28 +3,23 @@
 
 #include "FrameworkExport.h"
 
-#include <QPointer>
+#include <functional>
 #include <QString>
 
 class QApplication;
-class MainInterfaceWidget;
-class StartupBootstrapController;
 
 class FRAMEWORK_EXPORT StartupUiCoordinator
 {
 public:
-    StartupUiCoordinator(
-        StartupBootstrapController* bootstrapController,
-        QPointer<MainInterfaceWidget>* mainInterface,
-        bool safeMode);
+    using ReportHandler = std::function<void(const QString&)>;
+
+    StartupUiCoordinator(ReportHandler failureHandler, ReportHandler safeModeHandler, bool safeMode);
 
     void bindToStartupCompletion(QApplication* app);
 
 private:
-    void handleStartupFailure(const QString& reportText) const;
-    void showSafeModeNotice(const QString& reportText) const;
-
-    QPointer<MainInterfaceWidget>* m_mainInterface = nullptr;
+    ReportHandler m_failureHandler;
+    ReportHandler m_safeModeHandler;
     bool m_safeMode = false;
 };
 

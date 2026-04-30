@@ -469,6 +469,34 @@ set_tests_properties(startup_bootstrap_controller_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:startup_bootstrap_controller_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
+add_executable(startup_ui_coordinator_test
+    StartupUiCoordinatorTest.cpp
+)
+
+target_include_directories(startup_ui_coordinator_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(startup_ui_coordinator_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+if(MSVC)
+    target_compile_options(startup_ui_coordinator_test PRIVATE /utf-8)
+endif()
+
+add_test(
+    NAME startup_ui_coordinator_test
+    COMMAND startup_ui_coordinator_test
+)
+
+set_tests_properties(startup_ui_coordinator_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:startup_ui_coordinator_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
 add_executable(platform_state_store_handoff_test
     PlatformStateStoreHandoffTest.cpp
 )
@@ -1276,6 +1304,7 @@ set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS
     platform_built_in_module_bootstrap_behavior_test
     platform_runtime_host_adapter_platform_fallback_test
     startup_bootstrap_controller_test
+    startup_ui_coordinator_test
     platform_state_store_handoff_test
     platform_descriptor_loader_test
     platform_managed_plugin_plan_test
