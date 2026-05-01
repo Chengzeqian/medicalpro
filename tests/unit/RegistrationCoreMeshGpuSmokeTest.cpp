@@ -1,0 +1,105 @@
+#include <QtTest/QtTest>
+
+#include <QApplication>
+#include <QCoreApplication>
+#include <QFileInfo>
+#include <QVariantMap>
+
+#include <vtkCubeSource.h>
+#include <vtkMatrix4x4.h>
+#include <vtkPolyData.h>
+#include <vtkPolyDataNormals.h>
+#include <vtkSmartPointer.h>
+#include <vtkTriangleFilter.h>
+
+#include "Plugins/RegistrationCore/RegistrationServiceImpl.h"
+
+class RegistrationCoreMeshGpuSmokeTest : public QObject
+{
+    Q_OBJECT
+
+private slots:
+    void runtime_output_contains_meshgpu_dll();
+    void registration_service_loads_meshgpu_dll_from_runtime_output();
+    void advanced_icp_with_gpu_records_gicp_registration_when_runtime_is_available();
+
+private:
+    static vtkSmartPointer<vtkPolyData> createRegistrationSurface(double tx = 0.0, double ty = 0.0, double tz = 0.0)
+    {
+        auto cube = vtkSmartPointer<vtkCubeSource>::New();
+        cube->SetCenter(tx, ty, tz);
+        cube->SetXLength(18.0);
+        cube->SetYLength(24.0);
+        cube->SetZLength(12.0);
+        cube->Update();
+
+        auto triangleFilter = vtkSmartPointer<vtkTriangleFilter>::New();
+        triangleFilter->SetInputConnection(cube->GetOutputPort());
+        triangleFilter->Update();
+
+        auto normals = vtkSmartPointer<vtkPolyDataNormals>::New();
+        normals->SetInputConnection(triangleFilter->GetOutputPort());
+        normals->ComputePointNormalsOn();
+        normals->ComputeCellNormalsOn();
+        normals->SplittingOff();
+        normals->ConsistencyOn();
+        normals->Update();
+
+        auto surface = vtkSmartPointer<vtkPolyData>::New();
+        surface->DeepCopy(normals->GetOutput());
+        return surface;
+    }
+};
+
+void RegistrationCoreMeshGpuSmokeTest::runtime_output_contains_meshgpu_dll()
+{
+    const QString runtimeDllPath = QCoreApplication::applicationDirPath() + QStringLiteral("/MeshGPULib.dll");
+    QVERIFY2(QFileInfo::exists(runtimeDllPath), qPrintable(runtimeDllPath));
+}
+
+void RegistrationCoreMeshGpuSmokeTest::registration_service_loads_meshgpu_dll_from_runtime_output()
+{
+    RegistrationServiceImpl service;
+    QVERIFY(service.loadMeshGPUDLL());
+}
+
+void RegistrationCoreMeshGpuSmokeTest::advanced_icp_with_gpu_records_gicp_registration_when_runtime_is_available()
+{
+    RegistrationServiceImpl service;
+    QVERIFY(service.loadMeshGPUDLL());
+
+    auto source = createRegistrationSurface();
+    auto target = createRegistrationSurface(1.5, -2.0, 3.0);
+
+    QVariantMap parameters;
+    parameters.insert(QStringLiteral("registrationId"), QStringLiteral("meshgpu_smoke"));
+    parameters.insert(QStringLiteral("useGPU"), true);
+    parameters.insert(QStringLiteral("maxIterations"), 10);
+    parameters.insert(QStringLiteral("distanceThreshold"), 30.0);
+    parameters.insert(QStringLiteral("usePointToPlane"), true);
+    parameters.insert(QStringLiteral("verbose"), false);
+
+    const auto matrix = service.performICPRegistrationAdvanced(source, target, parameters);
+
+    QVERIFY2(matrix != nullptr, qPrintable(service.getLastError()));
+
+    const QStringList registrationIds = service.getRegistrationList();
+    QVERIFY(registrationIds.contains(QStringLiteral("meshgpu_smoke")));
+
+    const QVariantMap info = service.getRegistrationInfo(QStringLiteral("meshgpu_smoke"));
+    QCOMPARE(info.value(QStringLiteral("type")).toString(), QStringLiteral("gicp"));
+
+    const QVariantMap metadata = info.value(QStringLiteral("metadata")).toMap();
+    QCOMPARE(metadata.value(QStringLiteral("algorithm")).toString(), QStringLiteral("GPU-GICP"));
+    QVERIFY(metadata.contains(QStringLiteral("elapsedMs")));
+    QVERIFY(metadata.contains(QStringLiteral("converged")));
+}
+
+int main(int argc, char** argv)
+{
+    QApplication app(argc, argv);
+    RegistrationCoreMeshGpuSmokeTest test;
+    return QTest::qExec(&test, argc, argv);
+}
+
+#include "RegistrationCoreMeshGpuSmokeTest.moc"

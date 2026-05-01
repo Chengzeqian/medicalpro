@@ -68,11 +68,14 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Network)
     endif()
     
     # 可选的硬件SDK支持（保留但不强制依赖）
-    set(ATRACSYS_SDK_ROOT "${CMAKE_SOURCE_DIR}/ThirdParty/Atracsys/fusionTrack SDK x64")
+    set(ATRACSYS_SDK_ROOT "${MEDICALPRO_ATRACSYS_SDK_DIR}")
     if(EXISTS "${ATRACSYS_SDK_ROOT}/include/ftkInterface.h")
         message(STATUS "OpticalTracking: Atracsys SDK found - hardware support enabled")
         target_include_directories(OpticalTrackingPlatformModuleLib PRIVATE "${ATRACSYS_SDK_ROOT}/include")
-        target_compile_definitions(OpticalTrackingPlatformModuleLib PRIVATE ATRACSYS_SDK_FOUND)
+        target_compile_definitions(OpticalTrackingPlatformModuleLib PRIVATE ATRACSYS_SDK_AVAILABLE)
+        target_compile_definitions(OpticalTrackingPlatformModuleLib PRIVATE
+            MEDICALPRO_ATRACSYS_SDK_DIR="${ATRACSYS_SDK_ROOT}"
+        )
         
         # 链接Atracsys库（如果存在）
         if(EXISTS "${ATRACSYS_SDK_ROOT}/lib/fusionTrack64.lib")
@@ -85,7 +88,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Network)
     message(STATUS "OpticalTracking platform module configured successfully")
 
     # 添加 ProbeCalibration DLL 头文件路径（探针标定引擎）
-    set(PROBE_CALIBRATION_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/ICPtry/ProbeCalibration/include")
+    set(PROBE_CALIBRATION_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/algorithms/probe_calibration/include")
     if(EXISTS "${PROBE_CALIBRATION_INCLUDE_DIR}")
         target_include_directories(OpticalTrackingPlatformModuleLib PRIVATE ${PROBE_CALIBRATION_INCLUDE_DIR})
         message(STATUS "  ProbeCalibration include: ${PROBE_CALIBRATION_INCLUDE_DIR}")

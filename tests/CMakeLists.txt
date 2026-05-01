@@ -3,13 +3,28 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Test)
 add_subdirectory(unit)
 
 if(TARGET medicalpro)
+    set(_runtime_artifact_layout_args
+        -Druntime_dir=$<TARGET_FILE_DIR:medicalpro>
+        -Dprobe_calibration_runtime_dll=$<TARGET_FILE_DIR:medicalpro>/ProbeCalibration.dll
+        -Drequire_platform_descriptors=ON
+    )
+
+    if(TARGET MeshGPULib)
+        list(APPEND _runtime_artifact_layout_args
+            -Dmeshgpu_runtime_dll=$<TARGET_FILE_DIR:medicalpro>/MeshGPULib.dll
+        )
+    endif()
+
+    if(EXISTS "${CMAKE_SOURCE_DIR}/data")
+        list(APPEND _runtime_artifact_layout_args
+            -Ddata_dir=$<TARGET_FILE_DIR:medicalpro>/data
+        )
+    endif()
+
     add_test(
         NAME runtime_artifact_layout_test
         COMMAND ${CMAKE_COMMAND}
-            -Druntime_dir=$<TARGET_FILE_DIR:medicalpro>
-            -Dmeshgpu_runtime_dll=$<TARGET_FILE_DIR:medicalpro>/MeshGPULib.dll
-            -Ddata_dir=$<TARGET_FILE_DIR:medicalpro>/data
-            -Drequire_platform_descriptors=ON
+            ${_runtime_artifact_layout_args}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/runtime/verify_runtime_artifacts.cmake
     )
 endif()

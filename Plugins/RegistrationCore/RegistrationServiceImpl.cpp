@@ -26,7 +26,7 @@
 #include "Framework/Platform/Kernel/platform_service_registry.h"
 
 // MeshGPU DLL header (CUDA-free, pure C++ interface)
-#include "mesh_gpu_interface.h"
+#include "algorithms/meshgpu/include/mesh_gpu_runtime_api.h"
 
 // Registration2D3D 插件头文件
 #include "../Registration2D3D/Registration2D3DService.h"
@@ -90,29 +90,27 @@ bool RegistrationServiceImpl::loadMeshGPUDLL(const QString& dllPath)
     if (path.isEmpty()) {
         // 默认路径：ICPtry/MeshGPU/build/Release/MeshGPULib.dll
         path = QCoreApplication::applicationDirPath() + "/MeshGPULib.dll";
-        if (!QFile::exists(path)) {
-            path = "D:/Qtproject/medicalpro/ICPtry/MeshGPU/build/Release/MeshGPULib.dll";
-        }
     }
 
+    qDebug() << "[RegistrationService] Attempting MeshGPU DLL load from:" << path;
     m_meshGPULib.setFileName(path);
     if (!m_meshGPULib.load()) {
         qWarning() << "[RegistrationService] MeshGPU DLL load failed:" << m_meshGPULib.errorString();
         return false;
     }
 
-    m_createMeshGPU = reinterpret_cast<CreateMeshGPUFn>(m_meshGPULib.resolve("CreateMeshGPUInterface"));
-    m_destroyMeshGPU = reinterpret_cast<DestroyMeshGPUFn>(m_meshGPULib.resolve("DestroyMeshGPUInterface"));
+    m_createMeshGPU = reinterpret_cast<CreateMeshGPUFn>(m_meshGPULib.resolve("CreateMeshGPURuntimeApi"));
+    m_destroyMeshGPU = reinterpret_cast<DestroyMeshGPUFn>(m_meshGPULib.resolve("DestroyMeshGPURuntimeApi"));
 
     if (!m_createMeshGPU || !m_destroyMeshGPU) {
-        qWarning() << "[RegistrationService] MeshGPU DLL: failed to resolve factory functions";
+        qWarning() << "[RegistrationService] MeshGPU DLL: failed to resolve runtime factory functions";
         m_meshGPULib.unload();
         return false;
     }
 
     m_meshGPU = m_createMeshGPU();
     if (!m_meshGPU) {
-        qWarning() << "[RegistrationService] MeshGPU DLL: CreateMeshGPUInterface returned null";
+        qWarning() << "[RegistrationService] MeshGPU DLL: CreateMeshGPURuntimeApi returned null";
         m_meshGPULib.unload();
         return false;
     }
@@ -165,20 +163,28 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performGICPRegistration(
     timer.start();
 
     try {
+        qDebug() << "[RegistrationService] GPU-GICP stage: begin"
+                 << "registrationId=" << registrationId;
         // 将 target mesh 加载到 MeshGPU
         // 先尝试从文件加载（如果参数中提供了路径）
         QString targetMeshPath = parameters.value("targetMeshPath").toString();
         if (!targetMeshPath.isEmpty()) {
+            qDebug() << "[RegistrationService] GPU-GICP stage: loadTargetMesh(file)"
+                     << "path=" << targetMeshPath;
             if (!m_meshGPU->loadTargetMesh(targetMeshPath.toStdString())) {
                 qWarning() << "[RegistrationService] GICP: failed to load target mesh from file";
                 return nullptr;
             }
+            qDebug() << "[RegistrationService] GPU-GICP stage: loadTargetMesh(file) done";
         } else if (!m_meshGPU->hasTargetMesh()) {
             // 从 vtkPolyData 转换点云设置为 target
             // MeshGPU 需要 PLY 文件或 vertices+normals+triangles
             // 这里用 setTargetMesh 接口
             vtkIdType nVerts = target->GetNumberOfPoints();
             vtkIdType nTris = target->GetNumberOfCells();
+            qDebug() << "[RegistrationService] GPU-GICP stage: setTargetMesh(begin)"
+                     << "vertices=" << nVerts
+                     << "cells=" << nTris;
 
             std::vector<mesh_gpu::Point3D> vertices(nVerts);
             std::vector<mesh_gpu::Normal3D> normals(nVerts);
@@ -214,10 +220,16 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performGICPRegistration(
             }
 
             float cellSize = parameters.value("cellSize", 1.0).toFloat();
+            qDebug() << "[RegistrationService] GPU-GICP stage: setTargetMesh(call)"
+                     << "triangleCount=" << triangles.size()
+                     << "cellSize=" << cellSize;
             if (!m_meshGPU->setTargetMesh(vertices, normals, triangles, cellSize)) {
                 qWarning() << "[RegistrationService] GICP: failed to set target mesh";
                 return nullptr;
             }
+            qDebug() << "[RegistrationService] GPU-GICP stage: setTargetMesh(done)";
+        } else {
+            qDebug() << "[RegistrationService] GPU-GICP stage: target mesh already cached";
         }
 
         // 设置源点云
@@ -242,7 +254,13 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performGICPRegistration(
             }
         }
 
-        m_meshGPU->setSourcePointCloud(sourcePoints);
+        qDebug() << "[RegistrationService] GPU-GICP stage: setSourcePointCloud(call)"
+                 << "sourcePoints=" << nSource;
+        if (!m_meshGPU->setSourcePointCloud(sourcePoints)) {
+            qWarning() << "[RegistrationService] GICP: failed to set source point cloud";
+            return nullptr;
+        }
+        qDebug() << "[RegistrationService] GPU-GICP stage: setSourcePointCloud(done)";
 
         // 配置配准参数
         mesh_gpu::RegistrationParams regParams;
@@ -257,14 +275,20 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performGICPRegistration(
 
         // 执行配准
         bool useRotationSearch = parameters.value("useRotationSearch", false).toBool();
-        mesh_gpu::RegistrationResult result;
+        mesh_gpu::RuntimeRegistrationResult result;
 
         if (useRotationSearch) {
+            qDebug() << "[RegistrationService] GPU-GICP stage: runRegistrationWithRotationSearch(call)";
             result = m_meshGPU->runRegistrationWithRotationSearch(
                 mesh_gpu::RotationSearchParams(), regParams);
         } else {
+            qDebug() << "[RegistrationService] GPU-GICP stage: runRegistration(call)";
             result = m_meshGPU->runRegistration(regParams);
         }
+        qDebug() << "[RegistrationService] GPU-GICP stage: registration(done)"
+                 << "rmse=" << result.rmse
+                 << "iterations=" << result.iterations
+                 << "converged=" << result.converged;
 
         qint64 elapsedMs = timer.elapsed();
 
@@ -575,6 +599,10 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performICPRegistrationAdv
     // GPU-GICP 路径：如果请求 useGPU 且 DLL 可用
     bool useGPU = parameters.value("useGPU", false).toBool();
     if (useGPU) {
+        qDebug() << "[RegistrationService] Advanced ICP requested GPU refinement:"
+                 << "sourcePoints=" << source->GetNumberOfPoints()
+                 << "targetPoints=" << target->GetNumberOfPoints()
+                 << "registrationId=" << parameters.value("registrationId").toString();
         if (!m_meshGPULoaded) {
             loadMeshGPUDLL();
         }
@@ -597,12 +625,23 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performICPRegistrationAdv
                 }
             }
 
+            qDebug() << "[RegistrationService] Dispatching GPU-GICP:"
+                     << "registrationId=" << registrationId
+                     << "hasInitialTransform=" << (initialMatrix != nullptr)
+                     << "useRotationSearch=" << parameters.value("useRotationSearch", false).toBool()
+                     << "distanceThreshold=" << parameters.value("distanceThreshold", 10.0f).toFloat()
+                     << "maxIterations=" << parameters.value("maxIterations", 50).toInt();
+
             auto result = performGICPRegistration(source, target, initialMatrix, parameters, registrationId);
             if (result) return result;
 
-            qDebug() << "[RegistrationService] GPU-GICP failed, falling back to VTK ICP";
+            qWarning() << "[RegistrationService] GPU-GICP returned no result, falling back to VTK ICP:"
+                       << "registrationId=" << registrationId
+                       << "lastError=" << m_lastError;
         } else {
-            qDebug() << "[RegistrationService] MeshGPU DLL not available, falling back to VTK ICP";
+            qWarning() << "[RegistrationService] MeshGPU DLL unavailable, falling back to VTK ICP:"
+                       << "registrationId=" << parameters.value("registrationId").toString()
+                       << "applicationDir=" << QCoreApplication::applicationDirPath();
         }
     }
 
