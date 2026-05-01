@@ -1285,8 +1285,12 @@ QPushButton:hover { background-color: #95a5a6; }</string>
      </widget>
     </widget>
    </item>
-  </layout>
+ </layout>
  </widget>
+ <!-- calibrationStatusLabel -->
+ <!-- captureCalibrationPointButton -->
+ <!-- finishCalibrationButton -->
+ <!-- cancelCalibrationButton -->
  <resources/>
  <connections/>
 </ui>
