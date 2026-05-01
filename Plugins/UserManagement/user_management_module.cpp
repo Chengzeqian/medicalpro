@@ -20,6 +20,10 @@ bool UserManagementModule::start(PlatformModuleContext& context)
         return false;
     }
 
+    context.serviceRegistry->registerService(
+        pluginId(),
+        QStringLiteral("medical.UserManagementService"),
+        m_service.get());
     context.serviceRegistry->registerService(pluginId(), QStringLiteral("UserManagementService"), m_service.get());
     return true;
 }

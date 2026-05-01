@@ -17,7 +17,7 @@
 #include "Framework/Platform/Kernel/platform_plugin_host.h"
 #include "Framework/Platform/Kernel/platform_runtime_host_adapter.h"
 #include "Framework/Platform/LegacyAdapters/LegacyNavigationAdapter.h"
-#include "Framework/Registration/RegistrationService.h"
+#include "Plugins/RegistrationCore/RegistrationService.h"
 #include "Framework/StartupOrchestrator.h"
 #include "Framework/VTKGlobalInitializer.h"
 #include "Framework/VTKWidgetPool.h"

@@ -2,7 +2,7 @@
 
 #include "Framework/Platform/Kernel/platform_plugin_host.h"
 #include "Framework/Platform/Kernel/platform_service_registry.h"
-#include "Framework/Registration/RegistrationService.h"
+#include "Plugins/RegistrationCore/RegistrationService.h"
 #include "Plugins/OpticalTracking/OpticalTrackingService.h"
 
 PlatformRuntimeHostAdapter::PlatformRuntimeHostAdapter(QObject* parent)
@@ -60,11 +60,11 @@ QStringList PlatformRuntimeHostAdapter::missingServices(const QStringList& requi
     return unresolvedServices;
 }
 
-RegistrationService* PlatformRuntimeHostAdapter::registrationService() const
+registration_core::RegistrationService* PlatformRuntimeHostAdapter::registrationService() const
 {
     auto* registry = PlatformPluginHost::sharedInstance().serviceRegistry();
     if (!registry) return nullptr;
-    return qobject_cast<RegistrationService*>(registry->service(QStringLiteral("RegistrationService")));
+    return qobject_cast<registration_core::RegistrationService*>(registry->service(QStringLiteral("RegistrationService")));
 }
 
 OpticalTrackingService* PlatformRuntimeHostAdapter::opticalTrackingService() const

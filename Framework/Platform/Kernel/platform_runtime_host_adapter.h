@@ -24,7 +24,7 @@ public:
     QString pluginState(const QString& pluginId) const override;
     QStringList missingServices(const QStringList& requiredServices) const override;
 
-    RegistrationService* registrationService() const override;
+    registration_core::RegistrationService* registrationService() const override;
     OpticalTrackingService* opticalTrackingService() const override;
 
     void publish(const QString& topic, const QVariantMap& payload) override;

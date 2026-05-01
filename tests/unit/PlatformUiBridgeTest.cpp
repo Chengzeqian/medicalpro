@@ -74,6 +74,7 @@ public:
     DicomViewerService* dicomViewerService() const override { return dicomServiceValue; }
     BoneSegmentationService* segmentationService() const override { return segmentationServiceValue; }
     FourViewDisplayService* fourViewDisplayService() const override { return fourViewServiceValue; }
+    OpticalTrackingService* opticalTrackingService() const override { return opticalTrackingServiceValue; }
     PointRegistrationService* pointRegistrationService() const override { return pointRegistrationServiceValue; }
 
     bool frameworkReadyValue = false;
@@ -86,6 +87,7 @@ public:
     DicomViewerService* dicomServiceValue = nullptr;
     BoneSegmentationService* segmentationServiceValue = nullptr;
     FourViewDisplayService* fourViewServiceValue = nullptr;
+    OpticalTrackingService* opticalTrackingServiceValue = nullptr;
     PointRegistrationService* pointRegistrationServiceValue = nullptr;
     mutable QString lastIsPluginStartedName;
     mutable QString lastPluginStateName;
@@ -184,6 +186,7 @@ void PlatformUiBridgeTest::navigationServiceAccess_forwards_service_pointers_fro
     port.dicomServiceValue = reinterpret_cast<DicomViewerService*>(quintptr(0x22));
     port.segmentationServiceValue = reinterpret_cast<BoneSegmentationService*>(quintptr(0x33));
     port.fourViewServiceValue = reinterpret_cast<FourViewDisplayService*>(quintptr(0x44));
+    port.opticalTrackingServiceValue = reinterpret_cast<OpticalTrackingService*>(quintptr(0x55));
 
     NavigationPageServiceAccess access(&port);
 
@@ -191,6 +194,7 @@ void PlatformUiBridgeTest::navigationServiceAccess_forwards_service_pointers_fro
     QCOMPARE(access.dicomViewerService(), port.dicomServiceValue);
     QCOMPARE(access.segmentationService(), port.segmentationServiceValue);
     QCOMPARE(access.fourViewDisplayService(), port.fourViewServiceValue);
+    QCOMPARE(access.opticalTrackingService(), port.opticalTrackingServiceValue);
 }
 
 void PlatformUiBridgeTest::navigationServiceAccess_starts_point_registration_plugin_on_demand()
@@ -199,7 +203,7 @@ void PlatformUiBridgeTest::navigationServiceAccess_starts_point_registration_plu
     port.frameworkReadyValue = true;
     port.pluginStartedValue = false;
     port.pluginStateValue = QStringLiteral("RESOLVED");
-    port.pointRegistrationServiceValue = reinterpret_cast<PointRegistrationService*>(quintptr(0x55));
+    port.pointRegistrationServiceValue = reinterpret_cast<PointRegistrationService*>(quintptr(0x66));
 
     NavigationPageServiceAccess access(&port);
     const auto* service = access.pointRegistrationService(true);

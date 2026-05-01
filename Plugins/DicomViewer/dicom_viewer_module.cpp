@@ -19,6 +19,10 @@ bool DicomViewerModule::start(PlatformModuleContext& context)
         return false;
     }
 
+    context.serviceRegistry->registerService(
+        pluginId(),
+        QStringLiteral("org.medicalpro.DicomViewerService"),
+        m_service.get());
     context.serviceRegistry->registerService(pluginId(), QStringLiteral("DicomViewerService"), m_service.get());
     return true;
 }
