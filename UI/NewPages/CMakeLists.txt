@@ -32,6 +32,13 @@ set(NEWPAGES_HEADERS
     ManagementPage.h
     DashboardPage.h
     NavigationPage.h
+    Navigation/navigation_evaluation_controller.h
+    Navigation/navigation_vtk_bridge.h
+    Navigation/navigation_workflow_coordinator.h
+    Navigation/navigation_service_bundle.h
+    Navigation/navigation_workflow_context.h
+    Navigation/preparation_planning_controller.h
+    Navigation/registration_controller.h
     PlatformDiagnosticsPage.h
     # BoneSurfaceMotionSimulator used by NavigationPage
     ${CMAKE_SOURCE_DIR}/Plugins/OpticalTracking/BoneSurfaceMotionSimulator.h
@@ -49,6 +56,13 @@ set(NEWPAGES_SOURCES
     ManagementPage.cpp
     DashboardPage.cpp
     NavigationPage.cpp
+    Navigation/navigation_evaluation_controller.cpp
+    Navigation/navigation_vtk_bridge.cpp
+    Navigation/navigation_workflow_coordinator.cpp
+    Navigation/navigation_service_bundle.cpp
+    Navigation/navigation_workflow_context.cpp
+    Navigation/preparation_planning_controller.cpp
+    Navigation/registration_controller.cpp
     PlatformDiagnosticsPage.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/OpticalTracking/BoneSurfaceMotionSimulator.cpp
 )

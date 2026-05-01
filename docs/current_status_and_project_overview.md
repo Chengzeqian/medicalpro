@@ -1,5 +1,21 @@
 ## Platform Kernel Governance
 
+### 2026-04-30 Ankle Navigation Architecture Remediation Acceptance
+
+- `NavigationPage` 页面内的病例上下文、服务访问和流程切换已收口到 `NavigationWorkflowContext`、`NavigationServiceBundle`、`NavigationWorkflowCoordinator` 及对应 controller，不再继续把阶段编排堆回页面槽函数。
+- 导航页内的 `FourView` 与配准 VTK 视图嵌入已统一经由 `EmbeddedVtkViewHost` 和 `NavigationVtkBridge` 管理，页面主流程不再散落维护 attach/detach 布局逻辑。
+- 这轮整改保持了既有平台边界：`main.cpp` 启动路径、`PlatformUiBridge` 服务接线、导航主链契约和启动编排生命周期回归全部保持通过。
+- 执行命令（构建）:
+  - `cmake --build build_x64 --config Release --target medicalpro embedded_vtk_view_host_test navigation_workflow_context_test navigation_workflow_coordinator_test platform_ui_bridge_test ankle_navigation_workflow_contract_test`
+  - `cmake --build build_x64 --config Release --target runtime_host_detachment_contract_test platform_ui_bridge_test startup_orchestrator_lifecycle_test ankle_navigation_workflow_contract_test medicalpro`
+- 执行命令（ctest）:
+  - `ctest --test-dir build_x64 -C Release -R "^(embedded_vtk_view_host_test|navigation_workflow_context_test|navigation_workflow_coordinator_test|platform_ui_bridge_test|ankle_navigation_workflow_contract_test)$" --output-on-failure`
+  - `ctest --test-dir build_x64 -C Release -R "^(runtime_host_detachment_contract_test|platform_ui_bridge_test|startup_orchestrator_lifecycle_test|ankle_navigation_workflow_contract_test)$" --output-on-failure`
+- 结果对齐:
+  - Navigation architecture slice regression: PASS.
+  - Final architecture regression batch: PASS.
+  - `medicalpro` Release build: PASS.
+
 ### 2026-04-29 Ankle Arthroplasty Navigation Phase Acceptance
 
 - `medicalpro` 继续作为踝关节置换导航唯一主系统，未引入 3D Slicer / MITK 运行时依赖。
