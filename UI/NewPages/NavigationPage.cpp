@@ -169,6 +169,22 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
             ui->opticalRegLayout->addWidget(calibrationStatusLabel);
         }
 
+        auto* navigationReadinessLabel = findChild<QLabel*>(QStringLiteral("navigationReadinessLabel"));
+        if (!navigationReadinessLabel) {
+            navigationReadinessLabel = new QLabel(this);
+            navigationReadinessLabel->setObjectName(QStringLiteral("navigationReadinessLabel"));
+            navigationReadinessLabel->setWordWrap(true);
+            ui->opticalRegLayout->addWidget(navigationReadinessLabel);
+        }
+
+        auto* navigationConfidenceLabel = findChild<QLabel*>(QStringLiteral("navigationConfidenceLabel"));
+        if (!navigationConfidenceLabel) {
+            navigationConfidenceLabel = new QLabel(this);
+            navigationConfidenceLabel->setObjectName(QStringLiteral("navigationConfidenceLabel"));
+            navigationConfidenceLabel->setWordWrap(true);
+            ui->opticalRegLayout->addWidget(navigationConfidenceLabel);
+        }
+
         auto* captureCalibrationPointButton = findChild<QPushButton*>(QStringLiteral("captureCalibrationPointButton"));
         if (!captureCalibrationPointButton) {
             captureCalibrationPointButton = new QPushButton(QStringLiteral("采集标定点"), this);
@@ -201,6 +217,7 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
     }
 
     resetProbeCalibrationState();
+    refreshNavigationConfidenceState();
 
     // 鍒濆鍖栭厤鍑嗗姛鑳?
     setupRegistration();
@@ -1077,6 +1094,7 @@ void NavigationPageNew::finishProbeCalibration()
 
     const double calibrationAccuracy = calibrationResult.value(QStringLiteral("accuracy")).toDouble();
     resetProbeCalibrationState();
+    refreshNavigationConfidenceState();
     showInfo("校准", QStringLiteral("探针标定完成，已应用到当前导航器械。\n精度：%1 mm")
                            .arg(calibrationAccuracy, 0, 'f', 3));
 }
@@ -1237,34 +1255,8 @@ void NavigationPageNew::performStartNavigation()
         return;
     }
 
-    const PointRegistrationResult registrationResult =
-        m_registrationWorkflow ? m_registrationWorkflow->getLastResult() : PointRegistrationResult();
-
-    NavigationConfidenceInputs inputs;
-    inputs.fre = registrationResult.rmsError;
-    inputs.targetTre = registrationResult.targetRegionTre;
-    inputs.coverageScore = registrationResult.coverageScore;
-    inputs.surfaceResidual = registrationResult.metrics.value(QStringLiteral("refined_rms")).toDouble();
-
-    QVariantMap trackingQuality;
-    if (auto* trackingService = opticalTrackingService()) {
-        trackingService->getRealTimeData(m_trackingSessionId);
-        trackingQuality = trackingService->checkTrackingQuality(m_trackingSessionId, m_navigationToolId);
-    }
-    if (trackingQuality.isEmpty()) {
-        trackingQuality.insert(QStringLiteral("tracking_jitter_mm"), 0.4);
-        trackingQuality.insert(QStringLiteral("visible_frame_ratio"), 1.0);
-    }
-
-    inputs.trackingJitter = trackingQuality.value(QStringLiteral("tracking_jitter_mm")).toDouble();
-    inputs.visibleFrameRatio = trackingQuality.value(QStringLiteral("visible_frame_ratio")).toDouble();
-
-    m_lastConfidence = m_confidenceEvaluator.evaluate(inputs);
+    refreshNavigationConfidenceState(true);
     if (!m_lastConfidence.allowNavigation) {
-        const QString warningText = m_lastConfidence.recommendations.isEmpty()
-            ? QStringLiteral("当前导航准入条件不足。")
-            : m_lastConfidence.recommendations.join(QStringLiteral("；"));
-        showWarning(QStringLiteral("导航准入"), warningText);
         return;
     }
 
@@ -1346,9 +1338,19 @@ void NavigationPageNew::on_pauseNavigationButton_clicked()
         report.translationErrorMm = m_registrationWorkflow ? m_registrationWorkflow->getLastResult().targetRegionTre : 0.0;
         report.rotationErrorDeg = 0.0;
         report.allowNavigation = m_lastConfidence.allowNavigation;
+        report.confidenceScore = m_lastConfidence.score;
+        report.gateReasons = m_lastConfidence.recommendations;
+        report.calibrated = !m_trackingSessionId.isEmpty() && !m_navigationToolId.isEmpty();
+        if (auto* trackingService = opticalTrackingService()) {
+            const QVariantMap trackingQuality = trackingService->checkTrackingQuality(m_trackingSessionId, m_navigationToolId);
+            report.calibrated = trackingQuality.value(QStringLiteral("calibrated")).toBool();
+            report.calibrationAccuracyMm = trackingQuality.value(QStringLiteral("calibration_accuracy_mm")).toDouble();
+        }
         evaluationService.saveEvaluationReport(report);
         evaluationService.exportMetricsCsv(caseId);
     }
+
+    refreshNavigationConfidenceState();
 }
 
 void NavigationPageNew::on_resetViewButton_clicked()
@@ -1455,6 +1457,7 @@ void NavigationPageNew::updateTrackerStatus(bool connected)
     }
 
     updateProbeCalibrationUi();
+    refreshNavigationConfidenceState();
 }
 
 void NavigationPageNew::clearTrackingRuntimeState(bool disconnectDevice)
@@ -1488,6 +1491,108 @@ void NavigationPageNew::resetProbeCalibrationState()
     m_activeCalibrationRequiredPoints = 0;
     m_activeCalibrationCollectedPoints = 0;
     updateProbeCalibrationUi();
+}
+
+bool NavigationPageNew::tryBuildNavigationConfidenceInputs(NavigationConfidenceInputs& inputs) const
+{
+    if (!m_trackerConnected || m_trackingSessionId.isEmpty() || m_navigationToolId.isEmpty()) {
+        return false;
+    }
+
+    auto* registrationService = pointRegistrationService();
+    if (!registrationService) {
+        return false;
+    }
+
+    const QMatrix4x4 registrationTransform = registrationService->getTransformMatrix();
+    if (registrationTransform.isIdentity()) {
+        return false;
+    }
+
+    const PointRegistrationResult registrationResult =
+        m_registrationWorkflow ? m_registrationWorkflow->getLastResult() : PointRegistrationResult();
+    if (!registrationResult.success) {
+        return false;
+    }
+
+    inputs.fre = registrationResult.rmsError;
+    inputs.targetTre = registrationResult.targetRegionTre;
+    inputs.coverageScore = registrationResult.coverageScore;
+    inputs.surfaceResidual = registrationResult.metrics.value(QStringLiteral("refined_rms")).toDouble();
+
+    QVariantMap trackingQuality;
+    if (auto* trackingService = opticalTrackingService()) {
+        trackingService->getRealTimeData(m_trackingSessionId);
+        trackingQuality = trackingService->checkTrackingQuality(m_trackingSessionId, m_navigationToolId);
+    }
+
+    if (trackingQuality.isEmpty()) {
+        trackingQuality.insert(QStringLiteral("tracking_jitter_mm"), 0.4);
+        trackingQuality.insert(QStringLiteral("visible_frame_ratio"), 1.0);
+        trackingQuality.insert(QStringLiteral("calibrated"), false);
+        trackingQuality.insert(QStringLiteral("calibration_accuracy_mm"), 0.0);
+    }
+
+    inputs.trackingJitter = trackingQuality.value(QStringLiteral("tracking_jitter_mm")).toDouble();
+    inputs.visibleFrameRatio = trackingQuality.value(QStringLiteral("visible_frame_ratio")).toDouble();
+    inputs.toolCalibrated = trackingQuality.value(QStringLiteral("calibrated")).toBool();
+    inputs.calibrationAccuracy = trackingQuality.value(QStringLiteral("calibration_accuracy_mm")).toDouble();
+    return true;
+}
+
+void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
+{
+    auto* navigationReadinessLabel = findChild<QLabel*>(QStringLiteral("navigationReadinessLabel"));
+    auto* navigationConfidenceLabel = findChild<QLabel*>(QStringLiteral("navigationConfidenceLabel"));
+
+    NavigationConfidenceInputs inputs;
+    if (!tryBuildNavigationConfidenceInputs(inputs)) {
+        m_lastConfidence = NavigationConfidenceResult();
+
+        if (navigationReadinessLabel) {
+            navigationReadinessLabel->setText(QStringLiteral("导航准入：未就绪"));
+            navigationReadinessLabel->setStyleSheet(QStringLiteral("color: #f39c12; font-weight: bold;"));
+        }
+        if (navigationConfidenceLabel) {
+            navigationConfidenceLabel->setText(QStringLiteral("可信度评分：待评估"));
+            navigationConfidenceLabel->setStyleSheet(QStringLiteral("color: #95a5a6;"));
+        }
+        if (ui && ui->startNavigationButton && !m_navigationActive) {
+            ui->startNavigationButton->setEnabled(m_trackerConnected);
+        }
+        return;
+    }
+
+    m_lastConfidence = m_confidenceEvaluator.evaluate(inputs);
+
+    if (navigationReadinessLabel) {
+        navigationReadinessLabel->setText(m_lastConfidence.allowNavigation
+            ? QStringLiteral("导航准入：允许进入导航")
+            : QStringLiteral("导航准入：暂不允许进入导航"));
+        navigationReadinessLabel->setStyleSheet(QStringLiteral("color: %1; font-weight: bold;")
+            .arg(m_lastConfidence.allowNavigation ? QStringLiteral("#27ae60") : QStringLiteral("#c0392b")));
+    }
+
+    if (navigationConfidenceLabel) {
+        const QString recommendationText = m_lastConfidence.recommendations.isEmpty()
+            ? QStringLiteral("无")
+            : m_lastConfidence.recommendations.join(QStringLiteral("；"));
+        navigationConfidenceLabel->setText(QStringLiteral("可信度评分：%1 | 建议：%2")
+                                               .arg(m_lastConfidence.score, 0, 'f', 2)
+                                               .arg(recommendationText));
+        navigationConfidenceLabel->setStyleSheet(QStringLiteral("color: #ecf0f1;"));
+    }
+
+    if (ui && ui->startNavigationButton && !m_navigationActive) {
+        ui->startNavigationButton->setEnabled(m_lastConfidence.allowNavigation);
+    }
+
+    if (showWarnings && !m_lastConfidence.allowNavigation) {
+        const QString warningText = m_lastConfidence.recommendations.isEmpty()
+            ? QStringLiteral("当前导航准入条件不足。")
+            : m_lastConfidence.recommendations.join(QStringLiteral("；"));
+        showWarning(QStringLiteral("导航准入"), warningText);
+    }
 }
 
 void NavigationPageNew::updateProbeCalibrationUi()
@@ -1731,6 +1836,7 @@ void NavigationPageNew::setupRegistration()
     connect(registrationService, &PointRegistrationService::pointAdded,
             this, [this](int, const QString&) {
                 updateRegistrationPointsList();
+                refreshNavigationConfidenceState();
                 if (m_registrationVTKWidget) {
                     QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
                 }
@@ -1738,6 +1844,7 @@ void NavigationPageNew::setupRegistration()
     connect(registrationService, &PointRegistrationService::pointRemoved,
             this, [this](int) {
                 updateRegistrationPointsList();
+                refreshNavigationConfidenceState();
                 if (m_registrationVTKWidget) {
                     QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
                 }
@@ -1745,6 +1852,7 @@ void NavigationPageNew::setupRegistration()
     connect(registrationService, &PointRegistrationService::pointsCleared,
             this, [this]() {
                 updateRegistrationPointsList();
+                refreshNavigationConfidenceState();
                 if (m_registrationVTKWidget) {
                     QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
                 }
@@ -1752,6 +1860,7 @@ void NavigationPageNew::setupRegistration()
     connect(registrationService, &PointRegistrationService::pointUpdated,
             this, [this](int) {
                 updateRegistrationPointsList();
+                refreshNavigationConfidenceState();
                 if (m_registrationVTKWidget) {
                     QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
                 }
@@ -2006,6 +2115,7 @@ void NavigationPageNew::onRegistrationProbePointCaptured(int index, const QVecto
 void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& result)
 {
     updateRegistrationResultDisplay(result);
+    refreshNavigationConfidenceState();
     if (!m_registrationWorkflow) {
         return;
     }
@@ -2040,6 +2150,7 @@ void NavigationPageNew::onRegistrationFailed(const QString& error)
 {
     showError("配准失败", error);
     ui->regErrorLabel->setText("--");
+    refreshNavigationConfidenceState();
 }
 
 void NavigationPageNew::onRegistrationPointPicked(double x, double y, double z)
@@ -2072,6 +2183,12 @@ void NavigationPageNew::onRegistrationPointPicked(double x, double y, double z)
 void NavigationPageNew::onNavigationTimerUpdate()
 {
     if (!m_navigationActive || !m_navigation3DView) {
+        return;
+    }
+
+    refreshNavigationConfidenceState(true);
+    if (!m_lastConfidence.allowNavigation) {
+        on_pauseNavigationButton_clicked();
         return;
     }
 
@@ -2113,6 +2230,7 @@ void NavigationPageNew::onNavigationTimerUpdate()
     const QVector3D bonePos = m_registrationTransform.map(trackingPos);
     m_navigation3DView->updateProbePosition(bonePos);
     updatePositionDisplay(bonePos.x(), bonePos.y(), bonePos.z());
+    refreshNavigationConfidenceState();
 }
 
 void NavigationPageNew::onNavigation3DBoneLoaded(bool success, const QVector3D& center, const QVector3D& size)

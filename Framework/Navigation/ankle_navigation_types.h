@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Framework/Navigation/innovation_experiment_types.h"
+
 #include <QMap>
 #include <QList>
 #include <QQuaternion>
@@ -64,4 +66,24 @@ struct AnkleEvaluationReport
     double translationErrorMm = 0.0;
     double rotationErrorDeg = 0.0;
     bool allowNavigation = false;
+    double confidenceScore = 0.0;
+    QStringList gateReasons;
+    bool calibrated = false;
+    double calibrationAccuracyMm = 0.0;
+};
+
+struct AnkleInnovationSummaryRow
+{
+    QString caseId;
+    QString innovationId;
+    QString strategyId;
+    InnovationPerturbationProfile perturbation;
+    QVariantMap metrics;
+};
+
+struct AnkleInnovationBatchDefinition
+{
+    QStringList caseIds;
+    QList<InnovationPerturbationProfile> perturbations;
+    int repeatCount = 1;
 };

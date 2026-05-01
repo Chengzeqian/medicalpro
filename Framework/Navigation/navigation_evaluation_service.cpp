@@ -18,6 +18,15 @@ QJsonArray toJsonArray(const QStringList& values)
     return array;
 }
 
+QStringList toStringList(const QJsonArray& values)
+{
+    QStringList result;
+    for (const QJsonValue& value : values) {
+        result.append(value.toString());
+    }
+    return result;
+}
+
 QJsonObject toJson(const AnkleRegistrationRecord& record)
 {
     QJsonObject object;
@@ -47,6 +56,10 @@ QJsonObject toJson(const AnkleEvaluationReport& report)
     object.insert(QStringLiteral("translation_error_mm"), report.translationErrorMm);
     object.insert(QStringLiteral("rotation_error_deg"), report.rotationErrorDeg);
     object.insert(QStringLiteral("allow_navigation"), report.allowNavigation);
+    object.insert(QStringLiteral("confidence_score"), report.confidenceScore);
+    object.insert(QStringLiteral("gate_reasons"), toJsonArray(report.gateReasons));
+    object.insert(QStringLiteral("calibrated"), report.calibrated);
+    object.insert(QStringLiteral("calibration_accuracy_mm"), report.calibrationAccuracyMm);
     return object;
 }
 
@@ -103,6 +116,8 @@ bool NavigationEvaluationService::exportMetricsCsv(const QString& caseId) const
     const QJsonObject registration = readJsonFile(registrationPath(caseId));
     const QJsonObject navigation = readJsonFile(navigationPath(caseId));
     const QJsonObject evaluation = readJsonFile(evaluationPath(caseId));
+    const QString gateReasons =
+        toStringList(evaluation.value(QStringLiteral("gate_reasons")).toArray()).join(QStringLiteral("; "));
 
     QDir dir;
     if (!dir.mkpath(QFileInfo(metricsCsvPath(caseId)).absolutePath())) {
@@ -125,7 +140,11 @@ bool NavigationEvaluationService::exportMetricsCsv(const QString& caseId) const
         QStringLiteral("confidence_score,%1").arg(navigation.value(QStringLiteral("confidence_score")).toDouble(), 0, 'f', 4),
         QStringLiteral("translation_error_mm,%1").arg(evaluation.value(QStringLiteral("translation_error_mm")).toDouble(), 0, 'f', 4),
         QStringLiteral("rotation_error_deg,%1").arg(evaluation.value(QStringLiteral("rotation_error_deg")).toDouble(), 0, 'f', 4),
-        QStringLiteral("allow_navigation,%1").arg(evaluation.value(QStringLiteral("allow_navigation")).toBool() ? QStringLiteral("true") : QStringLiteral("false"))
+        QStringLiteral("allow_navigation,%1").arg(evaluation.value(QStringLiteral("allow_navigation")).toBool() ? QStringLiteral("true") : QStringLiteral("false")),
+        QStringLiteral("evaluation_confidence_score,%1").arg(evaluation.value(QStringLiteral("confidence_score")).toDouble(), 0, 'f', 4),
+        QStringLiteral("gate_reasons,\"%1\"").arg(gateReasons),
+        QStringLiteral("calibrated,%1").arg(evaluation.value(QStringLiteral("calibrated")).toBool() ? QStringLiteral("true") : QStringLiteral("false")),
+        QStringLiteral("calibration_accuracy_mm,%1").arg(evaluation.value(QStringLiteral("calibration_accuracy_mm")).toDouble(), 0, 'f', 4)
     };
 
     file.write(lines.join(QStringLiteral("\n")).toUtf8());
@@ -135,6 +154,11 @@ bool NavigationEvaluationService::exportMetricsCsv(const QString& caseId) const
 QString NavigationEvaluationService::caseRoot(const QString& caseId) const
 {
     return m_casesRoot + QStringLiteral("/") + caseId;
+}
+
+QString NavigationEvaluationService::evaluationRoot(const QString& caseId) const
+{
+    return caseRoot(caseId) + QStringLiteral("/evaluation");
 }
 
 QString NavigationEvaluationService::registrationPath(const QString& caseId) const
@@ -149,10 +173,10 @@ QString NavigationEvaluationService::navigationPath(const QString& caseId) const
 
 QString NavigationEvaluationService::evaluationPath(const QString& caseId) const
 {
-    return caseRoot(caseId) + QStringLiteral("/evaluation/evaluation_report.json");
+    return evaluationRoot(caseId) + QStringLiteral("/evaluation_report.json");
 }
 
 QString NavigationEvaluationService::metricsCsvPath(const QString& caseId) const
 {
-    return caseRoot(caseId) + QStringLiteral("/evaluation/evaluation_metrics.csv");
+    return evaluationRoot(caseId) + QStringLiteral("/evaluation_metrics.csv");
 }

@@ -14,6 +14,7 @@ bool PointRegistrationModule::start(PlatformModuleContext& context)
     if (!context.serviceRegistry) return false;
 
     m_service = std::make_unique<PointRegistrationServiceImpl>();
+    m_service->setServiceRegistry(context.serviceRegistry);
     context.serviceRegistry->registerService(pluginId(), QStringLiteral("PointRegistrationService"), m_service.get());
     return true;
 }

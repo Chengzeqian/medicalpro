@@ -16,6 +16,11 @@ RegistrationWorkflow::RegistrationWorkflow(PointRegistrationService* service, QO
     }
 }
 
+void RegistrationWorkflow::invalidateLastResult()
+{
+    m_lastResult = PointRegistrationResult();
+}
+
 void RegistrationWorkflow::connectServiceSignals()
 {
     // 连接服务信号到工作流信号
@@ -26,7 +31,9 @@ void RegistrationWorkflow::connectServiceSignals()
             this, &RegistrationWorkflow::probePointCaptured);
 
     connect(m_service, &PointRegistrationService::registrationCompleted,
-            this, [this](const PointRegistrationResult& result) {
+            this, [this](const PointRegistrationResult& rawResult) {
+                PointRegistrationResult result = rawResult;
+                decorateRegistrationResult(result);
                 m_lastResult = result;
                 if (result.success) {
                     setState(RegistrationSessionState::Completed);
@@ -38,8 +45,24 @@ void RegistrationWorkflow::connectServiceSignals()
 
     connect(m_service, &PointRegistrationService::registrationFailed,
             this, [this](const QString& error) {
+                invalidateLastResult();
                 setState(RegistrationSessionState::Failed);
                 emit registrationFailed(error);
+            });
+
+    connect(m_service, &PointRegistrationService::pointRemoved,
+            this, [this](int) {
+                invalidateLastResult();
+            });
+
+    connect(m_service, &PointRegistrationService::pointsCleared,
+            this, [this]() {
+                invalidateLastResult();
+            });
+
+    connect(m_service, &PointRegistrationService::pointUpdated,
+            this, [this](int) {
+                invalidateLastResult();
             });
 
     connect(m_service, &PointRegistrationService::progressUpdated,
@@ -65,7 +88,7 @@ QString RegistrationWorkflow::startNewSession(const QString& patientId)
     m_sessionId = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
     // 重置状态
-    m_lastResult = PointRegistrationResult();
+    invalidateLastResult();
     setState(RegistrationSessionState::Idle);
 
     qDebug() << "[RegistrationWorkflow] New session started:" << m_sessionId
@@ -80,7 +103,7 @@ void RegistrationWorkflow::resetSession()
         m_service->clearPoints();
     }
 
-    m_lastResult = PointRegistrationResult();
+    invalidateLastResult();
     setState(RegistrationSessionState::Idle);
 
     emit progressUpdated(0, QString::fromUtf8("会话已重置"));
@@ -259,6 +282,16 @@ int RegistrationWorkflow::generateSimulatedProbePoints(double noiseLevel)
     return count;
 }
 
+void RegistrationWorkflow::setExecutionOptions(const PointRegistrationExecutionOptions& options)
+{
+    m_executionOptions = options;
+}
+
+PointRegistrationExecutionOptions RegistrationWorkflow::executionOptions() const
+{
+    return m_executionOptions;
+}
+
 // ========== 配准执行 ==========
 
 bool RegistrationWorkflow::canExecute() const
@@ -276,6 +309,7 @@ bool RegistrationWorkflow::executeRegistration()
     if (!canExecute()) {
         QString error = QString::fromUtf8("有效点对不足，至少需要3对点（当前: %1）")
                             .arg(validPairCount());
+        invalidateLastResult();
         emit errorOccurred(error);
         return false;
     }
@@ -284,22 +318,7 @@ bool RegistrationWorkflow::executeRegistration()
     emit progressUpdated(10, QString::fromUtf8("开始配准计算..."));
 
     PointRegistrationResult result = m_service->executeRegistration();
-    if (result.success) {
-        if (m_targetRegion.radiusMm > 0.0) {
-            result.metrics.insert(QStringLiteral("target_region_radius_mm"), m_targetRegion.radiusMm);
-            result.metrics.insert(QStringLiteral("target_region_origin_x"), m_targetRegion.origin.x());
-            result.metrics.insert(QStringLiteral("target_region_origin_y"), m_targetRegion.origin.y());
-            result.metrics.insert(QStringLiteral("target_region_origin_z"), m_targetRegion.origin.z());
-        }
-
-        if (result.targetRegionTre <= 0.0) {
-            result.targetRegionTre = result.rmsError;
-        }
-
-        if (result.coverageScore <= 0.0 && result.pointCount > 0) {
-            result.coverageScore = qMin(1.0, static_cast<double>(result.pointCount) / 5.0);
-        }
-    }
+    decorateRegistrationResult(result);
     m_lastResult = result;
 
     return result.success;
@@ -313,6 +332,13 @@ void RegistrationWorkflow::setTargetRegistrationRegion(const TargetRegistrationR
 QList<RecommendedRegistrationPoint> RegistrationWorkflow::recommendRegistrationPoints(
     const QList<CandidateRegistrationPoint>& candidates) const
 {
+    return recommendRegistrationPoints(candidates, m_executionOptions.pointSelectionStrategyId);
+}
+
+QList<RecommendedRegistrationPoint> RegistrationWorkflow::recommendRegistrationPoints(
+    const QList<CandidateRegistrationPoint>& candidates,
+    const QString& strategyId) const
+{
     QList<QVector3D> selected;
     if (m_service) {
         const auto points = m_service->getAllPoints();
@@ -323,7 +349,38 @@ QList<RecommendedRegistrationPoint> RegistrationWorkflow::recommendRegistrationP
         }
     }
 
-    return m_pointSelector.rankCandidates(m_targetRegion, candidates, selected);
+    const RegistrationPointSelectionStrategy* strategy = m_strategyRegistry.strategy(strategyId);
+    if (!strategy) {
+        return {};
+    }
+
+    return strategy->select(m_targetRegion, candidates, selected);
+}
+
+void RegistrationWorkflow::decorateRegistrationResult(PointRegistrationResult& result) const
+{
+    if (!result.success) {
+        return;
+    }
+
+    if (m_targetRegion.radiusMm > 0.0) {
+        result.metrics.insert(QStringLiteral("target_region_radius_mm"), m_targetRegion.radiusMm);
+        result.metrics.insert(QStringLiteral("target_region_origin_x"), m_targetRegion.origin.x());
+        result.metrics.insert(QStringLiteral("target_region_origin_y"), m_targetRegion.origin.y());
+        result.metrics.insert(QStringLiteral("target_region_origin_z"), m_targetRegion.origin.z());
+    }
+
+    if (result.targetRegionTre <= 0.0) {
+        result.targetRegionTre = result.rmsError;
+    }
+
+    if (result.coverageScore <= 0.0 && result.pointCount > 0) {
+        result.coverageScore = qMin(1.0, static_cast<double>(result.pointCount) / 5.0);
+    }
+
+    result.metrics.insert(QStringLiteral("registration_mode"), m_executionOptions.registrationMethodId);
+    result.metrics.insert(QStringLiteral("point_selection_strategy_id"), m_executionOptions.pointSelectionStrategyId);
+    result.metrics.insert(QStringLiteral("export_detailed_metrics"), m_executionOptions.exportDetailedMetrics);
 }
 
 PointRegistrationResult RegistrationWorkflow::getLastResult() const

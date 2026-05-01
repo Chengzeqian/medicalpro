@@ -12,6 +12,10 @@ private slots:
     void navigation_page_tracker_connection_bridges_selected_instrument_tracking_configuration();
     void navigation_page_calibration_button_runs_active_tool_probe_calibration();
     void navigation_page_exposes_stepwise_probe_calibration_flow();
+    void navigation_page_refreshes_navigation_confidence_after_probe_calibration();
+    void navigation_page_refreshes_navigation_confidence_after_registration_state_changes();
+    void navigation_page_enforces_runtime_navigation_gate_while_active();
+    void navigation_page_persists_navigation_gate_evidence_into_evaluation_report();
 
 private:
     QString readFile(const QString& relativePath) const;
@@ -142,6 +146,82 @@ void AnkleNavigationWorkflowContractTest::navigation_page_exposes_stepwise_probe
         "navigation calibration UI must expose a cancel calibration button");
     QVERIFY2(navigationUi.contains(QStringLiteral("calibrationStatusLabel")),
         "navigation calibration UI must expose calibration status text");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_refreshes_navigation_confidence_after_probe_calibration()
+{
+    const QString navigationHeader = readFile(QStringLiteral("UI/NewPages/NavigationPage.h"));
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+
+    QVERIFY2(navigationHeader.contains(QStringLiteral("void refreshNavigationConfidenceState(bool showWarnings = false);")),
+        "navigation page must expose a shared navigation confidence refresh helper");
+    QVERIFY2(navigationHeader.contains(QStringLiteral("bool tryBuildNavigationConfidenceInputs(NavigationConfidenceInputs& inputs) const;")),
+        "navigation page must expose a shared navigation confidence input builder");
+    QVERIFY2(navigationSource.contains(QStringLiteral("refreshNavigationConfidenceState(true);")),
+        "navigation start must evaluate navigation confidence through the shared refresh helper");
+    QVERIFY2(navigationSource.contains(QStringLiteral("applyCalibrationResult(m_trackingSessionId, m_navigationToolId, calibrationResult)")),
+        "probe calibration completion must still apply calibration result to the active tool");
+    QVERIFY2(navigationSource.contains(QStringLiteral("refreshNavigationConfidenceState();")),
+        "probe calibration completion must refresh navigation confidence state after applying calibration");
+    QVERIFY2(navigationSource.contains(QStringLiteral("inputs.toolCalibrated")),
+        "navigation confidence inputs must include probe calibration completion state");
+    QVERIFY2(navigationSource.contains(QStringLiteral("inputs.calibrationAccuracy")),
+        "navigation confidence inputs must include probe calibration accuracy");
+    QVERIFY2(navigationSource.contains(QStringLiteral("navigationReadinessLabel")),
+        "navigation page must expose readiness status text");
+    QVERIFY2(navigationSource.contains(QStringLiteral("navigationConfidenceLabel")),
+        "navigation page must expose confidence score text");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_refreshes_navigation_confidence_after_registration_state_changes()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+
+    QVERIFY2(navigationSource.contains(QStringLiteral("connect(registrationService, &PointRegistrationService::pointAdded")),
+        "navigation page must observe registration point additions");
+    QVERIFY2(navigationSource.contains(QStringLiteral("connect(registrationService, &PointRegistrationService::pointRemoved")),
+        "navigation page must observe registration point removals");
+    QVERIFY2(navigationSource.contains(QStringLiteral("connect(registrationService, &PointRegistrationService::pointsCleared")),
+        "navigation page must observe registration point clearing");
+    QVERIFY2(navigationSource.contains(QStringLiteral("connect(registrationService, &PointRegistrationService::pointUpdated")),
+        "navigation page must observe registration point updates");
+    QVERIFY2(navigationSource.contains(QStringLiteral("onRegistrationFailed")),
+        "navigation page must still expose registration failure handling");
+    QVERIFY2(navigationSource.contains(QStringLiteral("onNavigationTimerUpdate")),
+        "navigation page must still expose runtime navigation updates");
+    QVERIFY2(navigationSource.contains(QStringLiteral("refreshNavigationConfidenceState();")),
+        "registration state changes must refresh navigation confidence state");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_enforces_runtime_navigation_gate_while_active()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString functionStart = QStringLiteral("void NavigationPageNew::onNavigationTimerUpdate()");
+    const QString nextFunctionStart = QStringLiteral("void NavigationPageNew::onNavigation3DBoneLoaded");
+    const int startIndex = navigationSource.indexOf(functionStart);
+    QVERIFY2(startIndex >= 0, "navigation page must define onNavigationTimerUpdate()");
+
+    const int endIndex = navigationSource.indexOf(nextFunctionStart, startIndex);
+    QVERIFY2(endIndex > startIndex, "navigation page must keep onNavigation3DBoneLoaded after onNavigationTimerUpdate()");
+
+    const QString timerUpdateBody = navigationSource.mid(startIndex, endIndex - startIndex);
+
+    QVERIFY2(timerUpdateBody.contains(QStringLiteral("refreshNavigationConfidenceState(true);")),
+        "runtime navigation updates must reevaluate navigation confidence with warning output");
+    QVERIFY2(timerUpdateBody.contains(QStringLiteral("on_pauseNavigationButton_clicked();")),
+        "runtime navigation updates must auto-pause navigation when confidence gate fails");
+    QVERIFY2(timerUpdateBody.contains(QStringLiteral("if (!m_lastConfidence.allowNavigation)")),
+        "runtime navigation updates must branch on the latest confidence gate result");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_persists_navigation_gate_evidence_into_evaluation_report()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+
+    QVERIFY2(navigationSource.contains(QStringLiteral("report.confidenceScore = m_lastConfidence.score;")),
+        "navigation page must persist the latest confidence score into evaluation report");
+    QVERIFY2(navigationSource.contains(QStringLiteral("report.gateReasons = m_lastConfidence.recommendations;")),
+        "navigation page must persist gate reasons into evaluation report");
 }
 
 QTEST_APPLESS_MAIN(AnkleNavigationWorkflowContractTest)

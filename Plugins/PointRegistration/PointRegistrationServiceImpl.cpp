@@ -1,5 +1,7 @@
 ﻿#include "PointRegistrationServiceImpl.h"
 #include "Plugins/RegistrationCore/ankle_registration_utils.h"
+#include "Framework/Platform/Kernel/platform_service_registry.h"
+#include "Plugins/RegistrationCore/RegistrationService.h"
 #include "widgets/PointRegistrationWidget.h"
 #include "internal/PointRegistrationVTKWidget.h"
 #include <QDebug>
@@ -18,6 +20,47 @@
 #include <vtkSTLReader.h>
 #endif
 
+namespace {
+
+#ifdef VTK_FOUND
+QMatrix4x4 vtkMatrixToQMatrix(vtkMatrix4x4* matrix)
+{
+    QMatrix4x4 qtMatrix;
+    for (int row = 0; row < 4; ++row) {
+        for (int column = 0; column < 4; ++column) {
+            qtMatrix(row, column) = static_cast<float>(matrix->GetElement(row, column));
+        }
+    }
+    return qtMatrix;
+}
+
+QVariantList vtkMatrixToVariantList(vtkMatrix4x4* matrix)
+{
+    QVariantList values;
+    values.reserve(16);
+    for (int row = 0; row < 4; ++row) {
+        for (int column = 0; column < 4; ++column) {
+            values.append(matrix->GetElement(row, column));
+        }
+    }
+    return values;
+}
+
+vtkSmartPointer<vtkPolyData> buildProbePointCloud(const QList<QVector3D>& points)
+{
+    auto vtkPointsData = vtkSmartPointer<vtkPoints>::New();
+    for (const auto& point : points) {
+        vtkPointsData->InsertNextPoint(point.x(), point.y(), point.z());
+    }
+
+    auto polyData = vtkSmartPointer<vtkPolyData>::New();
+    polyData->SetPoints(vtkPointsData);
+    return polyData;
+}
+#endif
+
+}
+
 PointRegistrationServiceImpl::PointRegistrationServiceImpl(QObject* parent)
     : PointRegistrationService(parent)
     , m_transformMode(TransformMode::RigidBody)
@@ -27,6 +70,7 @@ PointRegistrationServiceImpl::PointRegistrationServiceImpl(QObject* parent)
     , m_probeSimulator(nullptr)
     , m_segmentationService(nullptr)
     , m_trackingService(nullptr)
+    , m_serviceRegistry(nullptr)
 {
 #ifdef VTK_FOUND
     m_landmarkTransform = vtkSmartPointer<vtkLandmarkTransform>::New();
@@ -52,6 +96,13 @@ PointRegistrationServiceImpl::~PointRegistrationServiceImpl()
     logMessage("INFO", "点配准服务实例已销毁");
 }
 
+void PointRegistrationServiceImpl::invalidateRegistrationState()
+{
+    m_hasValidResult = false;
+    m_lastResult = PointRegistrationResult();
+    m_transformMatrix.setToIdentity();
+}
+
 // ========== 点管理实现 ==========
 
 int PointRegistrationServiceImpl::addPoint(const QString& name)
@@ -75,7 +126,7 @@ bool PointRegistrationServiceImpl::removePoint(int index)
     
     QString name = m_points[index].name;
     m_points.removeAt(index);
-    m_hasValidResult = false;
+    invalidateRegistrationState();
     
     logMessage("INFO", QString("移除配准点: %1").arg(name));
     emit pointRemoved(index);
@@ -85,8 +136,7 @@ bool PointRegistrationServiceImpl::removePoint(int index)
 void PointRegistrationServiceImpl::clearPoints()
 {
     m_points.clear();
-    m_hasValidResult = false;
-    m_transformMatrix.setToIdentity();
+    invalidateRegistrationState();
     
     logMessage("INFO", "清空所有配准点");
     emit pointsCleared();
@@ -119,7 +169,7 @@ bool PointRegistrationServiceImpl::setSourcePosition(int index, const QVector3D&
     
     m_points[index].sourcePosition = position;
     m_points[index].hasSource = true;
-    m_hasValidResult = false;
+    invalidateRegistrationState();
     
     logMessage("INFO", QString("设置源点 %1: (%2, %3, %4)")
         .arg(m_points[index].name)
@@ -140,7 +190,7 @@ bool PointRegistrationServiceImpl::setTargetPosition(int index, const QVector3D&
     
     m_points[index].targetPosition = position;
     m_points[index].hasTarget = true;
-    m_hasValidResult = false;
+    invalidateRegistrationState();
     
     logMessage("INFO", QString("设置目标点 %1: (%2, %3, %4)")
         .arg(m_points[index].name)
@@ -169,7 +219,7 @@ bool PointRegistrationServiceImpl::setPointName(int index, const QString& name)
 void PointRegistrationServiceImpl::setTransformMode(TransformMode mode)
 {
     m_transformMode = mode;
-    m_hasValidResult = false;
+    invalidateRegistrationState();
     logMessage("INFO", QString("设置变换模式: %1").arg(transformModeToString(mode)));
 }
 
@@ -219,6 +269,7 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
     if (validCount < 3) {
         result.errorMessage = QString("有效点对数量不足: %1 (至少需要3个)").arg(validCount);
         m_lastError = result.errorMessage;
+        invalidateRegistrationState();
         logMessage("ERROR", result.errorMessage);
         emit registrationFailed(result.errorMessage);
         return result;
@@ -264,21 +315,54 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
     // 执行配准
     m_landmarkTransform->Update();
 
-    // 获取变换矩阵
-    vtkMatrix4x4* vtkMatrix = m_landmarkTransform->GetMatrix();
+    auto finalMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+    finalMatrix->DeepCopy(m_landmarkTransform->GetMatrix());
+    QString refineMethod = QStringLiteral("weighted_landmark_only");
+    bool delegatedGpuRefine = false;
 
-    // 转换为QMatrix4x4
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            m_transformMatrix(i, j) = static_cast<float>(vtkMatrix->GetElement(i, j));
+    if (m_modelPolyData && m_modelPolyData->GetNumberOfPoints() > 0) {
+        if (auto* coreRegistrationService = registrationService()) {
+            emit progressUpdated(70, QString::fromUtf8("委托 RegistrationCore 执行 GPU 表面精配准..."));
+
+            auto probePointCloud = buildProbePointCloud(coarseTargetPoints);
+            auto coarseCtToPhysical = vtkSmartPointer<vtkMatrix4x4>::New();
+            coarseCtToPhysical->DeepCopy(finalMatrix);
+
+            auto coarsePhysicalToCt = vtkSmartPointer<vtkMatrix4x4>::New();
+            vtkMatrix4x4::Invert(coarseCtToPhysical, coarsePhysicalToCt);
+
+            QVariantMap parameters;
+            parameters.insert(QStringLiteral("useGPU"), true);
+            parameters.insert(QStringLiteral("registrationId"),
+                              QStringLiteral("point_registration_gpu_%1").arg(m_currentSession.sessionId));
+            parameters.insert(QStringLiteral("initialTransform"), vtkMatrixToVariantList(coarsePhysicalToCt));
+            parameters.insert(QStringLiteral("maxIterations"), 50);
+            parameters.insert(QStringLiteral("distanceThreshold"), 10.0);
+            parameters.insert(QStringLiteral("usePointToPlane"), true);
+
+            if (auto refinedPhysicalToCt =
+                    coreRegistrationService->performICPRegistrationAdvanced(
+                        probePointCloud, m_modelPolyData, parameters)) {
+                vtkMatrix4x4::Invert(refinedPhysicalToCt, finalMatrix);
+                refineMethod = QStringLiteral("registration_core_gpu_gicp");
+                delegatedGpuRefine = true;
+                logMessage("INFO", QString::fromUtf8("RegistrationCore GPU 精配准已接管当前主链"));
+            } else {
+                logMessage("WARNING", QString::fromUtf8("RegistrationCore GPU 精配准失败，回退到加权地标结果"));
+            }
+        } else {
+            logMessage("WARNING", QString::fromUtf8("RegistrationService 不可用，保持加权地标配准结果"));
         }
     }
+
+    // 转换为QMatrix4x4
+    m_transformMatrix = vtkMatrixToQMatrix(finalMatrix);
     result.transformMatrix = m_transformMatrix;
 
     // 提取平移分量
-    result.translationX = vtkMatrix->GetElement(0, 3);
-    result.translationY = vtkMatrix->GetElement(1, 3);
-    result.translationZ = vtkMatrix->GetElement(2, 3);
+    result.translationX = finalMatrix->GetElement(0, 3);
+    result.translationY = finalMatrix->GetElement(1, 3);
+    result.translationZ = finalMatrix->GetElement(2, 3);
 
     // 计算欧拉角
     calculateEulerAngles(m_transformMatrix, result.rotationX, result.rotationY, result.rotationZ);
@@ -312,11 +396,14 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
     const QList<int> roiPointIndices =
         AnkleRegistrationUtils::selectRoiPointIndices(coarseTargetPoints, roiCenter, 30.0);
 
-    result.targetRegionTre = coarseResult.success ? coarseResult.weightedRmsError : result.rmsError;
+    result.targetRegionTre = delegatedGpuRefine
+        ? result.rmsError
+        : (coarseResult.success ? coarseResult.weightedRmsError : result.rmsError);
     result.coverageScore = validCount > 0 ? qMin(1.0, static_cast<double>(roiPointIndices.size()) / validCount) : 0.0;
-    result.metrics.insert(QStringLiteral("registration_mode"), QStringLiteral("ankle_two_stage"));
+    result.metrics.insert(QStringLiteral("registration_mode"), QStringLiteral("ankle_two_stage_constrained"));
     result.metrics.insert(QStringLiteral("coarse_method"), QStringLiteral("weighted_landmark"));
-    result.metrics.insert(QStringLiteral("refine_method"), QStringLiteral("roi_local_refine"));
+    result.metrics.insert(QStringLiteral("refine_method"), refineMethod);
+    result.metrics.insert(QStringLiteral("delegated_gpu_refine"), delegatedGpuRefine);
     result.metrics.insert(QStringLiteral("coarse_rms"), coarseResult.weightedRmsError);
     result.metrics.insert(QStringLiteral("refined_rms"), result.rmsError);
     result.metrics.insert(QStringLiteral("roi_point_count"), roiPointIndices.size());
@@ -326,12 +413,16 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
 
     result.durationMs = timer.elapsed();
 
-    logMessage("INFO", QString("配准成功: RMS=%.3f mm, MaxErr=%.3f mm, 耗时=%.1f ms")
-        .arg(result.rmsError).arg(result.maxError).arg(result.durationMs));
+    logMessage("INFO",
+               QStringLiteral("配准成功: RMS=%1 mm, MaxErr=%2 mm, 耗时=%3 ms")
+                   .arg(result.rmsError, 0, 'f', 3)
+                   .arg(result.maxError, 0, 'f', 3)
+                   .arg(result.durationMs, 0, 'f', 1));
 
 #else
     result.errorMessage = "VTK未启用，无法执行配准";
     m_lastError = result.errorMessage;
+    invalidateRegistrationState();
     logMessage("ERROR", result.errorMessage);
     emit registrationFailed(result.errorMessage);
     return result;
@@ -851,6 +942,13 @@ void PointRegistrationServiceImpl::setTrackingService(OpticalTrackingService* se
                    .arg(service ? "有效" : "空"));
 }
 
+void PointRegistrationServiceImpl::setServiceRegistry(PlatformServiceRegistry* serviceRegistry)
+{
+    m_serviceRegistry = serviceRegistry;
+    logMessage("INFO", QString::fromUtf8("平台服务注册表已设置: %1")
+                   .arg(serviceRegistry ? "有效" : "空"));
+}
+
 // ========== 错误处理实现 ==========
 
 QString PointRegistrationServiceImpl::getLastError() const
@@ -912,4 +1010,14 @@ void PointRegistrationServiceImpl::logMessage(const QString& level, const QStrin
     } else {
         qDebug().noquote() << formattedMsg;
     }
+}
+
+registration_core::RegistrationService* PointRegistrationServiceImpl::registrationService() const
+{
+    if (!m_serviceRegistry) {
+        return nullptr;
+    }
+
+    return dynamic_cast<registration_core::RegistrationService*>(
+        m_serviceRegistry->service(QStringLiteral("RegistrationService")));
 }

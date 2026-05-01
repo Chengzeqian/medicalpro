@@ -10,7 +10,7 @@
  */
 
 #include "PointRegistrationDataStructures.h"
-#include "target_sensitive_point_selector.h"
+#include "registration_point_strategy_registry.h"
 #include <QObject>
 #include <QVector3D>
 #include <QMatrix4x4>
@@ -159,6 +159,9 @@ public:
      */
     int generateSimulatedProbePoints(double noiseLevel = 0.5);
 
+    void setExecutionOptions(const PointRegistrationExecutionOptions& options);
+    PointRegistrationExecutionOptions executionOptions() const;
+
     // ========== 配准执行 ==========
 
     /**
@@ -175,6 +178,9 @@ public:
     void setTargetRegistrationRegion(const TargetRegistrationRegion& region);
     QList<RecommendedRegistrationPoint> recommendRegistrationPoints(
         const QList<CandidateRegistrationPoint>& candidates) const;
+    QList<RecommendedRegistrationPoint> recommendRegistrationPoints(
+        const QList<CandidateRegistrationPoint>& candidates,
+        const QString& strategyId) const;
 
     /**
      * @brief 获取最后配准结果
@@ -274,6 +280,8 @@ signals:
     void errorOccurred(const QString& error);
 
 private:
+    void decorateRegistrationResult(PointRegistrationResult& result) const;
+    void invalidateLastResult();
     void setState(RegistrationSessionState state);
     void connectServiceSignals();
 
@@ -282,9 +290,10 @@ private:
     QString m_sessionId;
     RegistrationSessionState m_state;
     ProbePointSource m_probeSource;
+    PointRegistrationExecutionOptions m_executionOptions;
     PointRegistrationResult m_lastResult;
     TargetRegistrationRegion m_targetRegion;
-    TargetSensitivePointSelector m_pointSelector;
+    RegistrationPointStrategyRegistry m_strategyRegistry;
 };
 
 #endif // REGISTRATION_WORKFLOW_H

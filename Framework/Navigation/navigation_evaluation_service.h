@@ -15,6 +15,7 @@ public:
 
 private:
     QString caseRoot(const QString& caseId) const;
+    QString evaluationRoot(const QString& caseId) const;
     QString registrationPath(const QString& caseId) const;
     QString navigationPath(const QString& caseId) const;
     QString evaluationPath(const QString& caseId) const;

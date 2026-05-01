@@ -144,6 +144,8 @@ private:
     void finishProbeCalibration();
     void cancelProbeCalibration();
     void updateProbeCalibrationUi();
+    bool tryBuildNavigationConfidenceInputs(NavigationConfidenceInputs& inputs) const;
+    void refreshNavigationConfidenceState(bool showWarnings = false);
     void performLoadDicom();
     void performComputeRegistration();
     void performStartNavigation();

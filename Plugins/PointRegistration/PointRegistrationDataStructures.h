@@ -83,6 +83,12 @@ struct PointRegistrationParameters {
     }
 };
 
+struct PointRegistrationExecutionOptions {
+    QString pointSelectionStrategyId = QStringLiteral("target_sensitive");
+    QString registrationMethodId = QStringLiteral("ankle_two_stage_constrained");
+    bool exportDetailedMetrics = false;
+};
+
 /**
  * @brief 配准结果结构
  */
@@ -166,6 +172,7 @@ struct RegistrationSession {
 // 声明为Qt元类型，支持跨线程信号槽传递
 Q_DECLARE_METATYPE(RegistrationPoint)
 Q_DECLARE_METATYPE(PointRegistrationParameters)
+Q_DECLARE_METATYPE(PointRegistrationExecutionOptions)
 Q_DECLARE_METATYPE(PointRegistrationResult)
 Q_DECLARE_METATYPE(ProbePointSource)
 Q_DECLARE_METATYPE(RegistrationSessionState)

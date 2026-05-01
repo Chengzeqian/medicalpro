@@ -21,6 +21,11 @@ class vtkSTLReader;
 // 前向声明服务依赖
 class SegmentationService;
 class OpticalTrackingService;
+class PlatformServiceRegistry;
+
+namespace registration_core {
+class RegistrationService;
+}
 
 /**
  * @brief 点配准服务实现类
@@ -97,8 +102,11 @@ public:
     // ========== 服务依赖注入 ==========
     void setSegmentationService(SegmentationService* service);
     void setTrackingService(OpticalTrackingService* service);
+    void setServiceRegistry(PlatformServiceRegistry* serviceRegistry);
 
 private:
+    void invalidateRegistrationState();
+
     /**
      * @brief 计算两点之间的误差
      */
@@ -120,6 +128,8 @@ private:
      * @brief 日志输出
      */
     void logMessage(const QString& level, const QString& message) const;
+
+    registration_core::RegistrationService* registrationService() const;
 
 private:
     QVector<RegistrationPoint> m_points;           ///< 配准点列表
@@ -149,6 +159,7 @@ private:
     // 服务依赖
     SegmentationService* m_segmentationService;    ///< 分割服务（可选）
     OpticalTrackingService* m_trackingService;     ///< 跟踪服务（可选）
+    PlatformServiceRegistry* m_serviceRegistry;    ///< 平台服务注册表
 
 #ifdef VTK_FOUND
     vtkSmartPointer<vtkLandmarkTransform> m_landmarkTransform;  ///< VTK配准对象
