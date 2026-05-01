@@ -11,6 +11,7 @@
       "hidden": true,
       "generator": "Visual Studio 17 2022",
       "architecture": "x64",
+      "toolset": "v142",
       "binaryDir": "${sourceDir}/build_x64",
       "cacheVariables": {
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/build_x64/install"
@@ -22,9 +23,23 @@
       "inherits": "x64-base"
     },
     {
+      "name": "x64-release-v142",
+      "displayName": "medicalpro x64 Release (v142 MeshGPU)",
+      "inherits": "x64-base",
+      "binaryDir": "${sourceDir}/build_x64_v142",
+      "toolset": "v142"
+    },
+    {
       "name": "x64-debug",
       "displayName": "medicalpro x64 Debug",
       "inherits": "x64-base"
+    },
+    {
+      "name": "x64-debug-v142",
+      "displayName": "medicalpro x64 Debug (v142 MeshGPU)",
+      "inherits": "x64-base",
+      "binaryDir": "${sourceDir}/build_x64_v142",
+      "toolset": "v142"
     }
   ],
   "buildPresets": [
@@ -41,6 +56,24 @@
       "name": "x64-debug",
       "displayName": "Build medicalpro x64 Debug",
       "configurePreset": "x64-debug",
+      "configuration": "Debug",
+      "targets": [
+        "medicalpro"
+      ]
+    },
+    {
+      "name": "x64-release-v142",
+      "displayName": "Build medicalpro x64 Release (v142 MeshGPU)",
+      "configurePreset": "x64-release-v142",
+      "configuration": "Release",
+      "targets": [
+        "medicalpro"
+      ]
+    },
+    {
+      "name": "x64-debug-v142",
+      "displayName": "Build medicalpro x64 Debug (v142 MeshGPU)",
+      "configurePreset": "x64-debug-v142",
       "configuration": "Debug",
       "targets": [
         "medicalpro"
