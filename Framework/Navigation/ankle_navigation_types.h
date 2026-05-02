@@ -31,12 +31,24 @@ struct AnkleCaseManifest
     QList<AnkleModelAsset> modelAssets;
 };
 
+struct AnkleConstraintRegionMetadata
+{
+    QString boneName;
+    QString regionRole;
+    QString source;
+    QString version;
+};
+
 struct AnklePlanningData
 {
     QString caseId;
     QStringList primaryBones;
     QMap<QString, QVector3D> referenceLandmarks;
+    QMap<QString, QList<QVector3D>> anatomicalConstraintRegions;
+    QMap<QString, AnkleConstraintRegionMetadata> anatomicalConstraintRegionMetadata;
     QStringList recommendedPointOrder;
+    QVector3D targetRegionCenter;
+    double targetRegionRadiusMm = 0.0;
     QVector3D targetTranslation;
     QQuaternion targetOrientation;
     QString planningFileVersion;
@@ -58,6 +70,7 @@ struct AnkleNavigationRunRecord
     QString navigationMode;
     double confidenceScore = 0.0;
     QStringList warnings;
+    QVariantMap metrics;
 };
 
 struct AnkleEvaluationReport
@@ -70,6 +83,31 @@ struct AnkleEvaluationReport
     QStringList gateReasons;
     bool calibrated = false;
     double calibrationAccuracyMm = 0.0;
+    QVariantMap metrics;
+};
+
+struct AnkleEvaluationSnapshot
+{
+    QString caseId;
+    bool hasRegistration = false;
+    bool hasNavigationRun = false;
+    bool hasEvaluationReport = false;
+    QString registrationMode;
+    double fre = 0.0;
+    double targetTre = 0.0;
+    double coverageScore = 0.0;
+    QString navigationMode;
+    double navigationConfidenceScore = 0.0;
+    double translationErrorMm = 0.0;
+    double rotationErrorDeg = 0.0;
+    bool allowNavigation = false;
+    double evaluationConfidenceScore = 0.0;
+    QStringList gateReasons;
+    bool calibrated = false;
+    double calibrationAccuracyMm = 0.0;
+    QVariantMap registrationMetrics;
+    QVariantMap navigationMetrics;
+    QVariantMap evaluationMetrics;
 };
 
 struct AnkleInnovationSummaryRow

@@ -17,6 +17,7 @@ class PlatformStartupCoordinatorTest : public QObject
 
 private slots:
     void loadFromFile_reads_runtime_mode_and_core_plugin_ids();
+    void loadFromFile_reads_real_case_workspace_seed_when_present();
     void resolveCorePluginIds_maps_to_symbolic_names();
     void resolveCorePluginIds_rejects_missing_descriptor();
     void facade_mode_runs_only_managed_core_startup_phases();
@@ -65,6 +66,47 @@ void PlatformStartupCoordinatorTest::loadFromFile_reads_runtime_mode_and_core_pl
     QVERIFY2(error.isEmpty(), qPrintable(error));
     QCOMPARE(config.runtimeMode, PlatformRuntimeMode::FacadeMode);
     QCOMPARE(config.corePluginIds.size(), 3);
+}
+
+void PlatformStartupCoordinatorTest::loadFromFile_reads_real_case_workspace_seed_when_present()
+{
+    QTemporaryDir dir;
+    QFile file(dir.filePath(QStringLiteral("platform_runtime.json")));
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Text));
+    file.write(R"json({
+      "runtime_mode": "facade_mode",
+      "descriptor_directory": "plugins/descriptors",
+      "core_plugin_ids": [
+        "org.medicalpro.user_management"
+      ],
+      "real_case_workspace_seed": {
+        "enabled": true,
+        "case_id": "ankle-case-real-45971129749",
+        "patient_id": "45971129749",
+        "patient_name": "Real Case 45971129749",
+        "surgery_id": "ankle-navigation-real-45971129749",
+        "tibia_model_path": "D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/tibia.stl",
+        "talus_model_path": "D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/talus.stl",
+        "target_region_center": {
+          "x": 46.4,
+          "y": -27.6,
+          "z": -15.0
+        },
+        "target_region_radius_mm": 20.0
+      }
+    })json");
+    file.close();
+
+    QString error;
+    const auto config = PlatformRuntimeConfig::loadFromFile(file.fileName(), &error);
+    QVERIFY2(error.isEmpty(), qPrintable(error));
+    QCOMPARE(config.realCaseWorkspaceSeed.enabled, true);
+    QCOMPARE(config.realCaseWorkspaceSeed.caseId, QStringLiteral("ankle-case-real-45971129749"));
+    QCOMPARE(config.realCaseWorkspaceSeed.patientId, QStringLiteral("45971129749"));
+    QCOMPARE(config.realCaseWorkspaceSeed.tibiaModelPath, QStringLiteral("D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/tibia.stl"));
+    QCOMPARE(config.realCaseWorkspaceSeed.talusModelPath, QStringLiteral("D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/talus.stl"));
+    QCOMPARE(config.realCaseWorkspaceSeed.targetRegionCenter, QVector3D(46.4f, -27.6f, -15.0f));
+    QCOMPARE(config.realCaseWorkspaceSeed.targetRegionRadiusMm, 20.0);
 }
 
 void PlatformStartupCoordinatorTest::resolveCorePluginIds_maps_to_symbolic_names()

@@ -42,6 +42,45 @@ QQuaternion quaternionFromJson(const QJsonObject& object)
         static_cast<float>(object.value(QStringLiteral("y")).toDouble()),
         static_cast<float>(object.value(QStringLiteral("z")).toDouble()));
 }
+
+QJsonArray vectorListToJson(const QList<QVector3D>& vectors)
+{
+    QJsonArray array;
+    for (const QVector3D& vector : vectors) {
+        array.append(vectorToJson(vector));
+    }
+    return array;
+}
+
+QList<QVector3D> vectorListFromJson(const QJsonArray& array)
+{
+    QList<QVector3D> vectors;
+    vectors.reserve(array.size());
+    for (const QJsonValue& value : array) {
+        vectors.append(vectorFromJson(value.toObject()));
+    }
+    return vectors;
+}
+
+QJsonObject constraintRegionMetadataToJson(const AnkleConstraintRegionMetadata& metadata)
+{
+    QJsonObject object;
+    object.insert(QStringLiteral("bone_name"), metadata.boneName);
+    object.insert(QStringLiteral("region_role"), metadata.regionRole);
+    object.insert(QStringLiteral("source"), metadata.source);
+    object.insert(QStringLiteral("version"), metadata.version);
+    return object;
+}
+
+AnkleConstraintRegionMetadata constraintRegionMetadataFromJson(const QJsonObject& object)
+{
+    AnkleConstraintRegionMetadata metadata;
+    metadata.boneName = object.value(QStringLiteral("bone_name")).toString();
+    metadata.regionRole = object.value(QStringLiteral("region_role")).toString();
+    metadata.source = object.value(QStringLiteral("source")).toString();
+    metadata.version = object.value(QStringLiteral("version")).toString();
+    return metadata;
+}
 }
 
 AnklePlanningService::AnklePlanningService(const AnkleCaseWorkspaceRepository& repository)
@@ -115,6 +154,20 @@ QJsonObject AnklePlanningService::toJson(const AnklePlanningData& planning) cons
         landmarksObject.insert(it.key(), vectorToJson(it.value()));
     }
 
+    QJsonObject constraintRegionsObject;
+    for (auto it = planning.anatomicalConstraintRegions.cbegin();
+         it != planning.anatomicalConstraintRegions.cend();
+         ++it) {
+        constraintRegionsObject.insert(it.key(), vectorListToJson(it.value()));
+    }
+
+    QJsonObject constraintRegionMetadataObject;
+    for (auto it = planning.anatomicalConstraintRegionMetadata.cbegin();
+         it != planning.anatomicalConstraintRegionMetadata.cend();
+         ++it) {
+        constraintRegionMetadataObject.insert(it.key(), constraintRegionMetadataToJson(it.value()));
+    }
+
     QJsonArray bonesArray;
     for (const QString& bone : planning.primaryBones) {
         bonesArray.append(bone);
@@ -129,7 +182,11 @@ QJsonObject AnklePlanningService::toJson(const AnklePlanningData& planning) cons
     object.insert(QStringLiteral("case_id"), planning.caseId);
     object.insert(QStringLiteral("primary_bones"), bonesArray);
     object.insert(QStringLiteral("reference_landmarks"), landmarksObject);
+    object.insert(QStringLiteral("anatomical_constraint_regions"), constraintRegionsObject);
+    object.insert(QStringLiteral("anatomical_constraint_region_metadata"), constraintRegionMetadataObject);
     object.insert(QStringLiteral("recommended_point_order"), orderArray);
+    object.insert(QStringLiteral("target_region_center"), vectorToJson(planning.targetRegionCenter));
+    object.insert(QStringLiteral("target_region_radius_mm"), planning.targetRegionRadiusMm);
     object.insert(QStringLiteral("target_translation"), vectorToJson(planning.targetTranslation));
     object.insert(QStringLiteral("target_orientation"), quaternionToJson(planning.targetOrientation));
     object.insert(QStringLiteral("planning_file_version"), planning.planningFileVersion);
@@ -152,11 +209,24 @@ AnklePlanningData AnklePlanningService::fromJson(const QJsonObject& object) cons
         planning.referenceLandmarks.insert(it.key(), vectorFromJson(it.value().toObject()));
     }
 
+    const QJsonObject constraintRegionsObject = object.value(QStringLiteral("anatomical_constraint_regions")).toObject();
+    for (auto it = constraintRegionsObject.begin(); it != constraintRegionsObject.end(); ++it) {
+        planning.anatomicalConstraintRegions.insert(it.key(), vectorListFromJson(it.value().toArray()));
+    }
+
+    const QJsonObject constraintRegionMetadataObject =
+        object.value(QStringLiteral("anatomical_constraint_region_metadata")).toObject();
+    for (auto it = constraintRegionMetadataObject.begin(); it != constraintRegionMetadataObject.end(); ++it) {
+        planning.anatomicalConstraintRegionMetadata.insert(it.key(), constraintRegionMetadataFromJson(it.value().toObject()));
+    }
+
     const QJsonArray orderArray = object.value(QStringLiteral("recommended_point_order")).toArray();
     for (const QJsonValue& value : orderArray) {
         planning.recommendedPointOrder.append(value.toString());
     }
 
+    planning.targetRegionCenter = vectorFromJson(object.value(QStringLiteral("target_region_center")).toObject());
+    planning.targetRegionRadiusMm = object.value(QStringLiteral("target_region_radius_mm")).toDouble();
     planning.targetTranslation = vectorFromJson(object.value(QStringLiteral("target_translation")).toObject());
     planning.targetOrientation = quaternionFromJson(object.value(QStringLiteral("target_orientation")).toObject());
     return planning;

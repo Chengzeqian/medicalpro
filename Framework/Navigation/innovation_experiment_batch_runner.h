@@ -7,6 +7,7 @@
 struct InnovationBatchInput
 {
     QStringList caseIds;
+    QString caseDataRoot;
 };
 
 struct InnovationBatchOutput

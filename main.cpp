@@ -713,6 +713,7 @@ int main(int argc, char* argv[])
         auto mainInterfaceOwner = createMainInterface(
             startupContext->navigationAdapter.get(),
             &bootstrapStateStore,
+            runtimeConfig.realCaseWorkspaceSeed,
             nullptr);
         mainInterface = mainInterfaceOwner.release();
         mainInterface->setAttribute(Qt::WA_DeleteOnClose, true);

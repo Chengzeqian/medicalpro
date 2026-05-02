@@ -61,6 +61,7 @@ InnovationBatchOutput InnovationExperimentBatchRunner::run(const InnovationBatch
 
         Innovation2RegistrationInput innovation2Input;
         innovation2Input.caseId = caseId;
+        innovation2Input.caseDataRoot = input.caseDataRoot;
         innovation2Input.registrationMethodIds = innovation2MethodIds();
         innovation2Records.append(innovation2.run(innovation2Input));
 

@@ -5,5 +5,20 @@
     "org.medicalpro.user_management",
     "org.medicalpro.dicom_viewer",
     "org.medicalpro.four_view_display"
-  ]
+  ],
+  "real_case_workspace_seed": {
+    "enabled": true,
+    "case_id": "ankle-case-real-45971129749",
+    "patient_id": "45971129749",
+    "patient_name": "Real Case 45971129749",
+    "surgery_id": "ankle-navigation-real-45971129749",
+    "tibia_model_path": "D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/tibia.stl",
+    "talus_model_path": "D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/talus.stl",
+    "target_region_center": {
+      "x": 46.4559,
+      "y": -27.6488,
+      "z": -14.9759
+    },
+    "target_region_radius_mm": 20.0
+  }
 }

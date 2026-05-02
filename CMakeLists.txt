@@ -197,6 +197,10 @@ set(FRAMEWORK_SOURCES
     Framework/Navigation/ankle_case_workspace_repository.cpp
     Framework/Navigation/ankle_planning_service.h
     Framework/Navigation/ankle_planning_service.cpp
+    Framework/Navigation/real_case_asset_bootstrapper.h
+    Framework/Navigation/real_case_asset_bootstrapper.cpp
+    Framework/Navigation/real_case_workspace_seed_coordinator.h
+    Framework/Navigation/real_case_workspace_seed_coordinator.cpp
     Framework/Navigation/innovation_experiment_repository.h
     Framework/Navigation/innovation_experiment_repository.cpp
     Framework/Navigation/innovation_summary_csv_exporter.h

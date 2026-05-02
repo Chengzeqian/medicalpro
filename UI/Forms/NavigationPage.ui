@@ -1272,6 +1272,13 @@ QPushButton:hover { background-color: #95a5a6; }</string>
         <number>20</number>
        </property>
        <item>
+        <widget class="QPushButton" name="exportEvaluationSummaryButton">
+         <property name="text">
+          <string>导出全部病例评估汇总</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="evaluationPlaceholderLabel">
          <property name="text">
           <string>评估结果与导出将在此汇总</string>

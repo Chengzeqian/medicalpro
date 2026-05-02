@@ -12,6 +12,10 @@ public:
     bool saveNavigationRun(const AnkleNavigationRunRecord& record) const;
     bool saveEvaluationReport(const AnkleEvaluationReport& report) const;
     bool exportMetricsCsv(const QString& caseId) const;
+    AnkleEvaluationSnapshot loadEvaluationSnapshot(const QString& caseId) const;
+    bool exportCaseSummary(const QString& caseId) const;
+    QStringList discoverExportableCaseIds() const;
+    bool exportBatchSummaryCsv(const QStringList& caseIds) const;
 
 private:
     QString caseRoot(const QString& caseId) const;
@@ -20,6 +24,8 @@ private:
     QString navigationPath(const QString& caseId) const;
     QString evaluationPath(const QString& caseId) const;
     QString metricsCsvPath(const QString& caseId) const;
+    QString caseSummaryPath(const QString& caseId) const;
+    QString batchSummaryCsvPath() const;
 
     QString m_casesRoot;
 };

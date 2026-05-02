@@ -89,6 +89,7 @@ private slots:
     void on_disconnectTrackerButton_clicked();
     void on_startNavigationButton_clicked();
     void on_pauseNavigationButton_clicked();
+    void on_exportEvaluationSummaryButton_clicked();
     void on_resetViewButton_clicked();
     void onTrackerDataReceived();
     void onNavigationTimerUpdate();
@@ -117,6 +118,7 @@ protected:
 private:
     void setWorkflowStage(AnkleWorkflowStage stage);
     QString evaluationCasesRoot() const;
+    void refreshEvaluationSummary();
     void loadInstruments();
     void setupVTKViews();
     void cleanupVTKViews();

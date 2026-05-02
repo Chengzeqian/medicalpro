@@ -8,6 +8,7 @@
 struct Innovation2RegistrationInput
 {
     QString caseId;
+    QString caseDataRoot;
     QStringList registrationMethodIds;
 };
 

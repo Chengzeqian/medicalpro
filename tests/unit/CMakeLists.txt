@@ -920,6 +920,7 @@ target_include_directories(platform_startup_coordinator_test PRIVATE
 
 target_link_libraries(platform_startup_coordinator_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
     Qt${QT_VERSION_MAJOR}::Test
     Framework
 )
@@ -1364,6 +1365,78 @@ add_test(
 
 set_tests_properties(ankle_planning_service_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:ankle_planning_service_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(real_case_asset_bootstrap_test
+    RealCaseAssetBootstrapTest.cpp
+)
+
+target_include_directories(real_case_asset_bootstrap_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(real_case_asset_bootstrap_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME real_case_asset_bootstrap_test
+    COMMAND real_case_asset_bootstrap_test
+)
+
+set_tests_properties(real_case_asset_bootstrap_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:real_case_asset_bootstrap_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(real_case_asset_bootstrapper_test
+    RealCaseAssetBootstrapperTest.cpp
+)
+
+target_include_directories(real_case_asset_bootstrapper_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(real_case_asset_bootstrapper_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME real_case_asset_bootstrapper_test
+    COMMAND real_case_asset_bootstrapper_test
+)
+
+set_tests_properties(real_case_asset_bootstrapper_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:real_case_asset_bootstrapper_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+)
+
+add_executable(real_case_workspace_seed_coordinator_test
+    RealCaseWorkspaceSeedCoordinatorTest.cpp
+)
+
+target_include_directories(real_case_workspace_seed_coordinator_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(real_case_workspace_seed_coordinator_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME real_case_workspace_seed_coordinator_test
+    COMMAND real_case_workspace_seed_coordinator_test
+)
+
+set_tests_properties(real_case_workspace_seed_coordinator_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:real_case_workspace_seed_coordinator_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
 )
 
 add_executable(ankle_navigation_workflow_contract_test
@@ -1995,7 +2068,31 @@ add_test(
 )
 
 set_tests_properties(navigation_evaluation_service_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_evaluation_service_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_evaluation_service_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$ENV{PATH}"
+)
+
+add_executable(navigation_evaluation_summary_formatter_test
+    NavigationEvaluationSummaryFormatterTest.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_evaluation_summary_formatter.cpp
+)
+
+target_include_directories(navigation_evaluation_summary_formatter_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(navigation_evaluation_summary_formatter_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+add_test(
+    NAME navigation_evaluation_summary_formatter_test
+    COMMAND navigation_evaluation_summary_formatter_test
+)
+
+set_tests_properties(navigation_evaluation_summary_formatter_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_evaluation_summary_formatter_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$ENV{PATH}"
 )
 
 set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS
@@ -2023,11 +2120,14 @@ set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS
     navigation_gate_strategy_test
     navigation_confidence_evaluator_test
     navigation_evaluation_service_test
+    navigation_evaluation_summary_formatter_test
     innovation_1_point_selection_experiment_test
     innovation_2_registration_experiment_test
     innovation_3_gate_experiment_test
     innovation_experiment_batch_runner_test
     registration_core_meshgpu_smoke_test
+    real_case_asset_bootstrapper_test
+    real_case_workspace_seed_coordinator_test
 )
 
 foreach(_medicalpro_framework_unit_test IN LISTS MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS)
