@@ -7,6 +7,7 @@
  */
 
 #include "PointRegistrationService.h"
+#include "target_sensitive_point_selector.h"
 #include "ProbeSimulator.h"
 #include <QVector>
 #include <QPointer>
@@ -77,6 +78,11 @@ public:
     void setTrackingSession(const QString& sessionId,
                             const QString& probeToolId) override;
     QVector3D getCurrentProbePosition() const override;
+    void setExecutionOptions(const PointRegistrationExecutionOptions& options) override;
+    PointRegistrationExecutionOptions executionOptions() const override;
+    void setTargetRegistrationRegion(const TargetRegistrationRegion& region) override;
+    void setPlanningConstraintContext(const QVariantMap& context) override;
+    void setPlanningConstraintRegions(const QMap<QString, QList<QVector3D>>& regions) override;
 
     // ========== 模拟数据实现 ==========
     QVector3D generateSimulatedProbePoint(int pointIndex, double noiseLevel = 0.5) override;
@@ -105,6 +111,9 @@ public:
     void setServiceRegistry(PlatformServiceRegistry* serviceRegistry);
 
 private:
+    TargetRegistrationRegion m_targetRegion;
+    QVariantMap m_planningConstraintContext;
+    QMap<QString, QList<QVector3D>> m_planningConstraintRegions;
     void invalidateRegistrationState();
 
     /**

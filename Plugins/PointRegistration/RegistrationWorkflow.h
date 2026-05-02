@@ -12,6 +12,7 @@
 #include "PointRegistrationDataStructures.h"
 #include "registration_point_strategy_registry.h"
 #include <QObject>
+#include <QMap>
 #include <QVector3D>
 #include <QMatrix4x4>
 
@@ -176,6 +177,8 @@ public:
      */
     bool executeRegistration();
     void setTargetRegistrationRegion(const TargetRegistrationRegion& region);
+    void setPlanningConstraintContext(const QVariantMap& context);
+    void setPlanningConstraintRegions(const QMap<QString, QList<QVector3D>>& regions);
     QList<RecommendedRegistrationPoint> recommendRegistrationPoints(
         const QList<CandidateRegistrationPoint>& candidates) const;
     QList<RecommendedRegistrationPoint> recommendRegistrationPoints(
@@ -293,6 +296,8 @@ private:
     PointRegistrationExecutionOptions m_executionOptions;
     PointRegistrationResult m_lastResult;
     TargetRegistrationRegion m_targetRegion;
+    QMap<QString, QList<QVector3D>> m_planningConstraintRegions;
+    QVariantMap m_planningConstraintContext;
     RegistrationPointStrategyRegistry m_strategyRegistry;
 };
 

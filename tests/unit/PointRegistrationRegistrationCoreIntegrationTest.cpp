@@ -104,6 +104,12 @@ class PointRegistrationRegistrationCoreIntegrationTest : public QObject
 
 private slots:
     void execute_registration_delegates_gpu_refinement_to_registration_core();
+    void execute_registration_respects_single_stage_landmark_method();
+    void execute_registration_respects_global_icp_method();
+    void execute_registration_respects_global_gicp_method();
+    void execute_registration_respects_two_stage_constrained_method();
+    void execute_registration_uses_planned_constraint_regions_to_limit_two_stage_refinement();
+    void execute_registration_emits_planning_constraint_context_metrics();
     void mutating_points_invalidates_previous_registration_state();
     void failed_reregistration_clears_previous_registration_state();
 
@@ -165,6 +171,280 @@ void PointRegistrationRegistrationCoreIntegrationTest::execute_registration_dele
              QStringLiteral("registration_core_gpu_gicp"));
     QVERIFY(qAbs(result.translationX - 5.0) < 0.1);
     QVERIFY(qAbs(result.translationY - 3.0) < 0.1);
+}
+
+void PointRegistrationRegistrationCoreIntegrationTest::execute_registration_respects_single_stage_landmark_method()
+{
+    PlatformServiceRegistry registry;
+    FakeRegistrationService registrationService;
+    registry.registerService(QStringLiteral("RegistrationCore"), QStringLiteral("RegistrationService"), &registrationService);
+
+    PointRegistrationServiceImpl service;
+    service.setServiceRegistry(&registry);
+    RegistrationWorkflow workflow(&service);
+
+    PointRegistrationExecutionOptions options;
+    options.registrationMethodId = QStringLiteral("single_stage_landmark");
+    workflow.setExecutionOptions(options);
+
+    QVERIFY(service.loadModelFromPolyData(createTriangleModel(), QStringLiteral("ankle-model")));
+
+    const int point0 = service.addPoint(QStringLiteral("p0"));
+    const int point1 = service.addPoint(QStringLiteral("p1"));
+    const int point2 = service.addPoint(QStringLiteral("p2"));
+
+    QVERIFY(service.setSourcePosition(point0, QVector3D(0.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point1, QVector3D(10.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point2, QVector3D(0.0f, 10.0f, 0.0f)));
+
+    QVERIFY(service.setTargetPosition(point0, QVector3D(5.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point1, QVector3D(15.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point2, QVector3D(5.0f, 13.0f, 0.0f)));
+
+    QVERIFY(workflow.executeRegistration());
+
+    QCOMPARE(registrationService.advancedCallCount, 0);
+    QCOMPARE(workflow.getLastResult().metrics.value(QStringLiteral("registration_mode")).toString(),
+             QStringLiteral("single_stage_landmark"));
+    QCOMPARE(workflow.getLastResult().metrics.value(QStringLiteral("refine_method")).toString(),
+             QStringLiteral("weighted_landmark_only"));
+}
+
+void PointRegistrationRegistrationCoreIntegrationTest::execute_registration_respects_global_icp_method()
+{
+    PlatformServiceRegistry registry;
+    FakeRegistrationService registrationService;
+    registry.registerService(QStringLiteral("RegistrationCore"), QStringLiteral("RegistrationService"), &registrationService);
+
+    PointRegistrationServiceImpl service;
+    service.setServiceRegistry(&registry);
+    RegistrationWorkflow workflow(&service);
+
+    PointRegistrationExecutionOptions options;
+    options.registrationMethodId = QStringLiteral("landmark_plus_global_icp");
+    workflow.setExecutionOptions(options);
+
+    QVERIFY(service.loadModelFromPolyData(createTriangleModel(), QStringLiteral("ankle-model")));
+
+    const int point0 = service.addPoint(QStringLiteral("p0"));
+    const int point1 = service.addPoint(QStringLiteral("p1"));
+    const int point2 = service.addPoint(QStringLiteral("p2"));
+
+    QVERIFY(service.setSourcePosition(point0, QVector3D(0.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point1, QVector3D(10.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point2, QVector3D(0.0f, 10.0f, 0.0f)));
+
+    QVERIFY(service.setTargetPosition(point0, QVector3D(5.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point1, QVector3D(15.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point2, QVector3D(5.0f, 13.0f, 0.0f)));
+
+    QVERIFY(workflow.executeRegistration());
+
+    QCOMPARE(registrationService.advancedCallCount, 1);
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("useGPU")).toBool(), false);
+    QCOMPARE(workflow.getLastResult().metrics.value(QStringLiteral("registration_mode")).toString(),
+             QStringLiteral("landmark_plus_global_icp"));
+    QCOMPARE(workflow.getLastResult().metrics.value(QStringLiteral("refine_method")).toString(),
+             QStringLiteral("registration_core_cpu_icp"));
+}
+
+void PointRegistrationRegistrationCoreIntegrationTest::execute_registration_respects_global_gicp_method()
+{
+    PlatformServiceRegistry registry;
+    FakeRegistrationService registrationService;
+    registry.registerService(QStringLiteral("RegistrationCore"), QStringLiteral("RegistrationService"), &registrationService);
+
+    PointRegistrationServiceImpl service;
+    service.setServiceRegistry(&registry);
+    RegistrationWorkflow workflow(&service);
+
+    PointRegistrationExecutionOptions options;
+    options.registrationMethodId = QStringLiteral("landmark_plus_global_gicp");
+    workflow.setExecutionOptions(options);
+
+    QVERIFY(service.loadModelFromPolyData(createTriangleModel(), QStringLiteral("ankle-model")));
+
+    const int point0 = service.addPoint(QStringLiteral("p0"));
+    const int point1 = service.addPoint(QStringLiteral("p1"));
+    const int point2 = service.addPoint(QStringLiteral("p2"));
+
+    QVERIFY(service.setSourcePosition(point0, QVector3D(0.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point1, QVector3D(10.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point2, QVector3D(0.0f, 10.0f, 0.0f)));
+
+    QVERIFY(service.setTargetPosition(point0, QVector3D(5.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point1, QVector3D(15.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point2, QVector3D(5.0f, 13.0f, 0.0f)));
+
+    QVERIFY(workflow.executeRegistration());
+
+    QCOMPARE(registrationService.advancedCallCount, 1);
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("useGPU")).toBool(), true);
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("registrationMethodId")).toString(),
+             QStringLiteral("landmark_plus_global_gicp"));
+    QCOMPARE(workflow.getLastResult().metrics.value(QStringLiteral("registration_mode")).toString(),
+             QStringLiteral("landmark_plus_global_gicp"));
+    QCOMPARE(workflow.getLastResult().metrics.value(QStringLiteral("refine_method")).toString(),
+             QStringLiteral("registration_core_gpu_gicp"));
+}
+
+void PointRegistrationRegistrationCoreIntegrationTest::execute_registration_respects_two_stage_constrained_method()
+{
+    PlatformServiceRegistry registry;
+    FakeRegistrationService registrationService;
+    registry.registerService(QStringLiteral("RegistrationCore"), QStringLiteral("RegistrationService"), &registrationService);
+
+    PointRegistrationServiceImpl service;
+    service.setServiceRegistry(&registry);
+    RegistrationWorkflow workflow(&service);
+
+    PointRegistrationExecutionOptions options;
+    options.registrationMethodId = QStringLiteral("ankle_two_stage_constrained");
+    workflow.setExecutionOptions(options);
+
+    QVERIFY(service.loadModelFromPolyData(createTriangleModel(), QStringLiteral("ankle-model")));
+
+    const int point0 = service.addPoint(QStringLiteral("p0"));
+    const int point1 = service.addPoint(QStringLiteral("p1"));
+    const int point2 = service.addPoint(QStringLiteral("p2"));
+
+    QVERIFY(service.setSourcePosition(point0, QVector3D(0.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point1, QVector3D(10.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point2, QVector3D(0.0f, 10.0f, 0.0f)));
+
+    QVERIFY(service.setTargetPosition(point0, QVector3D(5.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point1, QVector3D(15.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point2, QVector3D(5.0f, 13.0f, 0.0f)));
+
+    QVERIFY(workflow.executeRegistration());
+
+    QCOMPARE(registrationService.advancedCallCount, 1);
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("useGPU")).toBool(), true);
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("registrationMethodId")).toString(),
+             QStringLiteral("ankle_two_stage_constrained"));
+    QCOMPARE(workflow.getLastResult().metrics.value(QStringLiteral("registration_mode")).toString(),
+             QStringLiteral("ankle_two_stage_constrained"));
+    QCOMPARE(workflow.getLastResult().metrics.value(QStringLiteral("refine_method")).toString(),
+             QStringLiteral("registration_core_gpu_gicp"));
+}
+
+void PointRegistrationRegistrationCoreIntegrationTest::execute_registration_uses_planned_constraint_regions_to_limit_two_stage_refinement()
+{
+    PlatformServiceRegistry registry;
+    FakeRegistrationService registrationService;
+    registry.registerService(QStringLiteral("RegistrationCore"), QStringLiteral("RegistrationService"), &registrationService);
+
+    PointRegistrationServiceImpl service;
+    service.setServiceRegistry(&registry);
+    RegistrationWorkflow workflow(&service);
+
+    TargetRegistrationRegion region;
+    region.origin = QVector3D(5.0f, 5.0f, 0.0f);
+    region.primaryAxis = QVector3D(0.0f, 0.0f, 1.0f);
+    region.radiusMm = 12.0;
+    workflow.setTargetRegistrationRegion(region);
+
+    QMap<QString, QList<QVector3D>> constraintRegions;
+    constraintRegions.insert(
+        QStringLiteral("tibia_distal_region"),
+        QList<QVector3D> {
+            QVector3D(0.0f, 0.0f, 0.0f),
+            QVector3D(10.0f, 0.0f, 0.0f),
+            QVector3D(0.0f, 10.0f, 0.0f)
+        });
+    workflow.setPlanningConstraintRegions(constraintRegions);
+
+    QVariantMap metadata;
+    metadata.insert(QStringLiteral("constraint_region_count"), 1);
+    metadata.insert(QStringLiteral("constraint_region_keys"), QStringLiteral("tibia_distal_region"));
+    workflow.setPlanningConstraintContext(metadata);
+
+    PointRegistrationExecutionOptions options;
+    options.registrationMethodId = QStringLiteral("ankle_two_stage_constrained");
+    workflow.setExecutionOptions(options);
+
+    QVERIFY(service.loadModelFromPolyData(createTriangleModel(), QStringLiteral("ankle-model")));
+
+    const int point0 = service.addPoint(QStringLiteral("p0"));
+    const int point1 = service.addPoint(QStringLiteral("p1"));
+    const int point2 = service.addPoint(QStringLiteral("p2"));
+    const int point3 = service.addPoint(QStringLiteral("p3"));
+
+    QVERIFY(service.setSourcePosition(point0, QVector3D(0.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point1, QVector3D(10.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point2, QVector3D(0.0f, 10.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point3, QVector3D(60.0f, 60.0f, 0.0f)));
+
+    QVERIFY(service.setTargetPosition(point0, QVector3D(5.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point1, QVector3D(15.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point2, QVector3D(5.0f, 13.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point3, QVector3D(65.0f, 63.0f, 0.0f)));
+
+    QVERIFY(workflow.executeRegistration());
+
+    QCOMPARE(registrationService.advancedCallCount, 1);
+    QCOMPARE(registrationService.lastSourcePointCount, vtkIdType(3));
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("constrainedPointCount")).toInt(), 3);
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("constraintRegionCount")).toInt(), 1);
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("curvatureWeightMode")).toInt(), 4);
+    QCOMPARE(workflow.getLastResult().metrics.value(QStringLiteral("constraint_refine_pair_count")).toInt(), 3);
+    QCOMPARE(workflow.getLastResult().metrics.value(QStringLiteral("constraint_refine_used")).toBool(), true);
+}
+
+void PointRegistrationRegistrationCoreIntegrationTest::execute_registration_emits_planning_constraint_context_metrics()
+{
+    PlatformServiceRegistry registry;
+    FakeRegistrationService registrationService;
+    registry.registerService(QStringLiteral("RegistrationCore"), QStringLiteral("RegistrationService"), &registrationService);
+
+    PointRegistrationServiceImpl service;
+    service.setServiceRegistry(&registry);
+    RegistrationWorkflow workflow(&service);
+
+    TargetRegistrationRegion region;
+    region.origin = QVector3D(35.0f, 5.0f, 5.0f);
+    region.primaryAxis = QVector3D(0.0f, 0.0f, 1.0f);
+    region.radiusMm = 15.0;
+    workflow.setTargetRegistrationRegion(region);
+
+    QVariantMap metadata;
+    metadata.insert(QStringLiteral("constraint_region_count"), 2);
+    metadata.insert(QStringLiteral("constraint_region_keys"), QStringLiteral("tibia_distal_region|talus_dome_region"));
+    metadata.insert(QStringLiteral("constraint_region_bones"), QStringLiteral("tibia|talus"));
+    metadata.insert(QStringLiteral("constraint_region_roles"), QStringLiteral("distal_region|dome_region"));
+    metadata.insert(QStringLiteral("constraint_region_source"), QStringLiteral("planning_json"));
+    metadata.insert(QStringLiteral("constraint_region_version"), QStringLiteral("1.1"));
+    workflow.setPlanningConstraintContext(metadata);
+
+    PointRegistrationExecutionOptions options;
+    options.registrationMethodId = QStringLiteral("ankle_two_stage_constrained");
+    workflow.setExecutionOptions(options);
+
+    QVERIFY(service.loadModelFromPolyData(createTriangleModel(), QStringLiteral("ankle-model")));
+
+    const int point0 = service.addPoint(QStringLiteral("p0"));
+    const int point1 = service.addPoint(QStringLiteral("p1"));
+    const int point2 = service.addPoint(QStringLiteral("p2"));
+
+    QVERIFY(service.setSourcePosition(point0, QVector3D(0.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point1, QVector3D(10.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point2, QVector3D(0.0f, 10.0f, 0.0f)));
+
+    QVERIFY(service.setTargetPosition(point0, QVector3D(5.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point1, QVector3D(15.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point2, QVector3D(5.0f, 13.0f, 0.0f)));
+
+    QVERIFY(workflow.executeRegistration());
+
+    const QVariantMap metrics = workflow.getLastResult().metrics;
+    QCOMPARE(metrics.value(QStringLiteral("target_region_radius_mm")).toDouble(), 15.0);
+    QCOMPARE(metrics.value(QStringLiteral("target_region_origin_x")).toDouble(), 35.0);
+    QCOMPARE(metrics.value(QStringLiteral("constraint_region_count")).toInt(), 2);
+    QCOMPARE(metrics.value(QStringLiteral("constraint_region_keys")).toString(), QStringLiteral("tibia_distal_region|talus_dome_region"));
+    QCOMPARE(metrics.value(QStringLiteral("constraint_region_bones")).toString(), QStringLiteral("tibia|talus"));
+    QCOMPARE(metrics.value(QStringLiteral("constraint_region_roles")).toString(), QStringLiteral("distal_region|dome_region"));
+    QCOMPARE(metrics.value(QStringLiteral("constraint_region_source")).toString(), QStringLiteral("planning_json"));
+    QCOMPARE(metrics.value(QStringLiteral("constraint_region_version")).toString(), QStringLiteral("1.1"));
 }
 
 void PointRegistrationRegistrationCoreIntegrationTest::mutating_points_invalidates_previous_registration_state()

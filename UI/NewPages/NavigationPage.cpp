@@ -3,9 +3,13 @@
 
 #include "Framework/Platform/UiBridge/NavigationPageServiceAccess.h"
 #include "Framework/Platform/LegacyAdapters/LegacyNavigationPageServiceAdapter.h"
+#include "Framework/Navigation/ankle_case_workspace_repository.h"
+#include "Framework/Navigation/innovation_experiment_batch_runner.h"
+#include "Framework/Navigation/ankle_planning_service.h"
 #include "Framework/Navigation/navigation_evaluation_service.h"
 #include "Framework/VTK/embedded_vtk_view_host.h"
 #include "UI/NewPages/Navigation/navigation_evaluation_controller.h"
+#include "UI/NewPages/Navigation/navigation_evaluation_summary_formatter.h"
 #include "UI/NewPages/Navigation/navigation_service_bundle.h"
 #include "UI/NewPages/Navigation/navigation_vtk_bridge.h"
 #include "UI/NewPages/Navigation/navigation_workflow_coordinator.h"
@@ -24,6 +28,7 @@
 
 #include <QFileDialog>
 #include <QCoreApplication>
+#include <QGroupBox>
 #include <QLabel>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -40,6 +45,53 @@
 #include <vtkSTLWriter.h>
 #include <vtkSmartPointer.h>
 #include <vtkPolyData.h>
+
+namespace
+{
+QVariantMap planningConstraintContextFromData(const AnklePlanningData& planning)
+{
+    QVariantMap context;
+    if (planning.anatomicalConstraintRegions.isEmpty()) {
+        return context;
+    }
+
+    QStringList regionKeys;
+    QStringList regionBones;
+    QStringList regionRoles;
+    QString source;
+    QString version;
+
+    for (auto it = planning.anatomicalConstraintRegionMetadata.cbegin();
+         it != planning.anatomicalConstraintRegionMetadata.cend();
+         ++it) {
+        regionKeys.append(it.key());
+        if (!it.value().boneName.isEmpty()) {
+            regionBones.append(it.value().boneName);
+        }
+        if (!it.value().regionRole.isEmpty()) {
+            regionRoles.append(it.value().regionRole);
+        }
+        if (source.isEmpty() && !it.value().source.isEmpty()) {
+            source = it.value().source;
+        }
+        if (version.isEmpty() && !it.value().version.isEmpty()) {
+            version = it.value().version;
+        }
+    }
+
+    if (regionKeys.isEmpty()) {
+        regionKeys = planning.anatomicalConstraintRegions.keys();
+    }
+
+    context.insert(QStringLiteral("constraint_region_count"), planning.anatomicalConstraintRegions.size());
+    context.insert(QStringLiteral("constraint_region_keys"), regionKeys.join(QStringLiteral("|")));
+    context.insert(QStringLiteral("constraint_region_bones"), regionBones.join(QStringLiteral("|")));
+    context.insert(QStringLiteral("constraint_region_roles"), regionRoles.join(QStringLiteral("|")));
+    context.insert(QStringLiteral("constraint_region_source"), source);
+    context.insert(QStringLiteral("constraint_region_version"), version);
+    return context;
+}
+}
 
 NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAccess* serviceAccess)
     : BasePage(parent)
@@ -218,6 +270,7 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
 
     resetProbeCalibrationState();
     refreshNavigationConfidenceState();
+    refreshEvaluationSummary();
 
     // 鍒濆鍖栭厤鍑嗗姛鑳?
     setupRegistration();
@@ -286,6 +339,7 @@ void NavigationPageNew::setCaseContext(const QString& caseId, int patientId, con
     m_workflowContext->setCaseIdentity(caseId, patientId, patientName);
     refreshPatientInfoLabel();
     setWorkflowStage(AnkleWorkflowStage::Preparation);
+    refreshEvaluationSummary();
 }
 
 void NavigationPageNew::setPatientId(int patientId)
@@ -320,6 +374,7 @@ void NavigationPageNew::resetPage()
     m_workflowContext->clearCaseIdentity();
     refreshPatientInfoLabel();
     setWorkflowStage(AnkleWorkflowStage::Preparation);
+    refreshEvaluationSummary();
 }
 
 void NavigationPageNew::setWorkflowStage(AnkleWorkflowStage stage)
@@ -348,6 +403,83 @@ void NavigationPageNew::setWorkflowStage(AnkleWorkflowStage stage)
 QString NavigationPageNew::evaluationCasesRoot() const
 {
     return m_workflowContext->casesRoot();
+}
+
+void NavigationPageNew::refreshEvaluationSummary()
+{
+    if (!ui || !ui->evaluationTabLayout) {
+        return;
+    }
+
+    auto ensureSectionLabel = [this](const QString& groupName, const QString& labelName, const QString& title) {
+        auto* label = findChild<QLabel*>(labelName);
+        if (label) {
+            return label;
+        }
+
+        auto* group = new QGroupBox(title, ui->evaluationTab);
+        group->setObjectName(groupName);
+        auto* layout = new QVBoxLayout(group);
+        layout->setContentsMargins(12, 12, 12, 12);
+
+        label = new QLabel(group);
+        label->setObjectName(labelName);
+        label->setWordWrap(true);
+        label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        label->setStyleSheet(QStringLiteral("color: #ecf0f1; font-size: 14px;"));
+        layout->addWidget(label);
+        ui->evaluationTabLayout->addWidget(group);
+        return label;
+    };
+
+    auto* headerLabel = findChild<QLabel*>(QStringLiteral("evaluationHeaderLabel"));
+    if (!headerLabel) {
+        headerLabel = new QLabel(ui->evaluationTab);
+        headerLabel->setObjectName(QStringLiteral("evaluationHeaderLabel"));
+        headerLabel->setWordWrap(true);
+        headerLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        headerLabel->setStyleSheet(QStringLiteral("color: #ffffff; font-size: 18px; font-weight: bold;"));
+        ui->evaluationTabLayout->insertWidget(0, headerLabel);
+    }
+
+    auto* registrationLabel = ensureSectionLabel(
+        QStringLiteral("evaluationRegistrationSummaryGroup"),
+        QStringLiteral("evaluationRegistrationSummaryLabel"),
+        QStringLiteral("配准结果"));
+    auto* constraintLabel = ensureSectionLabel(
+        QStringLiteral("evaluationConstraintSummaryGroup"),
+        QStringLiteral("evaluationConstraintSummaryLabel"),
+        QStringLiteral("目标区与约束区"));
+    auto* trackingLabel = ensureSectionLabel(
+        QStringLiteral("evaluationTrackingSummaryGroup"),
+        QStringLiteral("evaluationTrackingSummaryLabel"),
+        QStringLiteral("跟踪质量"));
+    auto* gateLabel = ensureSectionLabel(
+        QStringLiteral("evaluationGateSummaryGroup"),
+        QStringLiteral("evaluationGateSummaryLabel"),
+        QStringLiteral("导航准入"));
+
+    const QString caseId = m_workflowContext ? m_workflowContext->caseId() : QString();
+    NavigationEvaluationSummary summary;
+    if (!caseId.isEmpty()) {
+        NavigationEvaluationService evaluationService(evaluationCasesRoot());
+        summary = buildNavigationEvaluationSummary(evaluationService.loadEvaluationSnapshot(caseId));
+    } else {
+        summary = buildNavigationEvaluationSummary(AnkleEvaluationSnapshot());
+    }
+
+    if (ui->evaluationPlaceholderLabel) {
+        ui->evaluationPlaceholderLabel->setVisible(!summary.hasData);
+        if (!summary.hasData) {
+            ui->evaluationPlaceholderLabel->setText(QStringLiteral("当前病例暂无评估结果，完成配准与导航后将在此汇总。"));
+        }
+    }
+
+    headerLabel->setText(summary.headerText);
+    registrationLabel->setText(summary.registrationText);
+    constraintLabel->setText(summary.constraintText);
+    trackingLabel->setText(summary.trackingText);
+    gateLabel->setText(summary.gateText);
 }
 
 void NavigationPageNew::refreshPatientInfoLabel()
@@ -1331,6 +1463,23 @@ void NavigationPageNew::on_pauseNavigationButton_clicked()
         run.navigationMode = QStringLiteral("replay");
         run.confidenceScore = m_lastConfidence.score;
         run.warnings = m_lastConfidence.recommendations;
+        QVariantMap trackingQuality;
+        if (auto* trackingService = opticalTrackingService()) {
+            trackingQuality = trackingService->checkTrackingQuality(m_trackingSessionId, m_navigationToolId);
+        }
+
+        if (m_registrationWorkflow) {
+            const PointRegistrationResult registrationResult = m_registrationWorkflow->getLastResult();
+            run.metrics = registrationResult.metrics;
+            run.metrics.insert(QStringLiteral("registration_mode"), registrationResult.metrics.value(QStringLiteral("registration_mode")));
+            run.metrics.insert(QStringLiteral("target_region_tre_mm"), registrationResult.targetRegionTre);
+            run.metrics.insert(QStringLiteral("coverage_score"), registrationResult.coverageScore);
+        }
+
+        run.metrics.insert(QStringLiteral("tracking_jitter_mm"), trackingQuality.value(QStringLiteral("tracking_jitter_mm")).toDouble());
+        run.metrics.insert(QStringLiteral("visible_frame_ratio"), trackingQuality.value(QStringLiteral("visible_frame_ratio")).toDouble());
+        run.metrics.insert(QStringLiteral("tracking_profile"), trackingQuality.value(QStringLiteral("tracking_profile")).toString());
+        run.metrics.insert(QStringLiteral("tracking_confidence_score"), trackingQuality.value(QStringLiteral("tracking_confidence_score")).toDouble());
         evaluationService.saveNavigationRun(run);
 
         AnkleEvaluationReport report;
@@ -1341,16 +1490,58 @@ void NavigationPageNew::on_pauseNavigationButton_clicked()
         report.confidenceScore = m_lastConfidence.score;
         report.gateReasons = m_lastConfidence.recommendations;
         report.calibrated = !m_trackingSessionId.isEmpty() && !m_navigationToolId.isEmpty();
-        if (auto* trackingService = opticalTrackingService()) {
-            const QVariantMap trackingQuality = trackingService->checkTrackingQuality(m_trackingSessionId, m_navigationToolId);
+        if (!trackingQuality.isEmpty()) {
             report.calibrated = trackingQuality.value(QStringLiteral("calibrated")).toBool();
             report.calibrationAccuracyMm = trackingQuality.value(QStringLiteral("calibration_accuracy_mm")).toDouble();
         }
+        report.metrics = run.metrics;
+        report.metrics.insert(QStringLiteral("allow_navigation"), report.allowNavigation);
+        report.metrics.insert(QStringLiteral("gate_reason_count"), report.gateReasons.size());
         evaluationService.saveEvaluationReport(report);
         evaluationService.exportMetricsCsv(caseId);
+        evaluationService.exportCaseSummary(caseId);
     }
 
     refreshNavigationConfidenceState();
+    refreshEvaluationSummary();
+}
+
+void NavigationPageNew::on_exportEvaluationSummaryButton_clicked()
+{
+    NavigationEvaluationService evaluationService(evaluationCasesRoot());
+    const QStringList caseIds = evaluationService.discoverExportableCaseIds();
+    if (caseIds.isEmpty()) {
+        showWarning(QStringLiteral("评估汇总"), QStringLiteral("当前没有可导出的病例评估记录。"));
+        return;
+    }
+
+    if (!evaluationService.exportBatchSummaryCsv(caseIds)) {
+        showError(QStringLiteral("评估汇总"), QStringLiteral("病例评估汇总导出失败。"));
+        return;
+    }
+
+    InnovationExperimentBatchRunner runner;
+    InnovationBatchInput input;
+    input.caseIds = caseIds;
+    input.caseDataRoot = QFileInfo(evaluationCasesRoot()).dir().absolutePath();
+    const InnovationBatchOutput output = runner.run(input);
+
+    const QStringList requiredSummaryFiles = {
+        QStringLiteral("innovation_1_summary.csv"),
+        QStringLiteral("innovation_2_summary.csv"),
+        QStringLiteral("innovation_3_summary.csv")
+    };
+    for (const QString& summaryFile : requiredSummaryFiles) {
+        if (!output.summaryFiles.contains(summaryFile)) {
+            showError(QStringLiteral("评估汇总"), QStringLiteral("创新实验汇总导出失败：%1").arg(summaryFile));
+            return;
+        }
+    }
+
+    showInfo(
+        QStringLiteral("评估汇总"),
+        QStringLiteral("已导出 %1 个病例的评估汇总 CSV，并生成 innovation_1_summary.csv、innovation_2_summary.csv、innovation_3_summary.csv。")
+            .arg(caseIds.size()));
 }
 
 void NavigationPageNew::on_resetViewButton_clicked()
@@ -1808,6 +1999,7 @@ void NavigationPageNew::setupRegistration()
     }
 
     auto* registrationService = pointRegistrationService();
+    auto* trackingService = opticalTrackingService();
 
     // 鍒涘缓閰嶅噯宸ヤ綔娴?
     m_registrationWorkflow = new RegistrationWorkflow(registrationService, this);
@@ -1864,11 +2056,61 @@ void NavigationPageNew::setupRegistration()
                 if (m_registrationVTKWidget) {
                     QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
                 }
-            });
+            }, Qt::UniqueConnection);
+    connect(registrationService, &PointRegistrationService::registrationApplied,
+            this, [this](const QString&) {
+                if (auto* service = pointRegistrationService()) {
+                    m_registrationTransform = service->getTransformMatrix();
+                }
+                refreshNavigationConfidenceState();
+            }, Qt::UniqueConnection);
+    connect(registrationService, &PointRegistrationService::sessionStateChanged,
+            this, [this](RegistrationSessionState) {
+                refreshNavigationConfidenceState();
+            }, Qt::UniqueConnection);
+
+    if (trackingService) {
+        connect(trackingService, &OpticalTrackingService::toolStatusChanged,
+                this, [this](const QString& sessionId, const QString& toolId, const QVariantMap&) {
+                    if (sessionId != m_trackingSessionId || toolId != m_navigationToolId) {
+                        return;
+                    }
+                    updateProbeCalibrationUi();
+                    refreshNavigationConfidenceState();
+                }, Qt::UniqueConnection);
+        connect(trackingService, &OpticalTrackingService::calibrationCompleted,
+                this, [this](const QString& calibrationId, const QVariantMap&) {
+                    if (!m_activeCalibrationId.isEmpty() && calibrationId != m_activeCalibrationId) {
+                        return;
+                    }
+                    updateProbeCalibrationUi();
+                    refreshNavigationConfidenceState();
+                }, Qt::UniqueConnection);
+    }
 
     // 鍚姩鏂颁細璇?
     QString patientIdStr = m_workflowContext->patientId() >= 0 ? QString::number(m_workflowContext->patientId()) : "";
     m_registrationWorkflow->startNewSession(patientIdStr);
+
+    const QString caseId = m_workflowContext ? m_workflowContext->caseId() : QString();
+    const QString casesRoot = evaluationCasesRoot();
+    if (!caseId.isEmpty() && !casesRoot.isEmpty()) {
+        const QString dataRoot = QFileInfo(casesRoot).dir().absolutePath();
+        const AnkleCaseWorkspaceRepository repository(dataRoot);
+        const AnklePlanningService planningService(repository);
+        const AnklePlanningData planning = planningService.loadPlanning(caseId);
+
+        if (planning.targetRegionRadiusMm > 0.0) {
+            TargetRegistrationRegion region;
+            region.origin = planning.targetRegionCenter;
+            region.primaryAxis = QVector3D(0.0f, 0.0f, 1.0f);
+            region.radiusMm = planning.targetRegionRadiusMm;
+            m_registrationWorkflow->setTargetRegistrationRegion(region);
+        }
+
+        m_registrationWorkflow->setPlanningConstraintContext(planningConstraintContextFromData(planning));
+        m_registrationWorkflow->setPlanningConstraintRegions(planning.anatomicalConstraintRegions);
+    }
 
     // 绔嬪嵆宓屽叆閰嶅噯VTK Widget锛堢幇鍦ㄦ彃浠跺凡鏀逛负deferred鍔犺浇锛屾湇鍔″簲璇ュ彲鐢級
     embedRegistrationVTKWidget();
@@ -2033,6 +2275,8 @@ void NavigationPageNew::updateRegistrationResultDisplay(const PointRegistrationR
         return;
     }
 
+    m_registrationTransform = result.transformMatrix;
+
     // 鏇存柊閰嶅噯璇樊鏄剧ず
     ui->regErrorLabel->setText(QString("%1 mm").arg(result.rmsError, 0, 'f', 2));
 
@@ -2131,6 +2375,7 @@ void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& r
         record.coverageScore = result.coverageScore;
         record.metrics = result.metrics;
         evaluationService.saveRegistrationRecord(record);
+        evaluationService.exportCaseSummary(caseId);
     }
 
     // 鑾峰彇璐ㄩ噺鎻忚堪
@@ -2143,6 +2388,7 @@ void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& r
     }
 
     showInfo("配准完成", message);
+    refreshEvaluationSummary();
 
 }
 

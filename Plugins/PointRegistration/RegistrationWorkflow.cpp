@@ -12,6 +12,7 @@ RegistrationWorkflow::RegistrationWorkflow(PointRegistrationService* service, QO
     , m_probeSource(ProbePointSource::Manual)
 {
     if (m_service) {
+        m_service->setExecutionOptions(m_executionOptions);
         connectServiceSignals();
     }
 }
@@ -285,6 +286,9 @@ int RegistrationWorkflow::generateSimulatedProbePoints(double noiseLevel)
 void RegistrationWorkflow::setExecutionOptions(const PointRegistrationExecutionOptions& options)
 {
     m_executionOptions = options;
+    if (m_service) {
+        m_service->setExecutionOptions(options);
+    }
 }
 
 PointRegistrationExecutionOptions RegistrationWorkflow::executionOptions() const
@@ -327,6 +331,25 @@ bool RegistrationWorkflow::executeRegistration()
 void RegistrationWorkflow::setTargetRegistrationRegion(const TargetRegistrationRegion& region)
 {
     m_targetRegion = region;
+    if (m_service) {
+        m_service->setTargetRegistrationRegion(region);
+    }
+}
+
+void RegistrationWorkflow::setPlanningConstraintContext(const QVariantMap& context)
+{
+    m_planningConstraintContext = context;
+    if (m_service) {
+        m_service->setPlanningConstraintContext(context);
+    }
+}
+
+void RegistrationWorkflow::setPlanningConstraintRegions(const QMap<QString, QList<QVector3D>>& regions)
+{
+    m_planningConstraintRegions = regions;
+    if (m_service) {
+        m_service->setPlanningConstraintRegions(regions);
+    }
 }
 
 QList<RecommendedRegistrationPoint> RegistrationWorkflow::recommendRegistrationPoints(
@@ -381,6 +404,10 @@ void RegistrationWorkflow::decorateRegistrationResult(PointRegistrationResult& r
     result.metrics.insert(QStringLiteral("registration_mode"), m_executionOptions.registrationMethodId);
     result.metrics.insert(QStringLiteral("point_selection_strategy_id"), m_executionOptions.pointSelectionStrategyId);
     result.metrics.insert(QStringLiteral("export_detailed_metrics"), m_executionOptions.exportDetailedMetrics);
+
+    for (auto it = m_planningConstraintContext.cbegin(); it != m_planningConstraintContext.cend(); ++it) {
+        result.metrics.insert(it.key(), it.value());
+    }
 }
 
 PointRegistrationResult RegistrationWorkflow::getLastResult() const

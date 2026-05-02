@@ -9,6 +9,8 @@
 #include <QMutexLocker>
 #include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QPair>
+#include <QVector3D>
 #include <cmath>
 #include <limits>
 
@@ -22,6 +24,8 @@
 #include <vtkMath.h>
 #include <vtkPointData.h>
 #include <vtkCell.h>
+#include <vtkCellArray.h>
+#include <vtkTriangle.h>
 
 #include "Framework/Platform/Kernel/platform_service_registry.h"
 
@@ -31,6 +35,266 @@
 // Registration2D3D 插件头文件
 #include "../Registration2D3D/Registration2D3DService.h"
 #include "../Registration2D3D/Registration2D3DDataStructures.h"
+
+namespace
+{
+double squaredDistance(const QVector3D& left, const QVector3D& right)
+{
+    const QVector3D delta = left - right;
+    return static_cast<double>(QVector3D::dotProduct(delta, delta));
+}
+
+QVector3D centroidOfPoints(const QList<QVector3D>& points)
+{
+    if (points.isEmpty()) {
+        return QVector3D();
+    }
+
+    QVector3D sum;
+    for (const QVector3D& point : points) {
+        sum += point;
+    }
+    return sum / static_cast<float>(points.size());
+}
+
+double constraintMembershipRadiusMm(double targetRegionRadiusMm)
+{
+    if (targetRegionRadiusMm > 0.0) {
+        return qBound(3.0, targetRegionRadiusMm * 0.30, 8.0);
+    }
+    return 5.0;
+}
+
+bool pointMatchesConstraintSet(
+    const QVector3D& point,
+    const QList<QVector3D>& constraintPoints,
+    const QVector3D& regionCenter,
+    double regionRadiusMm,
+    double membershipRadiusMm)
+{
+    if (regionRadiusMm > 0.0 && squaredDistance(point, regionCenter) <= regionRadiusMm * regionRadiusMm) {
+        return true;
+    }
+
+    if (constraintPoints.isEmpty() || membershipRadiusMm <= 0.0) {
+        return false;
+    }
+
+    const double thresholdSquared = membershipRadiusMm * membershipRadiusMm;
+    for (const QVector3D& constraintPoint : constraintPoints) {
+        if (squaredDistance(point, constraintPoint) <= thresholdSquared) {
+            return true;
+        }
+    }
+    return false;
+}
+
+QList<QVector3D> vectorListFromVariant(const QVariantList& list)
+{
+    QList<QVector3D> points;
+    points.reserve(list.size());
+    for (const QVariant& value : list) {
+        const QVariantList point = value.toList();
+        if (point.size() < 3) {
+            continue;
+        }
+        points.append(QVector3D(
+            point[0].toFloat(),
+            point[1].toFloat(),
+            point[2].toFloat()));
+    }
+    return points;
+}
+
+QMap<QString, QList<QVector3D>> constraintRegionsFromVariant(const QVariantMap& map)
+{
+    QMap<QString, QList<QVector3D>> regions;
+    for (auto it = map.cbegin(); it != map.cend(); ++it) {
+        regions.insert(it.key(), vectorListFromVariant(it.value().toList()));
+    }
+    return regions;
+}
+
+QList<QVector3D> flattenConstraintRegions(const QMap<QString, QList<QVector3D>>& regions)
+{
+    QList<QVector3D> points;
+    for (auto it = regions.cbegin(); it != regions.cend(); ++it) {
+        points.append(it.value());
+    }
+    return points;
+}
+
+vtkSmartPointer<vtkPolyData> buildConstrainedTargetPolyData(
+    vtkPolyData* target,
+    const QList<QVector3D>& constraintPoints,
+    const QVector3D& targetRegionCenter,
+    double targetRegionRadiusMm,
+    int* selectedPointCount,
+    int* selectedTriangleCount)
+{
+    if (selectedPointCount) {
+        *selectedPointCount = 0;
+    }
+    if (selectedTriangleCount) {
+        *selectedTriangleCount = 0;
+    }
+    if (!target || target->GetNumberOfPoints() == 0) {
+        return nullptr;
+    }
+
+    const QVector3D effectiveCenter =
+        targetRegionRadiusMm > 0.0 ? targetRegionCenter : centroidOfPoints(constraintPoints);
+    const double membershipRadiusMm = constraintMembershipRadiusMm(targetRegionRadiusMm);
+    QVector<int> pointMapping(target->GetNumberOfPoints(), -1);
+
+    auto selectedPoints = vtkSmartPointer<vtkPoints>::New();
+    for (vtkIdType pointIndex = 0; pointIndex < target->GetNumberOfPoints(); ++pointIndex) {
+        double rawPoint[3];
+        target->GetPoint(pointIndex, rawPoint);
+        const QVector3D point(
+            static_cast<float>(rawPoint[0]),
+            static_cast<float>(rawPoint[1]),
+            static_cast<float>(rawPoint[2]));
+        if (!pointMatchesConstraintSet(
+                point,
+                constraintPoints,
+                effectiveCenter,
+                targetRegionRadiusMm,
+                membershipRadiusMm)) {
+            continue;
+        }
+
+        pointMapping[pointIndex] = static_cast<int>(selectedPoints->GetNumberOfPoints());
+        selectedPoints->InsertNextPoint(rawPoint);
+    }
+
+    if (selectedPointCount) {
+        *selectedPointCount = static_cast<int>(selectedPoints->GetNumberOfPoints());
+    }
+    if (selectedPoints->GetNumberOfPoints() < 3) {
+        return nullptr;
+    }
+
+    auto selectedTriangles = vtkSmartPointer<vtkCellArray>::New();
+    for (vtkIdType cellIndex = 0; cellIndex < target->GetNumberOfCells(); ++cellIndex) {
+        vtkCell* cell = target->GetCell(cellIndex);
+        if (!cell || cell->GetNumberOfPoints() != 3) {
+            continue;
+        }
+
+        const int mapped0 = pointMapping[cell->GetPointId(0)];
+        const int mapped1 = pointMapping[cell->GetPointId(1)];
+        const int mapped2 = pointMapping[cell->GetPointId(2)];
+        if (mapped0 < 0 || mapped1 < 0 || mapped2 < 0) {
+            continue;
+        }
+
+        auto triangle = vtkSmartPointer<vtkTriangle>::New();
+        triangle->GetPointIds()->SetId(0, mapped0);
+        triangle->GetPointIds()->SetId(1, mapped1);
+        triangle->GetPointIds()->SetId(2, mapped2);
+        selectedTriangles->InsertNextCell(triangle);
+    }
+
+    if (selectedTriangleCount) {
+        *selectedTriangleCount = static_cast<int>(selectedTriangles->GetNumberOfCells());
+    }
+    if (selectedTriangles->GetNumberOfCells() <= 0) {
+        return nullptr;
+    }
+
+    auto constrained = vtkSmartPointer<vtkPolyData>::New();
+    constrained->SetPoints(selectedPoints);
+    constrained->SetPolys(selectedTriangles);
+    constrained->BuildCells();
+    constrained->BuildLinks();
+    return constrained;
+}
+
+QList<mesh_gpu::Point3D> buildConstrainedSourcePointCloud(
+    vtkPolyData* source,
+    const QList<QVector3D>& constraintPoints,
+    const QVector3D& targetRegionCenter,
+    double targetRegionRadiusMm,
+    vtkMatrix4x4* initialTransform,
+    int minimumPointCount)
+{
+    QList<mesh_gpu::Point3D> constrainedPoints;
+    if (!source || source->GetNumberOfPoints() == 0) {
+        return constrainedPoints;
+    }
+
+    const QVector3D effectiveCenter =
+        targetRegionRadiusMm > 0.0 ? targetRegionCenter : centroidOfPoints(constraintPoints);
+    const double membershipRadiusMm = constraintMembershipRadiusMm(targetRegionRadiusMm);
+    QVector<QPair<double, mesh_gpu::Point3D>> rankedPoints;
+    rankedPoints.reserve(static_cast<int>(source->GetNumberOfPoints()));
+
+    for (vtkIdType pointIndex = 0; pointIndex < source->GetNumberOfPoints(); ++pointIndex) {
+        double rawPoint[3];
+        source->GetPoint(pointIndex, rawPoint);
+        double transformedPoint[3] = { rawPoint[0], rawPoint[1], rawPoint[2] };
+        if (initialTransform) {
+            double point4[4] = { rawPoint[0], rawPoint[1], rawPoint[2], 1.0 };
+            double result4[4];
+            initialTransform->MultiplyPoint(point4, result4);
+            transformedPoint[0] = result4[0];
+            transformedPoint[1] = result4[1];
+            transformedPoint[2] = result4[2];
+        }
+        const QVector3D point(
+            static_cast<float>(transformedPoint[0]),
+            static_cast<float>(transformedPoint[1]),
+            static_cast<float>(transformedPoint[2]));
+        const mesh_gpu::Point3D meshPoint {
+            static_cast<float>(transformedPoint[0]),
+            static_cast<float>(transformedPoint[1]),
+            static_cast<float>(transformedPoint[2])
+        };
+
+        rankedPoints.append(qMakePair(squaredDistance(point, effectiveCenter), meshPoint));
+        if (pointMatchesConstraintSet(
+                point,
+                constraintPoints,
+                effectiveCenter,
+                targetRegionRadiusMm,
+                membershipRadiusMm)) {
+            constrainedPoints.append(meshPoint);
+        }
+    }
+
+    if (constrainedPoints.size() >= minimumPointCount) {
+        return constrainedPoints;
+    }
+
+    std::sort(
+        rankedPoints.begin(),
+        rankedPoints.end(),
+        [](const QPair<double, mesh_gpu::Point3D>& left, const QPair<double, mesh_gpu::Point3D>& right) {
+            return left.first < right.first;
+        });
+
+    for (const auto& rankedPoint : rankedPoints) {
+        bool exists = false;
+        for (const auto& existing : constrainedPoints) {
+            if (qFuzzyCompare(existing.x, rankedPoint.second.x)
+                && qFuzzyCompare(existing.y, rankedPoint.second.y)
+                && qFuzzyCompare(existing.z, rankedPoint.second.z)) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            constrainedPoints.append(rankedPoint.second);
+        }
+        if (constrainedPoints.size() >= minimumPointCount) {
+            break;
+        }
+    }
+
+    return constrainedPoints;
+}
+}
 
 RegistrationServiceImpl::RegistrationServiceImpl(QObject* parent)
     : registration_core::RegistrationService(parent)
@@ -233,6 +497,86 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performGICPRegistration(
         }
 
         // 设置源点云
+        const QMap<QString, QList<QVector3D>> constraintRegions =
+            constraintRegionsFromVariant(parameters.value(QStringLiteral("constraintRegions")).toMap());
+        const QList<QVector3D> flattenedConstraintPoints = flattenConstraintRegions(constraintRegions);
+        const double targetRegionRadiusMm = parameters.value(QStringLiteral("targetRegionRadiusMm"), 0.0).toDouble();
+        const QVector3D targetRegionCenter(
+            parameters.value(QStringLiteral("targetRegionCenterX"), 0.0).toFloat(),
+            parameters.value(QStringLiteral("targetRegionCenterY"), 0.0).toFloat(),
+            parameters.value(QStringLiteral("targetRegionCenterZ"), 0.0).toFloat());
+        int coreConstraintTargetPointCount = 0;
+        int coreConstraintTargetTriangleCount = 0;
+        vtkSmartPointer<vtkPolyData> constrainedTarget;
+        if (!flattenedConstraintPoints.isEmpty() || targetRegionRadiusMm > 0.0) {
+            constrainedTarget = buildConstrainedTargetPolyData(
+                target,
+                flattenedConstraintPoints,
+                targetRegionCenter,
+                targetRegionRadiusMm,
+                &coreConstraintTargetPointCount,
+                &coreConstraintTargetTriangleCount);
+        }
+
+        vtkPolyData* activeTarget =
+            constrainedTarget && coreConstraintTargetPointCount >= 3 && coreConstraintTargetTriangleCount > 0
+            ? constrainedTarget
+            : target;
+
+        if (activeTarget != target) {
+            qDebug() << "[RegistrationService] GPU-GICP stage: constrained target mesh activated"
+                     << "selectedPoints=" << coreConstraintTargetPointCount
+                     << "selectedTriangles=" << coreConstraintTargetTriangleCount;
+            std::vector<mesh_gpu::Point3D> vertices(activeTarget->GetNumberOfPoints());
+            std::vector<mesh_gpu::Normal3D> normals(activeTarget->GetNumberOfPoints());
+            std::vector<std::array<int, 3>> triangles;
+
+            for (vtkIdType i = 0; i < activeTarget->GetNumberOfPoints(); ++i) {
+                double p[3];
+                activeTarget->GetPoint(i, p);
+                vertices[i] = {static_cast<float>(p[0]), static_cast<float>(p[1]), static_cast<float>(p[2])};
+            }
+
+            vtkDataArray* constrainedNormals =
+                activeTarget->GetPointData() ? activeTarget->GetPointData()->GetNormals() : nullptr;
+            if (constrainedNormals) {
+                for (vtkIdType i = 0; i < activeTarget->GetNumberOfPoints(); ++i) {
+                    double n[3];
+                    constrainedNormals->GetTuple(i, n);
+                    normals[i] = {static_cast<float>(n[0]), static_cast<float>(n[1]), static_cast<float>(n[2])};
+                }
+            }
+
+            triangles.reserve(activeTarget->GetNumberOfCells());
+            for (vtkIdType i = 0; i < activeTarget->GetNumberOfCells(); ++i) {
+                vtkCell* cell = activeTarget->GetCell(i);
+                if (cell && cell->GetNumberOfPoints() == 3) {
+                    triangles.push_back({
+                        static_cast<int>(cell->GetPointId(0)),
+                        static_cast<int>(cell->GetPointId(1)),
+                        static_cast<int>(cell->GetPointId(2))
+                    });
+                }
+            }
+
+            float cellSize = parameters.value("cellSize", 1.0).toFloat();
+            if (!m_meshGPU->setTargetMesh(vertices, normals, triangles, cellSize)) {
+                qWarning() << "[RegistrationService] GICP: failed to set constrained target mesh";
+                return nullptr;
+            }
+        }
+
+        const QList<mesh_gpu::Point3D> constrainedSourcePoints =
+            (!flattenedConstraintPoints.isEmpty() || targetRegionRadiusMm > 0.0)
+            ? buildConstrainedSourcePointCloud(
+                source,
+                flattenedConstraintPoints,
+                targetRegionCenter,
+                targetRegionRadiusMm,
+                initialTransform,
+                3)
+            : QList<mesh_gpu::Point3D> {};
+
         vtkIdType nSource = source->GetNumberOfPoints();
         std::vector<mesh_gpu::Point3D> sourcePoints(nSource);
 
@@ -254,9 +598,14 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performGICPRegistration(
             }
         }
 
+        std::vector<mesh_gpu::Point3D> activeSourcePoints = sourcePoints;
+        if (!constrainedSourcePoints.isEmpty()) {
+            activeSourcePoints.assign(constrainedSourcePoints.cbegin(), constrainedSourcePoints.cend());
+        }
+
         qDebug() << "[RegistrationService] GPU-GICP stage: setSourcePointCloud(call)"
-                 << "sourcePoints=" << nSource;
-        if (!m_meshGPU->setSourcePointCloud(sourcePoints)) {
+                 << "sourcePoints=" << activeSourcePoints.size();
+        if (!m_meshGPU->setSourcePointCloud(activeSourcePoints)) {
             qWarning() << "[RegistrationService] GICP: failed to set source point cloud";
             return nullptr;
         }
@@ -321,6 +670,14 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performGICPRegistration(
         metadata["sourcePoints"] = static_cast<int>(nSource);
         metadata["targetPoints"] = static_cast<int>(target->GetNumberOfPoints());
         metadata["useRotationSearch"] = useRotationSearch;
+        metadata["constraintRegionCount"] = constraintRegions.size();
+        metadata["constraintRegionKeys"] = parameters.value(QStringLiteral("constraintRegionKeys")).toString();
+        metadata["coreConstraintApplied"] = activeTarget != target || !constrainedSourcePoints.isEmpty();
+        metadata["coreConstraintSourcePointCount"] = static_cast<int>(activeSourcePoints.size());
+        metadata["coreConstraintTargetPointCount"] =
+            activeTarget != target ? coreConstraintTargetPointCount : static_cast<int>(target->GetNumberOfPoints());
+        metadata["coreConstraintTargetTriangleCount"] =
+            activeTarget != target ? coreConstraintTargetTriangleCount : static_cast<int>(target->GetNumberOfCells());
         record.metadata = metadata;
 
         saveRecord(registrationId, record);

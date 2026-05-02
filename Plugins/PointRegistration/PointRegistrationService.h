@@ -11,9 +11,11 @@
 
 #include "PointRegistrationDataStructures.h"
 #include <QObject>
+#include <QMap>
 
 class QWidget;
 class vtkPolyData;
+struct TargetRegistrationRegion;
 
 /**
  * @brief 点配准服务接口
@@ -214,6 +216,12 @@ public:
      * @return 探针位置，无效返回 QVector3D()
      */
     virtual QVector3D getCurrentProbePosition() const = 0;
+
+    virtual void setExecutionOptions(const PointRegistrationExecutionOptions& options) = 0;
+    virtual PointRegistrationExecutionOptions executionOptions() const = 0;
+    virtual void setTargetRegistrationRegion(const TargetRegistrationRegion& region) = 0;
+    virtual void setPlanningConstraintContext(const QVariantMap& context) = 0;
+    virtual void setPlanningConstraintRegions(const QMap<QString, QList<QVector3D>>& regions) = 0;
 
     // ========== 模拟数据 ==========
 

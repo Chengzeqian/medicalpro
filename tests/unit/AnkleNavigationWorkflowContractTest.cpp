@@ -14,8 +14,12 @@ private slots:
     void navigation_page_exposes_stepwise_probe_calibration_flow();
     void navigation_page_refreshes_navigation_confidence_after_probe_calibration();
     void navigation_page_refreshes_navigation_confidence_after_registration_state_changes();
+    void navigation_page_subscribes_runtime_status_changes_for_gate_refresh();
     void navigation_page_enforces_runtime_navigation_gate_while_active();
     void navigation_page_persists_navigation_gate_evidence_into_evaluation_report();
+    void navigation_page_exposes_batch_evaluation_summary_export_entry();
+    void navigation_page_exports_innovation_summaries_with_data_root_above_cases_directory();
+    void navigation_page_uses_data_root_above_cases_directory_for_case_workspace_repository();
 
 private:
     QString readFile(const QString& relativePath) const;
@@ -193,6 +197,24 @@ void AnkleNavigationWorkflowContractTest::navigation_page_refreshes_navigation_c
         "registration state changes must refresh navigation confidence state");
 }
 
+void AnkleNavigationWorkflowContractTest::navigation_page_subscribes_runtime_status_changes_for_gate_refresh()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+
+    QVERIFY2(navigationSource.contains(QStringLiteral("connect(trackingService, &OpticalTrackingService::toolStatusChanged")),
+        "navigation page must subscribe to optical tracking tool status changes");
+    QVERIFY2(navigationSource.contains(QStringLiteral("connect(trackingService, &OpticalTrackingService::calibrationCompleted")),
+        "navigation page must subscribe to calibration completion events");
+    QVERIFY2(navigationSource.contains(QStringLiteral("connect(registrationService, &PointRegistrationService::registrationApplied")),
+        "navigation page must subscribe to registration application events");
+    QVERIFY2(navigationSource.contains(QStringLiteral("connect(registrationService, &PointRegistrationService::sessionStateChanged")),
+        "navigation page must subscribe to registration session state changes");
+    QVERIFY2(navigationSource.contains(QStringLiteral("updateProbeCalibrationUi();")),
+        "runtime tracking status changes must refresh the probe calibration UI");
+    QVERIFY2(navigationSource.contains(QStringLiteral("refreshNavigationConfidenceState();")),
+        "runtime tracking and registration status changes must refresh navigation confidence state");
+}
+
 void AnkleNavigationWorkflowContractTest::navigation_page_enforces_runtime_navigation_gate_while_active()
 {
     const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
@@ -217,11 +239,78 @@ void AnkleNavigationWorkflowContractTest::navigation_page_enforces_runtime_navig
 void AnkleNavigationWorkflowContractTest::navigation_page_persists_navigation_gate_evidence_into_evaluation_report()
 {
     const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString pauseFunctionStart = QStringLiteral("void NavigationPageNew::on_pauseNavigationButton_clicked()");
+    const QString pauseNextFunctionStart = QStringLiteral("void NavigationPageNew::on_resetViewButton_clicked()");
+    const int pauseStartIndex = navigationSource.indexOf(pauseFunctionStart);
+    QVERIFY2(pauseStartIndex >= 0, "navigation page must define on_pauseNavigationButton_clicked()");
 
-    QVERIFY2(navigationSource.contains(QStringLiteral("report.confidenceScore = m_lastConfidence.score;")),
+    const int pauseEndIndex = navigationSource.indexOf(pauseNextFunctionStart, pauseStartIndex);
+    QVERIFY2(pauseEndIndex > pauseStartIndex, "navigation page must keep on_resetViewButton_clicked after pause handler");
+
+    const QString pauseBody = navigationSource.mid(pauseStartIndex, pauseEndIndex - pauseStartIndex);
+
+    const QString registrationFunctionStart = QStringLiteral("void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& result)");
+    const QString registrationNextFunctionStart = QStringLiteral("void NavigationPageNew::onRegistrationFailed(const QString& error)");
+    const int registrationStartIndex = navigationSource.indexOf(registrationFunctionStart);
+    QVERIFY2(registrationStartIndex >= 0, "navigation page must define onRegistrationCompleted()");
+
+    const int registrationEndIndex = navigationSource.indexOf(registrationNextFunctionStart, registrationStartIndex);
+    QVERIFY2(registrationEndIndex > registrationStartIndex, "navigation page must keep onRegistrationFailed after registration completion handler");
+
+    const QString registrationBody = navigationSource.mid(registrationStartIndex, registrationEndIndex - registrationStartIndex);
+
+    QVERIFY2(pauseBody.contains(QStringLiteral("report.confidenceScore = m_lastConfidence.score;")),
         "navigation page must persist the latest confidence score into evaluation report");
-    QVERIFY2(navigationSource.contains(QStringLiteral("report.gateReasons = m_lastConfidence.recommendations;")),
+    QVERIFY2(pauseBody.contains(QStringLiteral("report.gateReasons = m_lastConfidence.recommendations;")),
         "navigation page must persist gate reasons into evaluation report");
+    QVERIFY2(pauseBody.contains(QStringLiteral("evaluationService.exportCaseSummary(caseId);")),
+        "navigation page must export case evaluation summary after persisting evaluation report");
+    QVERIFY2(registrationBody.contains(QStringLiteral("evaluationService.saveRegistrationRecord(record);")),
+        "navigation page must persist registration record after registration completes");
+    QVERIFY2(registrationBody.contains(QStringLiteral("evaluationService.exportCaseSummary(caseId);")),
+        "navigation page must export case evaluation summary after registration record persistence");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_exposes_batch_evaluation_summary_export_entry()
+{
+    const QString navigationHeader = readFile(QStringLiteral("UI/NewPages/NavigationPage.h"));
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString navigationUi = readFile(QStringLiteral("UI/Forms/NavigationPage.ui"));
+
+    QVERIFY2(navigationHeader.contains(QStringLiteral("void on_exportEvaluationSummaryButton_clicked();")),
+        "navigation page must expose a batch evaluation summary export slot");
+    QVERIFY2(navigationUi.contains(QStringLiteral("exportEvaluationSummaryButton")),
+        "evaluation tab must expose a batch evaluation summary export button");
+    QVERIFY2(navigationSource.contains(QStringLiteral("discoverExportableCaseIds()")),
+        "navigation page must ask evaluation service for exportable case ids");
+    QVERIFY2(navigationSource.contains(QStringLiteral("exportBatchSummaryCsv(caseIds)")),
+        "navigation page must export batch evaluation summary csv from discovered case ids");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_exports_innovation_summaries_with_data_root_above_cases_directory()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+
+    QVERIFY2(navigationSource.contains(QStringLiteral("InnovationExperimentBatchRunner")),
+        "navigation page must use InnovationExperimentBatchRunner for innovation summary export");
+    QVERIFY2(navigationSource.contains(QStringLiteral("input.caseDataRoot = QFileInfo(evaluationCasesRoot()).dir().absolutePath();")),
+        "navigation page must pass the data root above the cases directory to innovation batch runner");
+    QVERIFY2(navigationSource.contains(QStringLiteral("innovation_1_summary.csv")),
+        "navigation page must surface innovation_1 summary export");
+    QVERIFY2(navigationSource.contains(QStringLiteral("innovation_2_summary.csv")),
+        "navigation page must surface innovation_2 summary export");
+    QVERIFY2(navigationSource.contains(QStringLiteral("innovation_3_summary.csv")),
+        "navigation page must surface innovation_3 summary export");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_uses_data_root_above_cases_directory_for_case_workspace_repository()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+
+    QVERIFY2(navigationSource.contains(QStringLiteral("const QString dataRoot = QFileInfo(casesRoot).dir().absolutePath();")),
+        "navigation page must derive case workspace data root above the cases directory");
+    QVERIFY2(navigationSource.contains(QStringLiteral("const AnkleCaseWorkspaceRepository repository(dataRoot);")),
+        "navigation page must construct AnkleCaseWorkspaceRepository with the data root, not the cases root");
 }
 
 QTEST_APPLESS_MAIN(AnkleNavigationWorkflowContractTest)
