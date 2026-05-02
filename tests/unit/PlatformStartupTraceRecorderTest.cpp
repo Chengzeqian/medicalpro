@@ -236,6 +236,10 @@ void PlatformStartupTraceRecorderTest::concurrent_reads_return_stable_snapshots_
     constexpr int iterations = 200;
     std::atomic<bool> writerFinished = false;
     int snapshotReads = 0;
+    bool eventsCountRegressed = false;
+    bool traceCountRegressed = false;
+    int previousEventsCount = 0;
+    int previousTraceCount = 0;
 
     std::thread writer([&recorder, &writerFinished]() {
         for (int i = 0; i < iterations; ++i) {
@@ -261,7 +265,17 @@ void PlatformStartupTraceRecorderTest::concurrent_reads_return_stable_snapshots_
     while (!writerFinished.load()) {
         const auto events = recorder.lifecycleEvents();
         const auto trace = recorder.startupTrace();
-        QVERIFY(events.size() >= trace.size());
+        if (events.size() < previousEventsCount) {
+            eventsCountRegressed = true;
+            break;
+        }
+        if (trace.size() < previousTraceCount) {
+            traceCountRegressed = true;
+            break;
+        }
+
+        previousEventsCount = events.size();
+        previousTraceCount = trace.size();
         ++snapshotReads;
         std::this_thread::yield();
     }
@@ -270,6 +284,8 @@ void PlatformStartupTraceRecorderTest::concurrent_reads_return_stable_snapshots_
 
     const auto events = recorder.lifecycleEvents();
     const auto trace = recorder.startupTrace();
+    QVERIFY2(!eventsCountRegressed, "Lifecycle event snapshot count regressed while recording");
+    QVERIFY2(!traceCountRegressed, "Startup trace snapshot count regressed while recording");
     QVERIFY(snapshotReads > 0);
     QCOMPARE(trace.size(), iterations);
     QCOMPARE(events.size(), 1 + (iterations * 2));

@@ -57,8 +57,8 @@ try {
         }
 
         if (
-            $combinedOutput.Contains('[StartupShell] shown') -and
-            $combinedOutput.Contains('[StartupShell] enter enabled') -and
+            $combinedOutput.Contains('[MainInterfaceWidget] welcome shown') -and
+            $combinedOutput.Contains('[Startup] welcome entry enabled') -and
             $combinedOutput.Contains('Executing phase: Startup complete')
         ) {
             break
@@ -71,27 +71,27 @@ try {
         Start-Sleep -Milliseconds 250
     }
 
-    $shellIndex = $combinedOutput.IndexOf('[StartupShell] shown')
-    $enterEnabledIndex = $combinedOutput.IndexOf('[StartupShell] enter enabled')
+    $welcomeShownIndex = $combinedOutput.IndexOf('[MainInterfaceWidget] welcome shown')
+    $enterEnabledIndex = $combinedOutput.IndexOf('[Startup] welcome entry enabled')
     $startupCompleteIndex = $combinedOutput.IndexOf('Executing phase: Startup complete')
 
-    if ($shellIndex -lt 0) {
-        throw 'cold_start_welcome_shell_smoke_failed: Startup shell was not shown'
+    if ($welcomeShownIndex -lt 0) {
+        throw 'cold_start_welcome_shell_smoke_failed: Main interface welcome was not shown'
     }
     if ($enterEnabledIndex -lt 0) {
-        throw 'cold_start_welcome_shell_smoke_failed: Enter System was not enabled'
+        throw 'cold_start_welcome_shell_smoke_failed: Welcome entry was not enabled'
     }
     if ($startupCompleteIndex -lt 0) {
         throw 'cold_start_welcome_shell_smoke_failed: Startup complete marker not observed'
     }
-    if ($shellIndex -gt $startupCompleteIndex) {
-        throw 'cold_start_welcome_shell_smoke_failed: Startup shell appeared after Startup complete'
+    if ($welcomeShownIndex -gt $startupCompleteIndex) {
+        throw 'cold_start_welcome_shell_smoke_failed: Main interface welcome appeared after Startup complete'
     }
     if ($enterEnabledIndex -gt $startupCompleteIndex) {
-        throw 'cold_start_welcome_shell_smoke_failed: Enter System enabled after Startup complete'
+        throw 'cold_start_welcome_shell_smoke_failed: Welcome entry enabled after Startup complete'
     }
 
-    Write-Host 'Cold start welcome shell smoke passed'
+    Write-Host 'Cold start welcome entry smoke passed'
 }
 finally {
     if (-not $process.HasExited) {

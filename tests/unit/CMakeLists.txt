@@ -82,6 +82,10 @@ target_include_directories(startup_console_log_policy_test PRIVATE
     ${CMAKE_SOURCE_DIR}
 )
 
+target_compile_definitions(startup_console_log_policy_test PRIVATE
+    MEDICALPRO_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
 target_link_libraries(startup_console_log_policy_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Test

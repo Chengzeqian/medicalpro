@@ -1,7 +1,5 @@
 #include <QtTest/QtTest>
 
-#include <QCoreApplication>
-#include <QDir>
 #include <QFile>
 
 class StartupConsoleLogPolicyTest : public QObject
@@ -19,13 +17,7 @@ namespace
 
 QString readSourceFile(const QString& relativePath)
 {
-    QFile file(QFINDTESTDATA(relativePath));
-    if (!file.exists()) {
-        const QString projectRootCandidate =
-            QDir(QCoreApplication::applicationDirPath()).absoluteFilePath(
-                QStringLiteral("../../../../%1").arg(relativePath));
-        file.setFileName(projectRootCandidate);
-    }
+    QFile file(QStringLiteral(MEDICALPRO_SOURCE_DIR "/") + relativePath);
 
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return QString();
