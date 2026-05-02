@@ -3,7 +3,19 @@
 
 #include "Framework/Platform/UiBridge/NavigationPageServiceAccess.h"
 #include "Framework/Platform/LegacyAdapters/LegacyNavigationPageServiceAdapter.h"
+#include "Framework/Navigation/ankle_case_workspace_repository.h"
+#include "Framework/Navigation/innovation_experiment_batch_runner.h"
+#include "Framework/Navigation/ankle_planning_service.h"
 #include "Framework/Navigation/navigation_evaluation_service.h"
+#include "Framework/VTK/embedded_vtk_view_host.h"
+#include "UI/NewPages/Navigation/navigation_evaluation_controller.h"
+#include "UI/NewPages/Navigation/navigation_evaluation_summary_formatter.h"
+#include "UI/NewPages/Navigation/navigation_service_bundle.h"
+#include "UI/NewPages/Navigation/navigation_vtk_bridge.h"
+#include "UI/NewPages/Navigation/navigation_workflow_coordinator.h"
+#include "UI/NewPages/Navigation/navigation_workflow_context.h"
+#include "UI/NewPages/Navigation/preparation_planning_controller.h"
+#include "UI/NewPages/Navigation/registration_controller.h"
 #include "Plugins/BoneSegmentation/SegmentationService.h"
 #include "Plugins/DicomViewer/DicomViewerService.h"
 #include "Plugins/FourViewDisplay/FourViewDisplayService.h"
@@ -16,6 +28,9 @@
 
 #include <QFileDialog>
 #include <QCoreApplication>
+#include <QGroupBox>
+#include <QLabel>
+#include <QPushButton>
 #include <QVBoxLayout>
 #include <QMouseEvent>
 #include <QDir>
@@ -31,14 +46,58 @@
 #include <vtkSmartPointer.h>
 #include <vtkPolyData.h>
 
+namespace
+{
+QVariantMap planningConstraintContextFromData(const AnklePlanningData& planning)
+{
+    QVariantMap context;
+    if (planning.anatomicalConstraintRegions.isEmpty()) {
+        return context;
+    }
+
+    QStringList regionKeys;
+    QStringList regionBones;
+    QStringList regionRoles;
+    QString source;
+    QString version;
+
+    for (auto it = planning.anatomicalConstraintRegionMetadata.cbegin();
+         it != planning.anatomicalConstraintRegionMetadata.cend();
+         ++it) {
+        regionKeys.append(it.key());
+        if (!it.value().boneName.isEmpty()) {
+            regionBones.append(it.value().boneName);
+        }
+        if (!it.value().regionRole.isEmpty()) {
+            regionRoles.append(it.value().regionRole);
+        }
+        if (source.isEmpty() && !it.value().source.isEmpty()) {
+            source = it.value().source;
+        }
+        if (version.isEmpty() && !it.value().version.isEmpty()) {
+            version = it.value().version;
+        }
+    }
+
+    if (regionKeys.isEmpty()) {
+        regionKeys = planning.anatomicalConstraintRegions.keys();
+    }
+
+    context.insert(QStringLiteral("constraint_region_count"), planning.anatomicalConstraintRegions.size());
+    context.insert(QStringLiteral("constraint_region_keys"), regionKeys.join(QStringLiteral("|")));
+    context.insert(QStringLiteral("constraint_region_bones"), regionBones.join(QStringLiteral("|")));
+    context.insert(QStringLiteral("constraint_region_roles"), regionRoles.join(QStringLiteral("|")));
+    context.insert(QStringLiteral("constraint_region_source"), source);
+    context.insert(QStringLiteral("constraint_region_version"), version);
+    return context;
+}
+}
+
 NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAccess* serviceAccess)
     : BasePage(parent)
     , ui(new Ui::NavigationPage)
     , m_serviceAccess(serviceAccess)
     , m_ownedServiceAdapter(nullptr)
-    , m_caseId()
-    , m_patientId(-1)
-    , m_workflowStage(AnkleWorkflowStage::Preparation)
     , m_trackerConnected(false)
     , m_navigationActive(false)
     , m_fourViewWidget(nullptr)
@@ -46,27 +105,75 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
     , m_modelVisible(false)
     , m_registrationVTKWidget(nullptr)
     , m_selectedPointIndex(-1)
+    , m_selectedInstrumentId(-1)
     , m_navigation3DView(nullptr)
     , m_motionSimulator(nullptr)
     , m_navigationTimer(nullptr)
     , m_registrationWorkflow(nullptr)
-    , m_fourViewService(nullptr)
-    , m_trackingService(nullptr)
-    , m_pointRegistrationService(nullptr)
+    , m_activeCalibrationRequiredPoints(0)
+    , m_activeCalibrationCollectedPoints(0)
 {
     ui->setupUi(this);
     setObjectName("NavigationPage");
+
+    if (!m_serviceAccess) {
+        m_ownedServiceAdapter = new LegacyNavigationPageServiceAdapter();
+        m_serviceAccess = new NavigationPageServiceAccess(m_ownedServiceAdapter, this);
+    }
+
+    m_workflowContext = std::make_unique<NavigationWorkflowContext>();
+    m_workflowContext->setCasesRoot(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("cases")));
+    m_serviceBundle = std::make_unique<NavigationServiceBundle>(m_serviceAccess);
+    m_planningVtkHost = std::make_unique<EmbeddedVtkViewHost>(
+        ui->planningViewLayout ? ui->planningViewLayout->parentWidget() : nullptr,
+        ui->planningViewLayout,
+        ui->planningViewPlaceholder);
+    m_navigationVtkHost = std::make_unique<EmbeddedVtkViewHost>(
+        ui->fourViewLayout ? ui->fourViewLayout->parentWidget() : nullptr,
+        ui->fourViewLayout,
+        nullptr,
+        EmbeddedVtkViewHostOptions {
+            .hideExistingWidgets = true,
+            .gridRow = 0,
+            .gridColumn = 0,
+            .gridRowSpan = 2,
+            .gridColumnSpan = 2
+        });
+    m_registrationVtkHost = std::make_unique<EmbeddedVtkViewHost>(
+        ui->registrationViewFrame,
+        ui->registrationViewLayout,
+        ui->registrationViewPlaceholder);
+    m_navigationVtkBridge = std::make_unique<NavigationVtkBridge>(
+        m_planningVtkHost.get(),
+        m_navigationVtkHost.get(),
+        m_registrationVtkHost.get(),
+        [this]() { return fourViewDisplayService(); },
+        [this]() { return pointRegistrationService(); });
+    m_preparationPlanningController = std::make_unique<PreparationPlanningController>(
+        PreparationPlanningController::Actions {
+            .loadDicom = [this]() { performLoadDicom(); }
+        });
+    m_registrationController = std::make_unique<RegistrationController>(
+        RegistrationController::Actions {
+            .computeRegistration = [this]() { performComputeRegistration(); }
+        });
+    m_navigationEvaluationController = std::make_unique<NavigationEvaluationController>(
+        NavigationEvaluationController::Actions {
+            .startNavigation = [this]() { performStartNavigation(); }
+        });
+    m_workflowCoordinator = std::make_unique<NavigationWorkflowCoordinator>(
+        m_workflowContext.get(),
+        m_preparationPlanningController.get(),
+        m_registrationController.get(),
+        m_navigationEvaluationController.get(),
+        [this](AnkleWorkflowStage stage) { setWorkflowStage(stage); });
+
     ui->tabWidget->setTabText(ui->tabWidget->indexOf(ui->instrumentTab), QStringLiteral("准备"));
     ui->tabWidget->setTabText(ui->tabWidget->indexOf(ui->planningTab), QStringLiteral("规划"));
     ui->tabWidget->setTabText(ui->tabWidget->indexOf(ui->registrationTab), QStringLiteral("配准"));
     ui->tabWidget->setTabText(ui->tabWidget->indexOf(ui->navigationTab), QStringLiteral("导航"));
     ui->tabWidget->setTabText(ui->tabWidget->indexOf(ui->evaluationTab), QStringLiteral("评估"));
     setWorkflowStage(AnkleWorkflowStage::Preparation);
-
-    if (!m_serviceAccess) {
-        m_ownedServiceAdapter = new LegacyNavigationPageServiceAdapter();
-        m_serviceAccess = new NavigationPageServiceAccess(m_ownedServiceAdapter, this);
-    }
 
     // 鍒涘缓瀵艰埅3D瑙嗗浘鍜岃繍鍔ㄦā鎷熷櫒
     m_navigation3DView = new Navigation3DViewWidget(this);
@@ -105,6 +212,66 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
     // 鍒濆鐘舵€?
     updateTrackerStatus(false);
 
+    if (ui->opticalRegLayout) {
+        auto* calibrationStatusLabel = findChild<QLabel*>(QStringLiteral("calibrationStatusLabel"));
+        if (!calibrationStatusLabel) {
+            calibrationStatusLabel = new QLabel(this);
+            calibrationStatusLabel->setObjectName(QStringLiteral("calibrationStatusLabel"));
+            calibrationStatusLabel->setWordWrap(true);
+            ui->opticalRegLayout->addWidget(calibrationStatusLabel);
+        }
+
+        auto* navigationReadinessLabel = findChild<QLabel*>(QStringLiteral("navigationReadinessLabel"));
+        if (!navigationReadinessLabel) {
+            navigationReadinessLabel = new QLabel(this);
+            navigationReadinessLabel->setObjectName(QStringLiteral("navigationReadinessLabel"));
+            navigationReadinessLabel->setWordWrap(true);
+            ui->opticalRegLayout->addWidget(navigationReadinessLabel);
+        }
+
+        auto* navigationConfidenceLabel = findChild<QLabel*>(QStringLiteral("navigationConfidenceLabel"));
+        if (!navigationConfidenceLabel) {
+            navigationConfidenceLabel = new QLabel(this);
+            navigationConfidenceLabel->setObjectName(QStringLiteral("navigationConfidenceLabel"));
+            navigationConfidenceLabel->setWordWrap(true);
+            ui->opticalRegLayout->addWidget(navigationConfidenceLabel);
+        }
+
+        auto* captureCalibrationPointButton = findChild<QPushButton*>(QStringLiteral("captureCalibrationPointButton"));
+        if (!captureCalibrationPointButton) {
+            captureCalibrationPointButton = new QPushButton(QStringLiteral("采集标定点"), this);
+            captureCalibrationPointButton->setObjectName(QStringLiteral("captureCalibrationPointButton"));
+            ui->opticalRegLayout->addWidget(captureCalibrationPointButton);
+            connect(captureCalibrationPointButton, &QPushButton::clicked, this, [this]() {
+                captureProbeCalibrationPoint();
+            });
+        }
+
+        auto* finishCalibrationButton = findChild<QPushButton*>(QStringLiteral("finishCalibrationButton"));
+        if (!finishCalibrationButton) {
+            finishCalibrationButton = new QPushButton(QStringLiteral("完成标定"), this);
+            finishCalibrationButton->setObjectName(QStringLiteral("finishCalibrationButton"));
+            ui->opticalRegLayout->addWidget(finishCalibrationButton);
+            connect(finishCalibrationButton, &QPushButton::clicked, this, [this]() {
+                finishProbeCalibration();
+            });
+        }
+
+        auto* cancelCalibrationButton = findChild<QPushButton*>(QStringLiteral("cancelCalibrationButton"));
+        if (!cancelCalibrationButton) {
+            cancelCalibrationButton = new QPushButton(QStringLiteral("取消标定"), this);
+            cancelCalibrationButton->setObjectName(QStringLiteral("cancelCalibrationButton"));
+            ui->opticalRegLayout->addWidget(cancelCalibrationButton);
+            connect(cancelCalibrationButton, &QPushButton::clicked, this, [this]() {
+                cancelProbeCalibration();
+            });
+        }
+    }
+
+    resetProbeCalibrationState();
+    refreshNavigationConfidenceState();
+    refreshEvaluationSummary();
+
     // 鍒濆鍖栭厤鍑嗗姛鑳?
     setupRegistration();
 }
@@ -129,22 +296,14 @@ void NavigationPageNew::onActivated()
 {
     BasePage::onActivated();
 
-    // 鏇存柊鎮ｈ€呬俊鎭樉绀?
-    if (!m_patientName.isEmpty()) {
-        if (m_caseId.isEmpty()) {
-            ui->patientInfoLabel->setText(QStringLiteral("患者：%1").arg(m_patientName));
-        } else {
-            ui->patientInfoLabel->setText(QStringLiteral("病例：%1 | 患者：%2").arg(m_caseId, m_patientName));
-        }
-    }
+    refreshPatientInfoLabel();
 
     loadInstruments();
     setupVTKViews();
     updateFourViewWidgetPlacement();
 
-    // 鎭㈠VTK娓叉煋
-    if (m_fourViewService) {
-        m_fourViewService->resumeRendering();
+    if (m_navigationVtkBridge) {
+        m_navigationVtkBridge->resumeFourView();
     }
 }
 
@@ -170,34 +329,28 @@ void NavigationPageNew::onDeactivated()
         m_navigationActive = false;
     }
 
-    // 鏆傚仠VTK娓叉煋锛堥槻姝㈤〉闈㈠垏鎹㈡椂闂儊锛?
-    if (m_fourViewService) {
-        m_fourViewService->pauseRendering();
+    if (m_navigationVtkBridge) {
+        m_navigationVtkBridge->pauseFourView();
     }
 }
 
 void NavigationPageNew::setCaseContext(const QString& caseId, int patientId, const QString& patientName)
 {
-    m_caseId = caseId;
-    m_patientId = patientId;
-    m_patientName = patientName;
-    ui->patientInfoLabel->setText(QStringLiteral("病例：%1 | 患者：%2").arg(m_caseId, m_patientName));
+    m_workflowContext->setCaseIdentity(caseId, patientId, patientName);
+    refreshPatientInfoLabel();
     setWorkflowStage(AnkleWorkflowStage::Preparation);
+    refreshEvaluationSummary();
 }
 
 void NavigationPageNew::setPatientId(int patientId)
 {
-    m_patientId = patientId;
+    m_workflowContext->setPatientId(patientId);
 }
 
 void NavigationPageNew::setPatientName(const QString& name)
 {
-    m_patientName = name;
-    if (m_caseId.isEmpty()) {
-        ui->patientInfoLabel->setText(QStringLiteral("患者：%1").arg(name));
-    } else {
-        ui->patientInfoLabel->setText(QStringLiteral("病例：%1 | 患者：%2").arg(m_caseId, name));
-    }
+    m_workflowContext->setPatientName(name);
+    refreshPatientInfoLabel();
 }
 
 void NavigationPageNew::beginTransitionMask()
@@ -212,21 +365,21 @@ void NavigationPageNew::endTransitionMask()
 
 void NavigationPageNew::resetPage()
 {
+    clearTrackingRuntimeState(true);
     m_navigationActive = false;
-    m_trackerConnected = false;
     m_trackerTimer->stop();
     updateTrackerStatus(false);
+    m_selectedInstrumentId = -1;
     // 娓呯悊鎮ｈ€呮樉绀?
-    m_caseId.clear();
-    m_patientId = -1;
-    m_patientName.clear();
-    ui->patientInfoLabel->setText(QStringLiteral("患者：-"));
+    m_workflowContext->clearCaseIdentity();
+    refreshPatientInfoLabel();
     setWorkflowStage(AnkleWorkflowStage::Preparation);
+    refreshEvaluationSummary();
 }
 
 void NavigationPageNew::setWorkflowStage(AnkleWorkflowStage stage)
 {
-    m_workflowStage = stage;
+    m_workflowContext->setCurrentStage(stage);
 
     switch (stage) {
     case AnkleWorkflowStage::Preparation:
@@ -249,7 +402,123 @@ void NavigationPageNew::setWorkflowStage(AnkleWorkflowStage stage)
 
 QString NavigationPageNew::evaluationCasesRoot() const
 {
-    return QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("cases"));
+    return m_workflowContext->casesRoot();
+}
+
+void NavigationPageNew::refreshEvaluationSummary()
+{
+    if (!ui || !ui->evaluationTabLayout) {
+        return;
+    }
+
+    auto ensureSectionLabel = [this](const QString& groupName, const QString& labelName, const QString& title) {
+        auto* label = findChild<QLabel*>(labelName);
+        if (label) {
+            return label;
+        }
+
+        auto* group = new QGroupBox(title, ui->evaluationTab);
+        group->setObjectName(groupName);
+        auto* layout = new QVBoxLayout(group);
+        layout->setContentsMargins(12, 12, 12, 12);
+
+        label = new QLabel(group);
+        label->setObjectName(labelName);
+        label->setWordWrap(true);
+        label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        label->setStyleSheet(QStringLiteral("color: #ecf0f1; font-size: 14px;"));
+        layout->addWidget(label);
+        ui->evaluationTabLayout->addWidget(group);
+        return label;
+    };
+
+    auto* headerLabel = findChild<QLabel*>(QStringLiteral("evaluationHeaderLabel"));
+    if (!headerLabel) {
+        headerLabel = new QLabel(ui->evaluationTab);
+        headerLabel->setObjectName(QStringLiteral("evaluationHeaderLabel"));
+        headerLabel->setWordWrap(true);
+        headerLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        headerLabel->setStyleSheet(QStringLiteral("color: #ffffff; font-size: 18px; font-weight: bold;"));
+        ui->evaluationTabLayout->insertWidget(0, headerLabel);
+    }
+
+    auto* registrationLabel = ensureSectionLabel(
+        QStringLiteral("evaluationRegistrationSummaryGroup"),
+        QStringLiteral("evaluationRegistrationSummaryLabel"),
+        QStringLiteral("配准结果"));
+    auto* constraintLabel = ensureSectionLabel(
+        QStringLiteral("evaluationConstraintSummaryGroup"),
+        QStringLiteral("evaluationConstraintSummaryLabel"),
+        QStringLiteral("目标区与约束区"));
+    auto* trackingLabel = ensureSectionLabel(
+        QStringLiteral("evaluationTrackingSummaryGroup"),
+        QStringLiteral("evaluationTrackingSummaryLabel"),
+        QStringLiteral("跟踪质量"));
+    auto* gateLabel = ensureSectionLabel(
+        QStringLiteral("evaluationGateSummaryGroup"),
+        QStringLiteral("evaluationGateSummaryLabel"),
+        QStringLiteral("导航准入"));
+
+    const QString caseId = m_workflowContext ? m_workflowContext->caseId() : QString();
+    NavigationEvaluationSummary summary;
+    if (!caseId.isEmpty()) {
+        NavigationEvaluationService evaluationService(evaluationCasesRoot());
+        summary = buildNavigationEvaluationSummary(evaluationService.loadEvaluationSnapshot(caseId));
+    } else {
+        summary = buildNavigationEvaluationSummary(AnkleEvaluationSnapshot());
+    }
+
+    if (ui->evaluationPlaceholderLabel) {
+        ui->evaluationPlaceholderLabel->setVisible(!summary.hasData);
+        if (!summary.hasData) {
+            ui->evaluationPlaceholderLabel->setText(QStringLiteral("当前病例暂无评估结果，完成配准与导航后将在此汇总。"));
+        }
+    }
+
+    headerLabel->setText(summary.headerText);
+    registrationLabel->setText(summary.registrationText);
+    constraintLabel->setText(summary.constraintText);
+    trackingLabel->setText(summary.trackingText);
+    gateLabel->setText(summary.gateText);
+}
+
+void NavigationPageNew::refreshPatientInfoLabel()
+{
+    if (!ui || !ui->patientInfoLabel) {
+        return;
+    }
+
+    ui->patientInfoLabel->setText(m_workflowContext->patientSummary());
+}
+
+InstrumentManagementService* NavigationPageNew::instrumentManagementService() const
+{
+    return m_serviceBundle ? m_serviceBundle->instrumentManagementService() : nullptr;
+}
+
+DicomViewerService* NavigationPageNew::dicomViewerService() const
+{
+    return m_serviceBundle ? m_serviceBundle->dicomViewerService() : nullptr;
+}
+
+BoneSegmentationService* NavigationPageNew::segmentationService() const
+{
+    return m_serviceBundle ? m_serviceBundle->segmentationService() : nullptr;
+}
+
+FourViewDisplayService* NavigationPageNew::fourViewDisplayService() const
+{
+    return m_serviceBundle ? m_serviceBundle->fourViewDisplayService() : nullptr;
+}
+
+OpticalTrackingService* NavigationPageNew::opticalTrackingService() const
+{
+    return m_serviceBundle ? m_serviceBundle->opticalTrackingService() : nullptr;
+}
+
+PointRegistrationService* NavigationPageNew::pointRegistrationService(bool tryStartPlugin) const
+{
+    return m_serviceBundle ? m_serviceBundle->pointRegistrationService(tryStartPlugin) : nullptr;
 }
 
 bool NavigationPageNew::eventFilter(QObject* obj, QEvent* event)
@@ -267,7 +536,7 @@ bool NavigationPageNew::eventFilter(QObject* obj, QEvent* event)
 
 void NavigationPageNew::onInstrumentCardClicked(int instrumentId)
 {
-    auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
+    auto* instrumentService = instrumentManagementService();
     if (!instrumentService) {
         showWarning("预览", "器械服务不可用");
         return;
@@ -278,6 +547,8 @@ void NavigationPageNew::onInstrumentCardClicked(int instrumentId)
         showWarning("棰勮", "鏃犳硶鑾峰彇鍣ㄦ淇℃伅");
         return;
     }
+
+    m_selectedInstrumentId = instrumentId;
 
     // 鍒涘缓骞舵樉绀洪瑙堝璇濇
     InstrumentPreviewDialog* dialog = new InstrumentPreviewDialog(instrumentService, this);
@@ -312,7 +583,7 @@ void NavigationPageNew::on_importInstrumentButton_clicked()
         return;
     }
 
-    auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
+    auto* instrumentService = instrumentManagementService();
     if (instrumentService) {
         // The InstrumentManagementService API does not support direct file import here;
         // integrate a real importer when available.
@@ -334,7 +605,7 @@ void NavigationPageNew::on_refreshInstrumentButton_clicked()
 
 void NavigationPageNew::on_clearAllInstrumentButton_clicked()
 {
-    auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
+    auto* instrumentService = instrumentManagementService();
     if (!instrumentService) {
         showWarning("清除", "器械服务不可用");
         return;
@@ -367,7 +638,7 @@ void NavigationPageNew::on_clearAllInstrumentButton_clicked()
 
 void NavigationPageNew::on_generateThumbnailButton_clicked()
 {
-    auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
+    auto* instrumentService = instrumentManagementService();
     if (!instrumentService) {
         showWarning("生成缩略图", "器械服务不可用");
         return;
@@ -412,7 +683,7 @@ void NavigationPageNew::loadInstruments()
         delete child;
     }
 
-    auto* instrumentService = m_serviceAccess ? m_serviceAccess->instrumentManagementService() : nullptr;
+    auto* instrumentService = instrumentManagementService();
     if (instrumentService) {
         auto instruments = instrumentService->getAllInstruments();
         int col = 0, row = 0;
@@ -512,15 +783,22 @@ void NavigationPageNew::loadInstruments()
 
 void NavigationPageNew::on_loadDicomButton_clicked()
 {
+    if (m_workflowCoordinator) {
+        m_workflowCoordinator->handleLoadDicom();
+    }
+}
+
+void NavigationPageNew::performLoadDicom()
+{
     QString dirPath = QFileDialog::getExistingDirectory(this, "选择DICOM目录");
     if (dirPath.isEmpty()) {
         return;
     }
     m_lastDicomDirPath = dirPath;
 
-    auto* dicomService = m_serviceAccess ? m_serviceAccess->dicomViewerService() : nullptr;
+    auto* dicomService = dicomViewerService();
     if (dicomService) {
-        const int pid = m_patientId >= 0 ? m_patientId : 0;
+        const int pid = m_workflowContext->patientId() >= 0 ? m_workflowContext->patientId() : 0;
         if (dicomService->importDicomDirectory(dirPath, pid)) {
             showInfo("加载DICOM", "DICOM数据加载成功！");
         } else {
@@ -535,7 +813,7 @@ void NavigationPageNew::on_loadDicomButton_clicked()
 void NavigationPageNew::on_autoSegmentButton_clicked()
 {
     // 鑾峰彇鍒嗗壊鏈嶅姟锛圫erviceHelper 宸插鐞?CTKManager 澶囩敤鑾峰彇閫昏緫锛?
-    auto* segService = m_serviceAccess ? m_serviceAccess->segmentationService() : nullptr;
+    auto* segService = segmentationService();
     if (!segService) {
         showError("鑷姩鍒嗗壊", "鍒嗗壊鏈嶅姟涓嶅彲鐢紝璇锋鏌oneSegmentation鎻掍欢鏄惁姝ｇ‘鍔犺浇");
         return;
@@ -577,7 +855,8 @@ void NavigationPageNew::on_autoSegmentButton_clicked()
     }
 
     // 鍚姩鍒嗗壊浠诲姟
-    QString taskName = QString("患者%1_骨骼分割").arg(m_patientId >= 0 ? m_patientId : 0);
+    const int patientId = m_workflowContext->patientId() >= 0 ? m_workflowContext->patientId() : 0;
+    QString taskName = QString("患者%1_骨骼分割").arg(patientId);
     m_currentSegmentationTaskId = segService->runBoneSegmentation(dicomPath, QString(), taskName);
 
     if (m_currentSegmentationTaskId.isEmpty()) {
@@ -609,7 +888,7 @@ void NavigationPageNew::on_adjustProsthesisButton_clicked()
 
 void NavigationPageNew::on_exportSTLButton_clicked()
 {
-    auto* segService = m_serviceAccess ? m_serviceAccess->segmentationService() : nullptr;
+    auto* segService = segmentationService();
     if (!segService) {
         showError("导出STL", "分割服务不可用");
         return;
@@ -669,10 +948,11 @@ void NavigationPageNew::on_loadModelButton_clicked()
 
     bool fourViewSuccess = false;
     bool registrationSuccess = false;
+    auto* fourViewService = fourViewDisplayService();
 
     // 1. 鍔犺浇鍒?FourViewDisplay锛堣鍒掕鍥撅級
-    if (m_fourViewService && m_fourViewService->loadToolModel(filePath)) {
-        m_fourViewService->setToolModelVisible(true);
+    if (fourViewService && fourViewService->loadToolModel(filePath)) {
+        fourViewService->setToolModelVisible(true);
         m_modelVisible = true;
         ui->toggleModelButton->setText("闅愯棌妯″瀷");
         fourViewSuccess = true;
@@ -682,8 +962,10 @@ void NavigationPageNew::on_loadModelButton_clicked()
     if (ensurePointRegistrationService(true)) {
         // Ensure the registration 3D view exists before loading so the service can push the model into it.
         embedRegistrationVTKWidget();
-        if (m_pointRegistrationService->loadModelFromFile(filePath)) {
-            registrationSuccess = true;
+        if (auto* registrationService = pointRegistrationService()) {
+            if (registrationService->loadModelFromFile(filePath)) {
+                registrationSuccess = true;
+            }
         }
     }
 
@@ -704,13 +986,14 @@ void NavigationPageNew::on_loadModelButton_clicked()
 
 void NavigationPageNew::on_toggleModelButton_clicked()
 {
-    if (!m_fourViewService) {
+    auto* fourViewService = fourViewDisplayService();
+    if (!fourViewService) {
         showError("鏄剧ず妯″瀷", "鍥涜鍥炬湇鍔′笉鍙敤");
         return;
     }
 
     m_modelVisible = !m_modelVisible;
-    m_fourViewService->setToolModelVisible(m_modelVisible);
+    fourViewService->setToolModelVisible(m_modelVisible);
     ui->toggleModelButton->setText(m_modelVisible ? "闅愯棌妯″瀷" : "鏄剧ず妯″瀷");
 
 }
@@ -746,7 +1029,8 @@ void NavigationPageNew::on_collectPointButton_clicked()
     embedRegistrationVTKWidget();
 
     // 妫€鏌ユ槸鍚﹀凡鍔犺浇妯″瀷
-    if (!m_pointRegistrationService->hasModel()) {
+    auto* registrationService = pointRegistrationService();
+    if (!registrationService || !registrationService->hasModel()) {
         // 鎻愮ず鐢ㄦ埛鍏堝姞杞絊TL妯″瀷
         QString filePath = QFileDialog::getOpenFileName(this,
             "閫夋嫨STL妯″瀷鏂囦欢锛堢敤浜庨厤鍑嗗彇鐐癸級",
@@ -759,8 +1043,9 @@ void NavigationPageNew::on_collectPointButton_clicked()
 
         // 鍔犺浇妯″瀷鍒伴厤鍑哣TK Widget
         embedRegistrationVTKWidget();
-        if (!m_pointRegistrationService->loadModelFromFile(filePath)) {
-            showError("鍔犺浇妯″瀷", m_pointRegistrationService->getLastError());
+        registrationService = pointRegistrationService();
+        if (!registrationService || !registrationService->loadModelFromFile(filePath)) {
+            showError("鍔犺浇妯″瀷", registrationService ? registrationService->getLastError() : QStringLiteral("配准服务未就绪"));
             return;
         }
         showInfo("加载模型", QString("模型已加载，请在3D视图中点击选取配准点"));
@@ -783,6 +1068,13 @@ void NavigationPageNew::on_collectPointButton_clicked()
 
 void NavigationPageNew::on_computeRegButton_clicked()
 {
+    if (m_workflowCoordinator) {
+        m_workflowCoordinator->handleComputeRegistration();
+    }
+}
+
+void NavigationPageNew::performComputeRegistration()
+{
     if (!m_registrationWorkflow) {
         setupRegistration();
     }
@@ -799,14 +1091,20 @@ void NavigationPageNew::on_computeRegButton_clicked()
 
     // 鎵ц閰嶅噯
     if (!m_registrationWorkflow->executeRegistration()) {
-        showError("璁＄畻閰嶅噯", m_pointRegistrationService ? m_pointRegistrationService->getLastError()
-                                                          : "閰嶅噯璁＄畻澶辫触");
+        auto* registrationService = pointRegistrationService();
+        showError("璁＄畻閰嶅噯", registrationService ? registrationService->getLastError()
+                                                       : "閰嶅噯璁＄畻澶辫触");
     }
     // 鎴愬姛鏃剁敱淇″彿鍥炶皟澶勭悊
 
 }
 
 void NavigationPageNew::on_calibrateButton_clicked()
+{
+    startProbeCalibration();
+}
+
+void NavigationPageNew::startProbeCalibration()
 {
     if (!m_registrationWorkflow) {
         setupRegistration();
@@ -815,83 +1113,282 @@ void NavigationPageNew::on_calibrateButton_clicked()
         showWarning("校准", "配准服务未就绪，请稍后再试");
         return;
     }
+    if (m_trackingSessionId.isEmpty() || m_navigationToolId.isEmpty()) {
+        showWarning("校准", "请先连接已配置追踪器械的追踪会话。");
+        return;
+    }
+
+    auto* trackingService = opticalTrackingService();
+    if (!trackingService) {
+        showWarning("校准", "追踪器服务不可用。");
+        return;
+    }
+
+    if (!m_activeCalibrationId.isEmpty()) {
+        showWarning("校准", "当前已有进行中的标定，请继续采点、完成或取消。");
+        updateProbeCalibrationUi();
+        return;
+    }
 
     // 搴旂敤閰嶅噯缁撴灉鍒板鑸?
     if (m_registrationWorkflow->applyToNavigation()) {
         showInfo("应用配准", "配准结果已应用到导航系统！");
     } else {
         showWarning("应用配准", "请先完成配准计算");
+        return;
     }
 
+    const QString calibrationId = trackingService->startToolCalibration(m_trackingSessionId, m_navigationToolId, QStringLiteral("pivot"));
+    if (calibrationId.isEmpty()) {
+        showError("校准", trackingService->getLastError());
+        return;
+    }
+
+    const QVariantMap calibrationStatus = trackingService->getCalibrationStatus(calibrationId);
+    const int requiredPoints = calibrationStatus.value(QStringLiteral("requiredPoints")).toInt();
+    if (requiredPoints <= 0) {
+        trackingService->cancelCalibration(calibrationId);
+        showError("校准", QStringLiteral("校准会话未返回有效采样要求。"));
+        return;
+    }
+
+    m_activeCalibrationId = calibrationId;
+    m_activeCalibrationRequiredPoints = requiredPoints;
+    m_activeCalibrationCollectedPoints = calibrationStatus.value(QStringLiteral("pointCount")).toInt();
+    updateProbeCalibrationUi();
+
+    showInfo("校准", QStringLiteral("探针标定已开始，请围绕枢轴稳定旋转并逐点采集。\n当前进度：%1/%2")
+                           .arg(m_activeCalibrationCollectedPoints)
+                           .arg(m_activeCalibrationRequiredPoints));
+}
+
+void NavigationPageNew::captureProbeCalibrationPoint()
+{
+    if (m_activeCalibrationId.isEmpty()) {
+        showWarning("校准", "当前没有进行中的标定会话。");
+        return;
+    }
+
+    auto* trackingService = opticalTrackingService();
+    if (!trackingService) {
+        showWarning("校准", "追踪器服务不可用。");
+        return;
+    }
+
+    const QString calibrationId = m_activeCalibrationId;
+    if (!trackingService->addCalibrationPoint(calibrationId)) {
+        showError("校准", trackingService->getLastError());
+        return;
+    }
+
+    const QVariantMap calibrationStatus = trackingService->getCalibrationStatus(calibrationId);
+    m_activeCalibrationRequiredPoints = calibrationStatus.value(QStringLiteral("requiredPoints")).toInt();
+    m_activeCalibrationCollectedPoints = calibrationStatus.value(QStringLiteral("pointCount")).toInt();
+    updateProbeCalibrationUi();
+
+    if (m_activeCalibrationCollectedPoints >= m_activeCalibrationRequiredPoints) {
+        showInfo("校准", QStringLiteral("标定采样已满足要求，可以执行完成标定。"));
+    }
+}
+
+void NavigationPageNew::finishProbeCalibration()
+{
+    if (m_activeCalibrationId.isEmpty()) {
+        showWarning("校准", "当前没有进行中的标定会话。");
+        return;
+    }
+
+    auto* trackingService = opticalTrackingService();
+    if (!trackingService) {
+        showWarning("校准", "追踪器服务不可用。");
+        return;
+    }
+
+    if (m_activeCalibrationCollectedPoints < m_activeCalibrationRequiredPoints) {
+        showWarning("校准", QStringLiteral("标定采样不足，当前为 %1/%2。")
+                                .arg(m_activeCalibrationCollectedPoints)
+                                .arg(m_activeCalibrationRequiredPoints));
+        updateProbeCalibrationUi();
+        return;
+    }
+
+    const QString calibrationId = m_activeCalibrationId;
+    const QVariantMap calibrationResult = trackingService->finishCalibration(calibrationId);
+    if (!calibrationResult.value(QStringLiteral("success")).toBool()) {
+        showError("校准", calibrationResult.value(QStringLiteral("error")).toString());
+        return;
+    }
+
+    if (!trackingService->applyCalibrationResult(m_trackingSessionId, m_navigationToolId, calibrationResult)) {
+        showError("校准", trackingService->getLastError());
+        return;
+    }
+
+    const double calibrationAccuracy = calibrationResult.value(QStringLiteral("accuracy")).toDouble();
+    resetProbeCalibrationState();
+    refreshNavigationConfidenceState();
+    showInfo("校准", QStringLiteral("探针标定完成，已应用到当前导航器械。\n精度：%1 mm")
+                           .arg(calibrationAccuracy, 0, 'f', 3));
+}
+
+void NavigationPageNew::cancelProbeCalibration()
+{
+    if (m_activeCalibrationId.isEmpty()) {
+        resetProbeCalibrationState();
+        return;
+    }
+
+    auto* trackingService = opticalTrackingService();
+    const QString calibrationId = m_activeCalibrationId;
+    if (trackingService && !trackingService->cancelCalibration(calibrationId)) {
+        showError("校准", trackingService->getLastError());
+        return;
+    }
+
+    resetProbeCalibrationState();
+    showInfo("校准", "当前探针标定已取消。");
 }
 
 // ========== 瀵艰埅鎺у埗 ==========
 
 void NavigationPageNew::on_connectTrackerButton_clicked()
 {
-    m_trackingService = m_serviceAccess ? m_serviceAccess->opticalTrackingService() : nullptr;
+    auto* trackingService = opticalTrackingService();
+    auto* instrumentService = instrumentManagementService();
+    if (!trackingService) {
+        showWarning("追踪器", "追踪器服务不可用。");
+        return;
+    }
+    if (!instrumentService) {
+        showWarning("追踪器", "器械服务不可用。");
+        return;
+    }
+    if (m_selectedInstrumentId < 0) {
+        showWarning("追踪器", "请先选择用于导航的器械。");
+        return;
+    }
 
-    // 妯℃嫙杩炴帴
+    InstrumentItem instrument = instrumentService->getInstrument(m_selectedInstrumentId);
+    if (!instrument.isValid()) {
+        showWarning("追踪器", "当前器械无效，请重新选择。");
+        return;
+    }
+    if (!instrument.hasTracking()) {
+        showWarning("追踪器", "当前器械未配置追踪标记和几何文件。");
+        return;
+    }
+
+    clearTrackingRuntimeState(true);
+
+    const QStringList devices = trackingService->scanAvailableDevices();
+    if (devices.isEmpty()) {
+        showWarning("追踪器", "未发现可用追踪设备。");
+        return;
+    }
+
+    const QString deviceId = devices.first();
+    if (!trackingService->connectToDevice(deviceId)) {
+        showError("追踪器", trackingService->getLastError());
+        return;
+    }
+
+    const QString sessionName = QStringLiteral("ankle_navigation_%1").arg(
+        m_workflowContext && !m_workflowContext->caseId().isEmpty()
+            ? m_workflowContext->caseId()
+            : QStringLiteral("default"));
+    const QString sessionId = trackingService->createTrackingSession(deviceId, sessionName);
+    if (sessionId.isEmpty()) {
+        showError("追踪器", trackingService->getLastError());
+        trackingService->disconnectDevice(deviceId);
+        return;
+    }
+
+    const QString geometryPath = QDir::fromNativeSeparators(instrument.geometryFilePath.trimmed());
+    QFileInfo geometryInfo(geometryPath);
+    QString geometryFile = geometryPath;
+    if (!geometryInfo.isAbsolute()) {
+        const QString projectPath = instrumentService->getProjectPath();
+        const QString projectGeometryFile = QDir(projectPath).filePath(geometryPath);
+        if (QFileInfo::exists(projectGeometryFile)) {
+            geometryFile = QDir::fromNativeSeparators(projectGeometryFile);
+            geometryInfo.setFile(geometryFile);
+        } else if (!geometryInfo.fileName().isEmpty()) {
+            geometryFile = geometryInfo.fileName();
+            geometryInfo.setFile(geometryFile);
+        }
+    }
+
+    QVariantMap toolConfig;
+    toolConfig[QStringLiteral("name")] = instrument.name;
+    toolConfig[QStringLiteral("type")] = QStringLiteral("probe");
+    toolConfig[QStringLiteral("markerId")] = instrument.trackingMarkerId;
+    toolConfig[QStringLiteral("trackingMarkerId")] = instrument.trackingMarkerId;
+    toolConfig[QStringLiteral("geometryFile")] = QDir::fromNativeSeparators(geometryFile);
+    toolConfig[QStringLiteral("geometryId")] = geometryInfo.completeBaseName().remove(QStringLiteral("geometry"), Qt::CaseInsensitive);
+
+    const QString toolId = trackingService->addTrackingTool(sessionId, instrument.name, toolConfig);
+    if (toolId.isEmpty()) {
+        showError("追踪器", trackingService->getLastError());
+        trackingService->closeTrackingSession(sessionId);
+        trackingService->disconnectDevice(deviceId);
+        return;
+    }
+
+    if (!trackingService->startTracking(sessionId)) {
+        showError("追踪器", trackingService->getLastError());
+        trackingService->removeTrackingTool(sessionId, toolId);
+        trackingService->closeTrackingSession(sessionId);
+        trackingService->disconnectDevice(deviceId);
+        return;
+    }
+
+    m_trackingSessionId = sessionId;
+    m_navigationToolId = toolId;
     updateTrackerStatus(true);
-    showInfo("追踪器", m_trackingService ? "追踪器服务已连接。" : "追踪器已连接（模拟）。");
+    showInfo("追踪器", QStringLiteral("追踪器已连接，当前器械已接入导航会话。"));
 }
 
 void NavigationPageNew::on_disconnectTrackerButton_clicked()
 {
-    m_trackingService = nullptr;
-
-
+    clearTrackingRuntimeState(true);
     m_trackerTimer->stop();
     updateTrackerStatus(false);
 }
 
 void NavigationPageNew::on_startNavigationButton_clicked()
 {
+    if (m_workflowCoordinator) {
+        m_workflowCoordinator->handleStartNavigation();
+    }
+}
+
+void NavigationPageNew::performStartNavigation()
+{
     if (!m_trackerConnected) {
         showWarning("导航", "请先连接追踪器。");
         return;
     }
+    if (m_trackingSessionId.isEmpty() || m_navigationToolId.isEmpty()) {
+        showWarning("导航", "当前导航器械尚未接入追踪会话。");
+        return;
+    }
 
     // 妫€鏌ユ槸鍚﹀畬鎴愰厤鍑?
-    if (!m_pointRegistrationService) {
+    auto* registrationService = pointRegistrationService();
+    if (!registrationService) {
         showWarning("导航", "配准服务不可用，请先完成配准。");
         return;
     }
 
     // 鑾峰彇閰嶅噯鍙樻崲鐭╅樀
-    m_registrationTransform = m_pointRegistrationService->getTransformMatrix();
+    m_registrationTransform = registrationService->getTransformMatrix();
     if (m_registrationTransform.isIdentity()) {
         showWarning("导航", "尚未完成配准，请先在配准Tab中完成点配准。");
         return;
     }
 
-    const PointRegistrationResult registrationResult =
-        m_registrationWorkflow ? m_registrationWorkflow->getLastResult() : PointRegistrationResult();
-
-    NavigationConfidenceInputs inputs;
-    inputs.fre = registrationResult.rmsError;
-    inputs.targetTre = registrationResult.targetRegionTre;
-    inputs.coverageScore = registrationResult.coverageScore;
-    inputs.surfaceResidual = registrationResult.metrics.value(QStringLiteral("refined_rms")).toDouble();
-
-    QVariantMap trackingQuality;
-    if (m_trackingService) {
-        trackingQuality = m_trackingService->checkTrackingQuality(QString(), QString());
-    }
-    if (trackingQuality.isEmpty()) {
-        trackingQuality.insert(QStringLiteral("tracking_jitter_mm"), 0.4);
-        trackingQuality.insert(QStringLiteral("visible_frame_ratio"), 1.0);
-    }
-
-    inputs.trackingJitter = trackingQuality.value(QStringLiteral("tracking_jitter_mm")).toDouble();
-    inputs.visibleFrameRatio = trackingQuality.value(QStringLiteral("visible_frame_ratio")).toDouble();
-
-    m_lastConfidence = m_confidenceEvaluator.evaluate(inputs);
+    refreshNavigationConfidenceState(true);
     if (!m_lastConfidence.allowNavigation) {
-        const QString warningText = m_lastConfidence.recommendations.isEmpty()
-            ? QStringLiteral("当前导航准入条件不足。")
-            : m_lastConfidence.recommendations.join(QStringLiteral("；"));
-        showWarning(QStringLiteral("导航准入"), warningText);
         return;
     }
 
@@ -911,28 +1408,8 @@ void NavigationPageNew::on_startNavigationButton_clicked()
         }
     }
 
-    // 灏嗗鑸?D瑙嗗浘宓屽叆鍒板鑸猅ab锛堝鏋滆繕娌℃湁宓屽叆锛?
-    if (m_navigation3DView && ui->fourViewLayout) {
-        // 妫€鏌ユ槸鍚﹀凡缁忓湪甯冨眬涓?
-        bool alreadyInLayout = false;
-        for (int i = 0; i < ui->fourViewLayout->count(); ++i) {
-            if (ui->fourViewLayout->itemAt(i)->widget() == m_navigation3DView) {
-                alreadyInLayout = true;
-                break;
-            }
-        }
-
-        if (!alreadyInLayout) {
-            // 闅愯棌鍥涜鍥網idget锛堝鏋滄湁鐨勮瘽锛夛紝鏄剧ず瀵艰埅3D瑙嗗浘
-            if (m_fourViewWidget) {
-                m_fourViewWidget->hide();
-            }
-            ui->fourViewLayout->addWidget(m_navigation3DView, 0, 0, 2, 2);
-        }
-        m_navigation3DView->show();
-    }
-
     m_navigationActive = true;
+    updateFourViewWidgetPlacement();
     ui->startNavigationButton->setEnabled(false);
     ui->pauseNavigationButton->setEnabled(true);
 
@@ -973,33 +1450,104 @@ void NavigationPageNew::on_pauseNavigationButton_clicked()
         m_navigation3DView->setProbeVisible(false);
     }
 
+    updateFourViewWidgetPlacement();
     ui->startNavigationButton->setEnabled(true);
     ui->pauseNavigationButton->setEnabled(false);
 
-    if (!m_caseId.isEmpty()) {
+    const QString caseId = m_workflowContext->caseId();
+    if (!caseId.isEmpty()) {
         NavigationEvaluationService evaluationService(evaluationCasesRoot());
 
         AnkleNavigationRunRecord run;
-        run.caseId = m_caseId;
+        run.caseId = caseId;
         run.navigationMode = QStringLiteral("replay");
         run.confidenceScore = m_lastConfidence.score;
         run.warnings = m_lastConfidence.recommendations;
+        QVariantMap trackingQuality;
+        if (auto* trackingService = opticalTrackingService()) {
+            trackingQuality = trackingService->checkTrackingQuality(m_trackingSessionId, m_navigationToolId);
+        }
+
+        if (m_registrationWorkflow) {
+            const PointRegistrationResult registrationResult = m_registrationWorkflow->getLastResult();
+            run.metrics = registrationResult.metrics;
+            run.metrics.insert(QStringLiteral("registration_mode"), registrationResult.metrics.value(QStringLiteral("registration_mode")));
+            run.metrics.insert(QStringLiteral("target_region_tre_mm"), registrationResult.targetRegionTre);
+            run.metrics.insert(QStringLiteral("coverage_score"), registrationResult.coverageScore);
+        }
+
+        run.metrics.insert(QStringLiteral("tracking_jitter_mm"), trackingQuality.value(QStringLiteral("tracking_jitter_mm")).toDouble());
+        run.metrics.insert(QStringLiteral("visible_frame_ratio"), trackingQuality.value(QStringLiteral("visible_frame_ratio")).toDouble());
+        run.metrics.insert(QStringLiteral("tracking_profile"), trackingQuality.value(QStringLiteral("tracking_profile")).toString());
+        run.metrics.insert(QStringLiteral("tracking_confidence_score"), trackingQuality.value(QStringLiteral("tracking_confidence_score")).toDouble());
         evaluationService.saveNavigationRun(run);
 
         AnkleEvaluationReport report;
-        report.caseId = m_caseId;
+        report.caseId = caseId;
         report.translationErrorMm = m_registrationWorkflow ? m_registrationWorkflow->getLastResult().targetRegionTre : 0.0;
         report.rotationErrorDeg = 0.0;
         report.allowNavigation = m_lastConfidence.allowNavigation;
+        report.confidenceScore = m_lastConfidence.score;
+        report.gateReasons = m_lastConfidence.recommendations;
+        report.calibrated = !m_trackingSessionId.isEmpty() && !m_navigationToolId.isEmpty();
+        if (!trackingQuality.isEmpty()) {
+            report.calibrated = trackingQuality.value(QStringLiteral("calibrated")).toBool();
+            report.calibrationAccuracyMm = trackingQuality.value(QStringLiteral("calibration_accuracy_mm")).toDouble();
+        }
+        report.metrics = run.metrics;
+        report.metrics.insert(QStringLiteral("allow_navigation"), report.allowNavigation);
+        report.metrics.insert(QStringLiteral("gate_reason_count"), report.gateReasons.size());
         evaluationService.saveEvaluationReport(report);
-        evaluationService.exportMetricsCsv(m_caseId);
+        evaluationService.exportMetricsCsv(caseId);
+        evaluationService.exportCaseSummary(caseId);
     }
+
+    refreshNavigationConfidenceState();
+    refreshEvaluationSummary();
+}
+
+void NavigationPageNew::on_exportEvaluationSummaryButton_clicked()
+{
+    NavigationEvaluationService evaluationService(evaluationCasesRoot());
+    const QStringList caseIds = evaluationService.discoverExportableCaseIds();
+    if (caseIds.isEmpty()) {
+        showWarning(QStringLiteral("评估汇总"), QStringLiteral("当前没有可导出的病例评估记录。"));
+        return;
+    }
+
+    if (!evaluationService.exportBatchSummaryCsv(caseIds)) {
+        showError(QStringLiteral("评估汇总"), QStringLiteral("病例评估汇总导出失败。"));
+        return;
+    }
+
+    InnovationExperimentBatchRunner runner;
+    InnovationBatchInput input;
+    input.caseIds = caseIds;
+    input.caseDataRoot = QFileInfo(evaluationCasesRoot()).dir().absolutePath();
+    const InnovationBatchOutput output = runner.run(input);
+
+    const QStringList requiredSummaryFiles = {
+        QStringLiteral("innovation_1_summary.csv"),
+        QStringLiteral("innovation_2_summary.csv"),
+        QStringLiteral("innovation_3_summary.csv")
+    };
+    for (const QString& summaryFile : requiredSummaryFiles) {
+        if (!output.summaryFiles.contains(summaryFile)) {
+            showError(QStringLiteral("评估汇总"), QStringLiteral("创新实验汇总导出失败：%1").arg(summaryFile));
+            return;
+        }
+    }
+
+    showInfo(
+        QStringLiteral("评估汇总"),
+        QStringLiteral("已导出 %1 个病例的评估汇总 CSV，并生成 innovation_1_summary.csv、innovation_2_summary.csv、innovation_3_summary.csv。")
+            .arg(caseIds.size()));
 }
 
 void NavigationPageNew::on_resetViewButton_clicked()
 {
-    if (m_fourViewService) {
-        m_fourViewService->resetViews();
+    if (auto* fourViewService = fourViewDisplayService()) {
+        fourViewService->resetViews();
         return;
     }
 
@@ -1011,109 +1559,72 @@ void NavigationPageNew::onTrackerDataReceived()
     if (!m_navigationActive) {
         return;
     }
-
-    // 妯℃嫙鏁版嵁鏇存柊
-    static double simX = 0, simY = 0, simZ = 0;
-    simX += 0.1;
-    simY = 10.0 * sin(simX * 0.1);
-    simZ = 5.0 * cos(simX * 0.1);
-    updatePositionDisplay(simX, simY, simZ);
-    updateAccuracyDisplay(0.5 + 0.3 * sin(simX * 0.2));
 }
 
 void NavigationPageNew::setupVTKViews()
 {
-    // 濡傛灉宸茬粡宓屽叆浜哣TK Widget锛岀洿鎺ヨ繑鍥?
-    if (m_fourViewWidget) {
-        updateFourViewWidgetPlacement();
-        return;
-    }
-
     embedFourViewWidget();
 }
 
 void NavigationPageNew::embedFourViewWidget()
 {
-    m_fourViewService = m_serviceAccess ? m_serviceAccess->fourViewDisplayService() : nullptr;
-    if (!m_fourViewService) {
-        qWarning() << "[NavigationPage] FourViewDisplayService not available";
+    if (!m_navigationVtkBridge) {
         return;
     }
 
+    m_fourViewWidget = m_navigationVtkBridge->ensureFourViewWidget(this);
     if (!m_fourViewWidget) {
-        // 浣跨敤鏈嶅姟鍒涘缓绾疺TK鍥涜鍥網idget
-        m_fourViewWidget = m_fourViewService->createFourViewVTKWidget(this);
-        if (!m_fourViewWidget) {
-            qWarning() << "[NavigationPage] Failed to create FourView widget";
-            return;
-        }
+        qWarning() << "[NavigationPage] Failed to prepare FourView widget";
+        return;
     }
 
     updateFourViewWidgetPlacement();
-
 }
 
 void NavigationPageNew::updateFourViewWidgetPlacement()
 {
-    if (!ui || !m_fourViewWidget) {
+    if (!ui || !m_navigationVtkBridge) {
         return;
-    }
-
-    // 鍏堜粠鍙兘鐨勫竷灞€涓Щ闄わ紙閬垮厤涓€涓獁idget鍚屾椂琚涓猯ayout绠＄悊锛?
-    if (ui->fourViewLayout) {
-        ui->fourViewLayout->removeWidget(m_fourViewWidget);
-    }
-    if (ui->planningViewLayout) {
-        ui->planningViewLayout->removeWidget(m_fourViewWidget);
     }
 
     QWidget* currentTab = ui->tabWidget ? ui->tabWidget->currentWidget() : nullptr;
 
-    // 瑙勫垝Tab锛氭浛鎹⑩€?D瑙勫垝瑙嗗浘鈥濆崰浣嶆帶浠?
-    if (currentTab == ui->planningTab && ui->planningViewLayout) {
-        if (ui->planningViewPlaceholder) {
-            ui->planningViewPlaceholder->hide();
-        }
-        ui->planningViewLayout->addWidget(m_fourViewWidget);
-        m_fourViewWidget->show();
+    if (currentTab == ui->planningTab) {
+        m_fourViewWidget = m_navigationVtkBridge->showFourViewInPlanning(this);
+        m_navigationVtkBridge->resumeFourView();
         qDebug() << "[NavigationPage] FourView VTK widget embedded in planning view";
-    }
-    // 瀵艰埅Tab锛氬祵鍏ュ洓瑙嗗浘鍖哄煙
-    else if (currentTab == ui->navigationTab && ui->fourViewLayout) {
-        // 娓呯┖鐜版湁鐨刦ourViewLayout鍐呭锛堥殣钘忓崰浣岶rame/Label锛?
-        QLayoutItem* child;
-        while ((child = ui->fourViewLayout->takeAt(0)) != nullptr) {
-            if (child->widget()) {
-                child->widget()->hide();
-            }
+    } else if (currentTab == ui->navigationTab) {
+        if (m_navigationActive && m_navigation3DView) {
+            m_navigationVtkBridge->pauseFourView();
+            m_navigationVtkBridge->showNavigationContent(m_navigation3DView);
+            qDebug() << "[NavigationPage] Navigation 3D view embedded in navigation view";
+        } else {
+            m_fourViewWidget = m_navigationVtkBridge->showFourViewInNavigation(this);
+            m_navigationVtkBridge->resumeFourView();
+            qDebug() << "[NavigationPage] FourView VTK widget embedded in navigation view";
         }
-        ui->fourViewLayout->addWidget(m_fourViewWidget, 0, 0, 2, 2);
-        m_fourViewWidget->show();
-        qDebug() << "[NavigationPage] FourView VTK widget embedded in navigation view";
+    } else {
+        m_navigationVtkBridge->detachFourView();
+        m_navigationVtkBridge->detachNavigationContent();
+        m_navigationVtkBridge->pauseFourView();
     }
-    // 鍏朵粬Tab锛氶粯璁ゆ斁鍒拌鍒掑尯锛堥殣钘忕姸鎬佷笅涔熶笉褰卞搷锛?
-    else if (ui->planningViewLayout) {
-        if (ui->planningViewPlaceholder) {
-            ui->planningViewPlaceholder->hide();
-        }
-        ui->planningViewLayout->addWidget(m_fourViewWidget);
-        m_fourViewWidget->hide();
-    }
-
-    if (m_fourViewService) {
-        m_fourViewService->resumeRendering();
-    }
-
 }
 
 void NavigationPageNew::cleanupVTKViews()
 {
+    if (m_navigationVtkBridge) {
+        m_navigationVtkBridge->detachAll();
+    }
+
     if (m_fourViewWidget) {
         m_fourViewWidget->hide();
-        // 涓嶅垹闄idget锛岀敱鏈嶅姟绠＄悊
         m_fourViewWidget = nullptr;
     }
 
+    if (m_registrationVTKWidget) {
+        m_registrationVTKWidget->hide();
+        m_registrationVTKWidget = nullptr;
+    }
 }
 
 void NavigationPageNew::updateTrackerStatus(bool connected)
@@ -1135,6 +1646,211 @@ void NavigationPageNew::updateTrackerStatus(bool connected)
         ui->startNavigationButton->setEnabled(true);
         ui->pauseNavigationButton->setEnabled(false);
     }
+
+    updateProbeCalibrationUi();
+    refreshNavigationConfidenceState();
+}
+
+void NavigationPageNew::clearTrackingRuntimeState(bool disconnectDevice)
+{
+    auto* trackingService = opticalTrackingService();
+    if (trackingService && !m_activeCalibrationId.isEmpty()) {
+        trackingService->cancelCalibration(m_activeCalibrationId);
+    }
+    if (trackingService && !m_trackingSessionId.isEmpty()) {
+        trackingService->stopTracking(m_trackingSessionId);
+        if (!m_navigationToolId.isEmpty()) {
+            trackingService->removeTrackingTool(m_trackingSessionId, m_navigationToolId);
+        }
+
+        const QVariantMap sessionInfo = trackingService->getSessionInfo(m_trackingSessionId);
+        const QString deviceId = sessionInfo.value(QStringLiteral("deviceId")).toString();
+        trackingService->closeTrackingSession(m_trackingSessionId);
+        if (disconnectDevice && !deviceId.isEmpty()) {
+            trackingService->disconnectDevice(deviceId);
+        }
+    }
+
+    m_trackingSessionId.clear();
+    m_navigationToolId.clear();
+    resetProbeCalibrationState();
+}
+
+void NavigationPageNew::resetProbeCalibrationState()
+{
+    m_activeCalibrationId.clear();
+    m_activeCalibrationRequiredPoints = 0;
+    m_activeCalibrationCollectedPoints = 0;
+    updateProbeCalibrationUi();
+}
+
+bool NavigationPageNew::tryBuildNavigationConfidenceInputs(NavigationConfidenceInputs& inputs) const
+{
+    if (!m_trackerConnected || m_trackingSessionId.isEmpty() || m_navigationToolId.isEmpty()) {
+        return false;
+    }
+
+    auto* registrationService = pointRegistrationService();
+    if (!registrationService) {
+        return false;
+    }
+
+    const QMatrix4x4 registrationTransform = registrationService->getTransformMatrix();
+    if (registrationTransform.isIdentity()) {
+        return false;
+    }
+
+    const PointRegistrationResult registrationResult =
+        m_registrationWorkflow ? m_registrationWorkflow->getLastResult() : PointRegistrationResult();
+    if (!registrationResult.success) {
+        return false;
+    }
+
+    inputs.fre = registrationResult.rmsError;
+    inputs.targetTre = registrationResult.targetRegionTre;
+    inputs.coverageScore = registrationResult.coverageScore;
+    inputs.surfaceResidual = registrationResult.metrics.value(QStringLiteral("refined_rms")).toDouble();
+
+    QVariantMap trackingQuality;
+    if (auto* trackingService = opticalTrackingService()) {
+        trackingService->getRealTimeData(m_trackingSessionId);
+        trackingQuality = trackingService->checkTrackingQuality(m_trackingSessionId, m_navigationToolId);
+    }
+
+    if (trackingQuality.isEmpty()) {
+        trackingQuality.insert(QStringLiteral("tracking_jitter_mm"), 0.4);
+        trackingQuality.insert(QStringLiteral("visible_frame_ratio"), 1.0);
+        trackingQuality.insert(QStringLiteral("calibrated"), false);
+        trackingQuality.insert(QStringLiteral("calibration_accuracy_mm"), 0.0);
+    }
+
+    inputs.trackingJitter = trackingQuality.value(QStringLiteral("tracking_jitter_mm")).toDouble();
+    inputs.visibleFrameRatio = trackingQuality.value(QStringLiteral("visible_frame_ratio")).toDouble();
+    inputs.toolCalibrated = trackingQuality.value(QStringLiteral("calibrated")).toBool();
+    inputs.calibrationAccuracy = trackingQuality.value(QStringLiteral("calibration_accuracy_mm")).toDouble();
+    return true;
+}
+
+void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
+{
+    auto* navigationReadinessLabel = findChild<QLabel*>(QStringLiteral("navigationReadinessLabel"));
+    auto* navigationConfidenceLabel = findChild<QLabel*>(QStringLiteral("navigationConfidenceLabel"));
+
+    NavigationConfidenceInputs inputs;
+    if (!tryBuildNavigationConfidenceInputs(inputs)) {
+        m_lastConfidence = NavigationConfidenceResult();
+
+        if (navigationReadinessLabel) {
+            navigationReadinessLabel->setText(QStringLiteral("导航准入：未就绪"));
+            navigationReadinessLabel->setStyleSheet(QStringLiteral("color: #f39c12; font-weight: bold;"));
+        }
+        if (navigationConfidenceLabel) {
+            navigationConfidenceLabel->setText(QStringLiteral("可信度评分：待评估"));
+            navigationConfidenceLabel->setStyleSheet(QStringLiteral("color: #95a5a6;"));
+        }
+        if (ui && ui->startNavigationButton && !m_navigationActive) {
+            ui->startNavigationButton->setEnabled(m_trackerConnected);
+        }
+        return;
+    }
+
+    m_lastConfidence = m_confidenceEvaluator.evaluate(inputs);
+
+    if (navigationReadinessLabel) {
+        navigationReadinessLabel->setText(m_lastConfidence.allowNavigation
+            ? QStringLiteral("导航准入：允许进入导航")
+            : QStringLiteral("导航准入：暂不允许进入导航"));
+        navigationReadinessLabel->setStyleSheet(QStringLiteral("color: %1; font-weight: bold;")
+            .arg(m_lastConfidence.allowNavigation ? QStringLiteral("#27ae60") : QStringLiteral("#c0392b")));
+    }
+
+    if (navigationConfidenceLabel) {
+        const QString recommendationText = m_lastConfidence.recommendations.isEmpty()
+            ? QStringLiteral("无")
+            : m_lastConfidence.recommendations.join(QStringLiteral("；"));
+        navigationConfidenceLabel->setText(QStringLiteral("可信度评分：%1 | 建议：%2")
+                                               .arg(m_lastConfidence.score, 0, 'f', 2)
+                                               .arg(recommendationText));
+        navigationConfidenceLabel->setStyleSheet(QStringLiteral("color: #ecf0f1;"));
+    }
+
+    if (ui && ui->startNavigationButton && !m_navigationActive) {
+        ui->startNavigationButton->setEnabled(m_lastConfidence.allowNavigation);
+    }
+
+    if (showWarnings && !m_lastConfidence.allowNavigation) {
+        const QString warningText = m_lastConfidence.recommendations.isEmpty()
+            ? QStringLiteral("当前导航准入条件不足。")
+            : m_lastConfidence.recommendations.join(QStringLiteral("；"));
+        showWarning(QStringLiteral("导航准入"), warningText);
+    }
+}
+
+void NavigationPageNew::updateProbeCalibrationUi()
+{
+    auto* calibrationStatusLabel = findChild<QLabel*>(QStringLiteral("calibrationStatusLabel"));
+    auto* captureCalibrationPointButton = findChild<QPushButton*>(QStringLiteral("captureCalibrationPointButton"));
+    auto* finishCalibrationButton = findChild<QPushButton*>(QStringLiteral("finishCalibrationButton"));
+    auto* cancelCalibrationButton = findChild<QPushButton*>(QStringLiteral("cancelCalibrationButton"));
+
+    bool hasActiveCalibration = !m_activeCalibrationId.isEmpty();
+    QString calibrationStateText = QStringLiteral("待开始");
+
+    if (hasActiveCalibration) {
+        if (auto* trackingService = opticalTrackingService()) {
+            const QVariantMap calibrationStatus = trackingService->getCalibrationStatus(m_activeCalibrationId);
+            if (calibrationStatus.value(QStringLiteral("valid")).toBool()) {
+                m_activeCalibrationRequiredPoints = calibrationStatus.value(QStringLiteral("requiredPoints")).toInt();
+                m_activeCalibrationCollectedPoints = calibrationStatus.value(QStringLiteral("pointCount")).toInt();
+                calibrationStateText = calibrationStatus.value(QStringLiteral("status")).toString();
+            } else {
+                hasActiveCalibration = false;
+                m_activeCalibrationId.clear();
+                m_activeCalibrationRequiredPoints = 0;
+                m_activeCalibrationCollectedPoints = 0;
+            }
+        } else {
+            hasActiveCalibration = false;
+        }
+    }
+
+    const bool trackingReady = !m_trackingSessionId.isEmpty() && !m_navigationToolId.isEmpty();
+    const bool canCapturePoint = hasActiveCalibration && m_activeCalibrationCollectedPoints < m_activeCalibrationRequiredPoints;
+    const bool canFinishCalibration = hasActiveCalibration
+        && m_activeCalibrationRequiredPoints > 0
+        && m_activeCalibrationCollectedPoints >= m_activeCalibrationRequiredPoints;
+
+    if (ui->calibrateButton) {
+        ui->calibrateButton->setEnabled(trackingReady && !hasActiveCalibration);
+    }
+    if (captureCalibrationPointButton) {
+        captureCalibrationPointButton->setEnabled(canCapturePoint);
+    }
+    if (finishCalibrationButton) {
+        finishCalibrationButton->setEnabled(canFinishCalibration);
+    }
+    if (cancelCalibrationButton) {
+        cancelCalibrationButton->setEnabled(hasActiveCalibration);
+    }
+
+    if (!calibrationStatusLabel) {
+        return;
+    }
+
+    if (!trackingReady) {
+        calibrationStatusLabel->setText(QStringLiteral("标定状态：请先连接追踪器械。"));
+        return;
+    }
+
+    if (!hasActiveCalibration) {
+        calibrationStatusLabel->setText(QStringLiteral("标定状态：待开始"));
+        return;
+    }
+
+    calibrationStatusLabel->setText(QStringLiteral("标定状态：%1（%2/%3）")
+                                        .arg(calibrationStateText)
+                                        .arg(m_activeCalibrationCollectedPoints)
+                                        .arg(m_activeCalibrationRequiredPoints));
 }
 
 void NavigationPageNew::updatePositionDisplay(double x, double y, double z)
@@ -1206,12 +1922,13 @@ void NavigationPageNew::onSegmentationCompleted(const QString& taskId, const QVa
                              : QString("分割完成！\n输出目录：%1").arg(outputDir));
 
     // 灏濊瘯瀵煎嚭骞舵樉绀哄垎鍓茬粨鏋?
-    auto* segService = m_serviceAccess ? m_serviceAccess->segmentationService() : nullptr;
-    if (m_fourViewService && segService && !outputDir.isEmpty()) {
+    auto* segService = segmentationService();
+    auto* fourViewService = fourViewDisplayService();
+    if (fourViewService && segService && !outputDir.isEmpty()) {
         const QString stlPath = QDir(outputDir).filePath("segmentation_mesh.stl");
         if (segService->exportSegmentation(taskId, stlPath, "stl")
-            && m_fourViewService->loadToolModel(stlPath)) {
-            m_fourViewService->setToolModelVisible(true);
+            && fourViewService->loadToolModel(stlPath)) {
+            fourViewService->setToolModelVisible(true);
             m_modelVisible = true;
             ui->toggleModelButton->setText("闅愯棌妯″瀷");
             qDebug() << "[NavigationPage] Loaded segmentation mesh STL:" << stlPath;
@@ -1243,21 +1960,19 @@ void NavigationPageNew::onSegmentationFailed(const QString& taskId, const QStrin
 
 bool NavigationPageNew::ensurePointRegistrationService(bool tryStartPlugin)
 {
-    if (m_pointRegistrationService) {
+    if (pointRegistrationService()) {
         return true;
     }
 
-    auto* serviceAccess = m_serviceAccess;
-    if (!serviceAccess || !serviceAccess->isPointRegistrationFrameworkReady()) {
+    if (!m_serviceBundle || !m_serviceBundle->isPointRegistrationFrameworkReady()) {
         if (ui && ui->registrationViewPlaceholder) {
             ui->registrationViewPlaceholder->setText(QStringLiteral("CTK 妗嗘灦鏈氨缁紝閰嶅噯鏈嶅姟灏氫笉鍙敤"));
         }
         return false;
     }
 
-    m_pointRegistrationService = serviceAccess->pointRegistrationService(tryStartPlugin);
-    if (!m_pointRegistrationService) {
-        const QString state = serviceAccess->pointRegistrationPluginState();
+    if (!pointRegistrationService(tryStartPlugin)) {
+        const QString state = m_serviceBundle->pointRegistrationPluginState();
         qWarning() << "[NavigationPage] PointRegistrationService not available (plugin state:" << state << ")";
         if (ui && ui->registrationViewPlaceholder) {
             ui->registrationViewPlaceholder->setText(
@@ -1283,8 +1998,11 @@ void NavigationPageNew::setupRegistration()
         return;
     }
 
+    auto* registrationService = pointRegistrationService();
+    auto* trackingService = opticalTrackingService();
+
     // 鍒涘缓閰嶅噯宸ヤ綔娴?
-    m_registrationWorkflow = new RegistrationWorkflow(m_pointRegistrationService, this);
+    m_registrationWorkflow = new RegistrationWorkflow(registrationService, this);
 
     // 杩炴帴宸ヤ綔娴佷俊鍙?
     connect(m_registrationWorkflow, &RegistrationWorkflow::stateChanged,
@@ -1307,45 +2025,99 @@ void NavigationPageNew::setupRegistration()
             });
 
     // 杩炴帴Service鐨勭偣鏇存柊淇″彿浠ュ埛鏂癠I鍜?D鏄剧ず
-    connect(m_pointRegistrationService, &PointRegistrationService::pointAdded,
+    connect(registrationService, &PointRegistrationService::pointAdded,
             this, [this](int, const QString&) {
                 updateRegistrationPointsList();
+                refreshNavigationConfidenceState();
                 if (m_registrationVTKWidget) {
                     QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
                 }
             });
-    connect(m_pointRegistrationService, &PointRegistrationService::pointRemoved,
+    connect(registrationService, &PointRegistrationService::pointRemoved,
             this, [this](int) {
                 updateRegistrationPointsList();
+                refreshNavigationConfidenceState();
                 if (m_registrationVTKWidget) {
                     QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
                 }
             });
-    connect(m_pointRegistrationService, &PointRegistrationService::pointsCleared,
+    connect(registrationService, &PointRegistrationService::pointsCleared,
             this, [this]() {
                 updateRegistrationPointsList();
+                refreshNavigationConfidenceState();
                 if (m_registrationVTKWidget) {
                     QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
                 }
             });
-    connect(m_pointRegistrationService, &PointRegistrationService::pointUpdated,
+    connect(registrationService, &PointRegistrationService::pointUpdated,
             this, [this](int) {
                 updateRegistrationPointsList();
+                refreshNavigationConfidenceState();
                 if (m_registrationVTKWidget) {
                     QMetaObject::invokeMethod(m_registrationVTKWidget, "updatePointMarkers");
                 }
-            });
+            }, Qt::UniqueConnection);
+    connect(registrationService, &PointRegistrationService::registrationApplied,
+            this, [this](const QString&) {
+                if (auto* service = pointRegistrationService()) {
+                    m_registrationTransform = service->getTransformMatrix();
+                }
+                refreshNavigationConfidenceState();
+            }, Qt::UniqueConnection);
+    connect(registrationService, &PointRegistrationService::sessionStateChanged,
+            this, [this](RegistrationSessionState) {
+                refreshNavigationConfidenceState();
+            }, Qt::UniqueConnection);
+
+    if (trackingService) {
+        connect(trackingService, &OpticalTrackingService::toolStatusChanged,
+                this, [this](const QString& sessionId, const QString& toolId, const QVariantMap&) {
+                    if (sessionId != m_trackingSessionId || toolId != m_navigationToolId) {
+                        return;
+                    }
+                    updateProbeCalibrationUi();
+                    refreshNavigationConfidenceState();
+                }, Qt::UniqueConnection);
+        connect(trackingService, &OpticalTrackingService::calibrationCompleted,
+                this, [this](const QString& calibrationId, const QVariantMap&) {
+                    if (!m_activeCalibrationId.isEmpty() && calibrationId != m_activeCalibrationId) {
+                        return;
+                    }
+                    updateProbeCalibrationUi();
+                    refreshNavigationConfidenceState();
+                }, Qt::UniqueConnection);
+    }
 
     // 鍚姩鏂颁細璇?
-    QString patientIdStr = m_patientId >= 0 ? QString::number(m_patientId) : "";
+    QString patientIdStr = m_workflowContext->patientId() >= 0 ? QString::number(m_workflowContext->patientId()) : "";
     m_registrationWorkflow->startNewSession(patientIdStr);
+
+    const QString caseId = m_workflowContext ? m_workflowContext->caseId() : QString();
+    const QString casesRoot = evaluationCasesRoot();
+    if (!caseId.isEmpty() && !casesRoot.isEmpty()) {
+        const QString dataRoot = QFileInfo(casesRoot).dir().absolutePath();
+        const AnkleCaseWorkspaceRepository repository(dataRoot);
+        const AnklePlanningService planningService(repository);
+        const AnklePlanningData planning = planningService.loadPlanning(caseId);
+
+        if (planning.targetRegionRadiusMm > 0.0) {
+            TargetRegistrationRegion region;
+            region.origin = planning.targetRegionCenter;
+            region.primaryAxis = QVector3D(0.0f, 0.0f, 1.0f);
+            region.radiusMm = planning.targetRegionRadiusMm;
+            m_registrationWorkflow->setTargetRegistrationRegion(region);
+        }
+
+        m_registrationWorkflow->setPlanningConstraintContext(planningConstraintContextFromData(planning));
+        m_registrationWorkflow->setPlanningConstraintRegions(planning.anatomicalConstraintRegions);
+    }
 
     // 绔嬪嵆宓屽叆閰嶅噯VTK Widget锛堢幇鍦ㄦ彃浠跺凡鏀逛负deferred鍔犺浇锛屾湇鍔″簲璇ュ彲鐢級
     embedRegistrationVTKWidget();
 
     // 濡傛灉鐢ㄦ埛鍦ㄨ鍒掗〉闈㈠厛鍔犺浇浜嗘ā鍨嬶紝浣嗗綋鏃堕厤鍑嗘湇鍔?瑙嗗浘鏈氨缁紝鍒欐澶勮ˉ鍔犺浇
-    if (!m_lastLoadedModelPath.isEmpty() && !m_pointRegistrationService->hasModel()) {
-        m_pointRegistrationService->loadModelFromFile(m_lastLoadedModelPath);
+    if (!m_lastLoadedModelPath.isEmpty() && !registrationService->hasModel()) {
+        registrationService->loadModelFromFile(m_lastLoadedModelPath);
     }
 
     qDebug() << "[NavigationPage] Registration workflow initialized";
@@ -1355,16 +2127,22 @@ void NavigationPageNew::setupRegistration()
 void NavigationPageNew::embedRegistrationVTKWidget()
 {
     if (m_registrationVTKWidget) {
+        if (m_navigationVtkBridge) {
+            m_navigationVtkBridge->ensureRegistrationWidget(ui && ui->registrationViewFrame
+                ? static_cast<QWidget*>(ui->registrationViewFrame)
+                : this);
+        }
         return;
     }
 
-    // 鍒涘缓閰嶅噯VTK Widget
     if (!ensurePointRegistrationService(true)) {
         return;
     }
 
     QWidget* viewParent = ui && ui->registrationViewFrame ? static_cast<QWidget*>(ui->registrationViewFrame) : this;
-    m_registrationVTKWidget = m_pointRegistrationService->createVTKWidget(viewParent);
+    m_registrationVTKWidget = m_navigationVtkBridge
+        ? m_navigationVtkBridge->ensureRegistrationWidget(viewParent)
+        : nullptr;
     if (!m_registrationVTKWidget) {
         qWarning() << "[NavigationPage] Failed to create registration VTK widget";
         return;
@@ -1372,43 +2150,18 @@ void NavigationPageNew::embedRegistrationVTKWidget()
 
     m_registrationVTKWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-    // 杩炴帴鐐瑰嚮淇″彿
     connect(m_registrationVTKWidget, SIGNAL(pointPicked(double,double,double)),
             this, SLOT(onRegistrationPointPicked(double,double,double)));
 
-    // 宓屽叆鍒伴厤鍑員ab鐨勫竷灞€涓?
-    if (ui->registrationViewLayout) {
-        ui->registrationViewLayout->setContentsMargins(0, 0, 0, 0);
-        ui->registrationViewLayout->setSpacing(0);
-        // 闅愯棌鍗犱綅绗?
-        if (ui->registrationViewPlaceholder) {
-            ui->registrationViewPlaceholder->hide();
-        }
-        // 娣诲姞VTK Widget
-        ui->registrationViewLayout->addWidget(m_registrationVTKWidget, /*stretch*/ 1);
-        m_registrationVTKWidget->show();
-        qDebug() << "[NavigationPage] Registration VTK widget embedded in registration view";
-    } else if (ui && ui->registrationViewFrame) {
-        // Fallback: ensure there is a layout on the frame.
-        auto* layout = new QVBoxLayout(ui->registrationViewFrame);
-        layout->setContentsMargins(0, 0, 0, 0);
-        layout->setSpacing(0);
-        if (ui->registrationViewPlaceholder) {
-            ui->registrationViewPlaceholder->hide();
-        }
-        layout->addWidget(m_registrationVTKWidget);
-        m_registrationVTKWidget->show();
-    }
-
     qDebug() << "[NavigationPage] Registration VTK widget embedded";
-
 }
 
 void NavigationPageNew::updateRegistrationPointsList()
 {
-    if (!m_pointRegistrationService || !ui->registrationPointsTable) return;
+    auto* registrationService = pointRegistrationService();
+    if (!registrationService || !ui->registrationPointsTable) return;
 
-    auto points = m_pointRegistrationService->getAllPoints();
+    auto points = registrationService->getAllPoints();
     qDebug() << "[NavigationPage] Registration points count:" << points.size();
 
     ui->registrationPointsTable->setRowCount(points.size());
@@ -1468,7 +2221,8 @@ void NavigationPageNew::updateRegistrationPointsList()
 
 void NavigationPageNew::on_deletePointButton_clicked()
 {
-    if (!m_pointRegistrationService || !ui->registrationPointsTable) return;
+    auto* registrationService = pointRegistrationService();
+    if (!registrationService || !ui->registrationPointsTable) return;
 
     int row = ui->registrationPointsTable->currentRow();
     if (row < 0) {
@@ -1476,7 +2230,7 @@ void NavigationPageNew::on_deletePointButton_clicked()
         return;
     }
 
-    m_pointRegistrationService->removePoint(row);
+    registrationService->removePoint(row);
     updateRegistrationPointsList();
 
     // 鍒锋柊3D瑙嗗浘
@@ -1490,9 +2244,10 @@ void NavigationPageNew::on_deletePointButton_clicked()
 
 void NavigationPageNew::on_clearAllPointsButton_clicked()
 {
-    if (!m_pointRegistrationService) return;
+    auto* registrationService = pointRegistrationService();
+    if (!registrationService) return;
 
-    if (m_pointRegistrationService->pointCount() == 0) {
+    if (registrationService->pointCount() == 0) {
         showInfo("清空点", "当前没有配准点");
         return;
     }
@@ -1501,7 +2256,7 @@ void NavigationPageNew::on_clearAllPointsButton_clicked()
         return;
     }
 
-    m_pointRegistrationService->clearPoints();
+    registrationService->clearPoints();
     updateRegistrationPointsList();
 
     // 鍒锋柊3D瑙嗗浘
@@ -1519,6 +2274,8 @@ void NavigationPageNew::updateRegistrationResultDisplay(const PointRegistrationR
         ui->regErrorLabel->setText("--");
         return;
     }
+
+    m_registrationTransform = result.transformMatrix;
 
     // 鏇存柊閰嶅噯璇樊鏄剧ず
     ui->regErrorLabel->setText(QString("%1 mm").arg(result.rmsError, 0, 'f', 2));
@@ -1602,20 +2359,23 @@ void NavigationPageNew::onRegistrationProbePointCaptured(int index, const QVecto
 void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& result)
 {
     updateRegistrationResultDisplay(result);
+    refreshNavigationConfidenceState();
     if (!m_registrationWorkflow) {
         return;
     }
 
-    if (!m_caseId.isEmpty()) {
+    const QString caseId = m_workflowContext->caseId();
+    if (!caseId.isEmpty()) {
         NavigationEvaluationService evaluationService(evaluationCasesRoot());
         AnkleRegistrationRecord record;
-        record.caseId = m_caseId;
+        record.caseId = caseId;
         record.registrationMode = result.metrics.value(QStringLiteral("registration_mode")).toString();
         record.fre = result.rmsError;
         record.targetTre = result.targetRegionTre;
         record.coverageScore = result.coverageScore;
         record.metrics = result.metrics;
         evaluationService.saveRegistrationRecord(record);
+        evaluationService.exportCaseSummary(caseId);
     }
 
     // 鑾峰彇璐ㄩ噺鎻忚堪
@@ -1628,6 +2388,7 @@ void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& r
     }
 
     showInfo("配准完成", message);
+    refreshEvaluationSummary();
 
 }
 
@@ -1635,6 +2396,7 @@ void NavigationPageNew::onRegistrationFailed(const QString& error)
 {
     showError("配准失败", error);
     ui->regErrorLabel->setText("--");
+    refreshNavigationConfidenceState();
 }
 
 void NavigationPageNew::onRegistrationPointPicked(double x, double y, double z)
@@ -1666,30 +2428,55 @@ void NavigationPageNew::onRegistrationPointPicked(double x, double y, double z)
 
 void NavigationPageNew::onNavigationTimerUpdate()
 {
-    if (!m_navigationActive || !m_motionSimulator || !m_navigation3DView) {
+    if (!m_navigationActive || !m_navigation3DView) {
         return;
     }
 
-    // 1. 鑾峰彇妯℃嫙鎺㈤拡浣嶇疆锛堣窡韪┖闂达級
-    QVector3D trackingPos = m_motionSimulator->getCurrentPosition();
+    refreshNavigationConfidenceState(true);
+    if (!m_lastConfidence.allowNavigation) {
+        on_pauseNavigationButton_clicked();
+        return;
+    }
 
-    // 2. 搴旂敤閰嶅噯鍙樻崲鐭╅樀锛岃浆鎹㈠埌楠ㄩ绌洪棿
-    QVector3D bonePos = m_registrationTransform.map(trackingPos);
+    QVector3D trackingPos;
+    bool hasLiveTracking = false;
 
-    // 3. 鏇存柊瀵艰埅3D瑙嗗浘涓殑鎺㈤拡浣嶇疆
+    if (auto* trackingService = opticalTrackingService();
+        trackingService && !m_trackingSessionId.isEmpty() && !m_navigationToolId.isEmpty()) {
+        const QMap<QString, QList<double>> realTimeData = trackingService->getRealTimeData(m_trackingSessionId);
+        if (realTimeData.contains(m_navigationToolId)) {
+            const QList<double> position = realTimeData.value(m_navigationToolId);
+            if (position.size() >= 3) {
+                trackingPos = QVector3D(
+                    static_cast<float>(position[0]),
+                    static_cast<float>(position[1]),
+                    static_cast<float>(position[2]));
+                hasLiveTracking = true;
+
+                const QVariantMap trackingQuality =
+                    trackingService->checkTrackingQuality(m_trackingSessionId, m_navigationToolId);
+                updateAccuracyDisplay(trackingQuality.value(QStringLiteral("tracking_jitter_mm")).toDouble());
+            }
+        }
+    }
+
+    if (!hasLiveTracking) {
+        if (!m_motionSimulator) {
+            return;
+        }
+
+        trackingPos = m_motionSimulator->getCurrentPosition();
+        static double simAccuracy = 0;
+        static int frameCount = 0;
+        frameCount++;
+        simAccuracy = 0.8 + 0.3 * std::sin(frameCount * 0.05);
+        updateAccuracyDisplay(simAccuracy);
+    }
+
+    const QVector3D bonePos = m_registrationTransform.map(trackingPos);
     m_navigation3DView->updateProbePosition(bonePos);
-
-    // 4. 鏇存柊浣嶇疆鏁板€兼樉绀?
     updatePositionDisplay(bonePos.x(), bonePos.y(), bonePos.z());
-
-    // 5. 璁＄畻骞舵洿鏂扮簿搴︽樉绀猴紙妯℃嫙绮惧害鍊硷級
-    // 瀹為檯搴旂敤涓紝杩欓噷搴旇璁＄畻鐪熷疄鐨勫鑸簿搴?
-    static double simAccuracy = 0;
-    static int frameCount = 0;
-    frameCount++;
-    // 妯℃嫙绮惧害鍦?.5-1.5mm涔嬮棿娉㈠姩
-    simAccuracy = 0.8 + 0.3 * std::sin(frameCount * 0.05);
-    updateAccuracyDisplay(simAccuracy);
+    refreshNavigationConfidenceState();
 }
 
 void NavigationPageNew::onNavigation3DBoneLoaded(bool success, const QVector3D& center, const QVector3D& size)

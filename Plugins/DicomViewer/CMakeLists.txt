@@ -25,6 +25,7 @@ find_package(ITK REQUIRED COMPONENTS
 )
 if(ITK_FOUND)
     message(STATUS "DicomViewer: ITK found - Version ${ITK_VERSION}")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/ITKFactoryRegistration")
     include(${ITK_USE_FILE})
 endif()
 

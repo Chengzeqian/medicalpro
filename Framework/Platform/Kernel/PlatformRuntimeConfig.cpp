@@ -31,6 +31,35 @@ bool assignRuntimeMode(const QString& runtimeMode, PlatformRuntimeMode& target)
 
     return false;
 }
+
+QVector3D readVector3D(const QJsonObject& object)
+{
+    return QVector3D(
+        static_cast<float>(object.value(QStringLiteral("x")).toDouble()),
+        static_cast<float>(object.value(QStringLiteral("y")).toDouble()),
+        static_cast<float>(object.value(QStringLiteral("z")).toDouble()));
+}
+
+void readRealCaseWorkspaceSeed(const QJsonObject& root, PlatformRuntimeConfig& config)
+{
+    const QJsonValue seedValue = root.value(QStringLiteral("real_case_workspace_seed"));
+    if (!seedValue.isObject()) {
+        return;
+    }
+
+    const QJsonObject object = seedValue.toObject();
+    config.realCaseWorkspaceSeed.enabled = object.value(QStringLiteral("enabled")).toBool(false);
+    config.realCaseWorkspaceSeed.caseId = object.value(QStringLiteral("case_id")).toString();
+    config.realCaseWorkspaceSeed.patientId = object.value(QStringLiteral("patient_id")).toString();
+    config.realCaseWorkspaceSeed.patientName = object.value(QStringLiteral("patient_name")).toString();
+    config.realCaseWorkspaceSeed.surgeryId = object.value(QStringLiteral("surgery_id")).toString();
+    config.realCaseWorkspaceSeed.tibiaModelPath = object.value(QStringLiteral("tibia_model_path")).toString();
+    config.realCaseWorkspaceSeed.talusModelPath = object.value(QStringLiteral("talus_model_path")).toString();
+    config.realCaseWorkspaceSeed.targetRegionCenter =
+        readVector3D(object.value(QStringLiteral("target_region_center")).toObject());
+    config.realCaseWorkspaceSeed.targetRegionRadiusMm =
+        object.value(QStringLiteral("target_region_radius_mm")).toDouble();
+}
 }
 
 PlatformRuntimeConfig PlatformRuntimeConfig::loadFromFile(const QString& filePath, QString* error)
@@ -88,6 +117,8 @@ PlatformRuntimeConfig PlatformRuntimeConfig::loadFromFile(const QString& filePat
 
         config.corePluginIds.append(item.toString());
     }
+
+    readRealCaseWorkspaceSeed(root, config);
 
     return config;
 }

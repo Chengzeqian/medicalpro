@@ -7,7 +7,10 @@
 #include <QStringList>
 #include <QVariantMap>
 
+namespace registration_core {
 class RegistrationService;
+}
+
 class OpticalTrackingService;
 
 class FRAMEWORK_EXPORT IPlatformRuntimeHostPort
@@ -29,7 +32,7 @@ class FRAMEWORK_EXPORT IPlatformServiceAccessPort
 public:
     virtual ~IPlatformServiceAccessPort() = default;
 
-    virtual RegistrationService* registrationService() const = 0;
+    virtual registration_core::RegistrationService* registrationService() const = 0;
     virtual OpticalTrackingService* opticalTrackingService() const = 0;
 };
 

@@ -4,6 +4,8 @@
 
 #include "Framework/ConsoleLogBridge.h"
 #include "Framework/Platform/Bootstrap/StartupBootstrapController.h"
+#include "Framework/Platform/Bootstrap/startup_ui_coordinator.h"
+#include "Framework/Platform/Bootstrap/startup_phase_registrar.h"
 #include "Framework/Platform/Bootstrap/platform_built_in_module_bootstrap.h"
 #include "Framework/Platform/Kernel/PlatformDescriptorLoader.h"
 #include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
@@ -15,7 +17,7 @@
 #include "Framework/Platform/Kernel/platform_plugin_host.h"
 #include "Framework/Platform/Kernel/platform_runtime_host_adapter.h"
 #include "Framework/Platform/LegacyAdapters/LegacyNavigationAdapter.h"
-#include "Framework/Registration/RegistrationService.h"
+#include "Plugins/RegistrationCore/RegistrationService.h"
 #include "Framework/StartupOrchestrator.h"
 #include "Framework/VTKGlobalInitializer.h"
 #include "Framework/VTKWidgetPool.h"
@@ -711,6 +713,7 @@ int main(int argc, char* argv[])
         auto mainInterfaceOwner = createMainInterface(
             startupContext->navigationAdapter.get(),
             &bootstrapStateStore,
+            runtimeConfig.realCaseWorkspaceSeed,
             nullptr);
         mainInterface = mainInterfaceOwner.release();
         mainInterface->setAttribute(Qt::WA_DeleteOnClose, true);
@@ -724,6 +727,26 @@ int main(int argc, char* argv[])
             }
             app->quit();
         });
+        StartupUiCoordinator startupUiCoordinator(
+            [](const QString& reportText) {
+                qWarning() << "[Startup] Background startup reported failures; staying on in-app welcome page";
+                qWarning() << reportText;
+            },
+            [&mainInterface](const QString& reportText) {
+                QWidget* messageHost = mainInterface
+                    ? static_cast<QWidget*>(mainInterface.data())
+                    : nullptr;
+                if (!messageHost) {
+                    return;
+                }
+
+                QMessageBox::information(
+                    messageHost,
+                    QObject::tr("安全模式"),
+                    QObject::tr("应用正在安全模式下运行，部分可选插件已被跳过。\n\n诊断摘要：\n%1")
+                        .arg(reportText));
+            },
+            safeMode);
 
         bootstrapController->beginBoot(
             QStringLiteral("Main interface welcome shown"),
@@ -766,7 +789,8 @@ int main(int argc, char* argv[])
                     QStringLiteral("main_interface_deferred"));
             });
 
-        orchestrator->registerPhaseHandler(StartupPhase::PlatformRuntimeInit, [runtimeHostPort, startupContext, publishBootStage, publishFailure](QApplication* app) -> StartupOrchestrator::PhaseExecutionResult {
+        const StartupOrchestrator::PhaseHandler platformRuntimeInitHandler =
+            [runtimeHostPort, startupContext, publishBootStage, publishFailure](QApplication* app) -> StartupOrchestrator::PhaseExecutionResult {
             publishBootStage(
                 QStringLiteral("Platform runtime initialization"),
                 QStringLiteral("正在初始化插件框架"));
@@ -791,10 +815,10 @@ int main(int argc, char* argv[])
             qDebug() << "[StartupOrchestrator] Platform runtime initialization completed";
 
             return true;
-        });
+        };
 
-        // Register the plugin installation handler
-        orchestrator->registerPhaseHandler(StartupPhase::PluginInstallation, [startupContext, publishBootStage, publishFailure](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+        const StartupOrchestrator::PhaseHandler pluginInstallationHandler =
+            [startupContext, publishBootStage, publishFailure](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
             publishBootStage(
                 QStringLiteral("Plugin installation"),
                 QStringLiteral("正在安装平台插件"));
@@ -815,10 +839,9 @@ int main(int argc, char* argv[])
                 publishFailure(QStringLiteral("Managed plugin installation failed"));
             }
             return installed;
-        });
+        };
 
-        orchestrator->registerPhaseHandler(
-            StartupPhase::CriticalPluginStart,
+        const StartupOrchestrator::PhaseHandler criticalPluginStartHandler =
             [startupContext, applyPluginState, publishBootStage, publishFailure, publishReady, missingServices, isPluginStarted](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
                 publishBootStage(
                     QStringLiteral("Critical plugin activation"),
@@ -886,9 +909,10 @@ int main(int argc, char* argv[])
                 qDebug() << "[StartupOrchestrator] Critical plugin activation completed";
                 publishReady();
                 return true;
-        });
+        };
 
-        orchestrator->registerPhaseHandler(StartupPhase::DeferredPluginStart, [startupContext, publishBootStage](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+        const StartupOrchestrator::PhaseHandler deferredPluginStartHandler =
+            [startupContext, publishBootStage](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
             publishBootStage(
                 QStringLiteral("Deferred plugin activation"),
                 QStringLiteral("主流程已就绪，后台继续启动可选插件"));
@@ -904,9 +928,10 @@ int main(int argc, char* argv[])
             return StartupOrchestrator::PhaseExecutionResult::skipped(
                 QStringLiteral("Deferred plugin activation has no additional runtime work"),
                 QStringLiteral("no_deferred_runtime_work"));
-        });
+        };
 
-        orchestrator->registerPhaseHandler(StartupPhase::ServiceWarmup, [startupContext, publishBootStage](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
+        const StartupOrchestrator::PhaseHandler serviceWarmupHandler =
+            [startupContext, publishBootStage](QApplication*) -> StartupOrchestrator::PhaseExecutionResult {
             publishBootStage(
                 QStringLiteral("Service warmup"),
                 QStringLiteral("主流程已就绪，后台继续预热服务"));
@@ -945,26 +970,18 @@ int main(int argc, char* argv[])
             }
 
             return true;
-        });
+        };
 
-        QObject::connect(orchestrator, &StartupOrchestrator::startupCompleted, &app, [&mainInterface, safeMode](bool success) {
-            if (!success) {
-                qWarning() << "[Startup] Background startup reported failures; staying on in-app welcome page";
-                qWarning() << StartupOrchestrator::instance()->getDiagnosticReport();
-                return;
-            }
+        const StartupPhaseRegistrar startupPhaseRegistrar;
+        const StartupPhaseRegistrar::RuntimePhaseHandlers runtimePhaseHandlers(
+            StartupPhaseRegistrar::PlatformRuntimeInitPhaseHandler { platformRuntimeInitHandler },
+            StartupPhaseRegistrar::PluginInstallationPhaseHandler { pluginInstallationHandler },
+            StartupPhaseRegistrar::CriticalPluginStartPhaseHandler { criticalPluginStartHandler },
+            StartupPhaseRegistrar::DeferredPluginStartPhaseHandler { deferredPluginStartHandler },
+            StartupPhaseRegistrar::ServiceWarmupPhaseHandler { serviceWarmupHandler });
+        startupPhaseRegistrar.registerRuntimePhases(orchestrator, runtimePhaseHandlers);
 
-            QWidget* messageHost = mainInterface
-                ? static_cast<QWidget*>(mainInterface.data())
-                : nullptr;
-            if (safeMode && messageHost) {
-                QMessageBox::information(
-                    messageHost,
-                                                              QObject::tr("安全模式"),
-                                                              QObject::tr("应用正在安全模式下运行，部分可选插件已被跳过。\n\n诊断摘要：\n%1")
-                                                                  .arg(StartupOrchestrator::instance()->getDiagnosticReport()));
-                                 }
-                             });
+        startupUiCoordinator.bindToStartupCompletion(&app);
 
             QTimer::singleShot(0, orchestrator, [orchestrator, app = &app]() {
                 orchestrator->start(app);

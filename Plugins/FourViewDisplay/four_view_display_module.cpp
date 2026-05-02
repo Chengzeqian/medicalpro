@@ -14,6 +14,10 @@ bool FourViewDisplayModule::start(PlatformModuleContext& context)
     if (!context.serviceRegistry) return false;
 
     m_service = std::make_unique<FourViewDisplayServiceImpl>();
+    context.serviceRegistry->registerService(
+        pluginId(),
+        QStringLiteral("com.medicalpro.FourViewDisplayService"),
+        m_service.get());
     context.serviceRegistry->registerService(pluginId(), QStringLiteral("FourViewDisplayService"), m_service.get());
     return true;
 }

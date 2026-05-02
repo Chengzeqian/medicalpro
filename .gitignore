@@ -82,7 +82,9 @@ CMakeLists.txt.user*
 /build*/
 
 # Third-party libraries
-/ThirdParty/
+/ThirdParty/*
+!/ThirdParty/eigen/
+!/ThirdParty/eigen/**
 
 # Local worktrees
 /.worktrees/

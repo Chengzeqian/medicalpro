@@ -4,6 +4,7 @@
 #include "Framework/Platform/Contracts/platform_module_ports.h"
 #include "Framework/Platform/Kernel/platform_plugin_host.h"
 #include "Framework/Platform/Kernel/platform_service_registry.h"
+#include "Plugins/RegistrationCore/registration_core_module.h"
 
 #include <QUuid>
 #include <memory>
@@ -89,6 +90,7 @@ private slots:
     void adapter_can_activate_and_report_platform_host_modules();
     void adapter_can_initialize_start_and_stop_platform_host();
     void adapter_reports_platform_registry_services_as_ready();
+    void adapter_returns_registration_core_service_for_platform_module();
 };
 
 void PlatformRuntimeHostAdapterPlatformFallbackTest::adapter_default_constructor_stays_platform_only()
@@ -183,6 +185,22 @@ void PlatformRuntimeHostAdapterPlatformFallbackTest::adapter_reports_platform_re
     });
 
     QCOMPARE(missing, QStringList{QStringLiteral("OpticalTrackingService")});
+}
+
+void PlatformRuntimeHostAdapterPlatformFallbackTest::adapter_returns_registration_core_service_for_platform_module()
+{
+    auto& host = PlatformPluginHost::sharedInstance();
+    host.stopAll();
+
+    if (!host.hasActivator(QStringLiteral("RegistrationCore"))) {
+        host.registerActivator(std::make_unique<RegistrationCoreModule>());
+    }
+
+    PlatformRuntimeHostAdapter adapter;
+    QVERIFY2(adapter.activatePlugin(QStringLiteral("RegistrationCore")),
+        "adapter should activate the RegistrationCore platform module");
+    QVERIFY2(adapter.registrationService() != nullptr,
+        "adapter should expose the started RegistrationCore service through the runtime access port");
 }
 
 QTEST_APPLESS_MAIN(PlatformRuntimeHostAdapterPlatformFallbackTest)

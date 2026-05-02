@@ -14,9 +14,10 @@ class PlatformServiceRegistry;
 
 // MeshGPU DLL forward declarations
 namespace mesh_gpu {
-    class MeshGPUInterface;
+    class MeshGPURuntimeApi;
     struct RegistrationParams;
     struct Transform4x4;
+    struct RuntimeRegistrationResult;
 }
 
 class vtkMatrix4x4;
@@ -153,13 +154,13 @@ private:
     static vtkSmartPointer<vtkMatrix4x4> meshGPUTransformToVTK(const float* data16);
 
     // MeshGPU DLL function pointer types
-    using CreateMeshGPUFn = mesh_gpu::MeshGPUInterface* (*)();
-    using DestroyMeshGPUFn = void (*)(mesh_gpu::MeshGPUInterface*);
+    using CreateMeshGPUFn = mesh_gpu::MeshGPURuntimeApi* (*)();
+    using DestroyMeshGPUFn = void (*)(mesh_gpu::MeshGPURuntimeApi*);
 
     QLibrary m_meshGPULib;
     CreateMeshGPUFn m_createMeshGPU = nullptr;
     DestroyMeshGPUFn m_destroyMeshGPU = nullptr;
-    mesh_gpu::MeshGPUInterface* m_meshGPU = nullptr;
+    mesh_gpu::MeshGPURuntimeApi* m_meshGPU = nullptr;
     bool m_meshGPULoaded = false;
 
     // Internal helpers

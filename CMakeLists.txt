@@ -17,6 +17,33 @@ endif()
 
 option(MEDICALPRO_ENABLE_CONSOLE "Enable console window for runtime log debugging" ON)
 
+set(MEDICALPRO_EIGEN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/eigen" CACHE PATH
+    "Path to the Eigen source tree used by in-repo algorithm subsystems")
+set(MEDICALPRO_ATRACSYS_SDK_DIR "" CACHE PATH
+    "Path to the Atracsys fusionTrack SDK x64 directory")
+
+if(NOT EXISTS "${MEDICALPRO_ATRACSYS_SDK_DIR}/include/ftkInterface.h")
+    set(MEDICALPRO_ATRACSYS_SDK_CANDIDATES
+        "$ENV{MEDICALPRO_ATRACSYS_SDK_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Atracsys/fusionTrack SDK x64"
+        "E:/ICPtry/Atracsys/fusionTrack SDK x64"
+        "D:/Atracsys/fusionTrack SDK x64"
+        "C:/Atracsys/fusionTrack SDK x64"
+    )
+
+    foreach(MEDICALPRO_ATRACSYS_SDK_CANDIDATE ${MEDICALPRO_ATRACSYS_SDK_CANDIDATES})
+        if(EXISTS "${MEDICALPRO_ATRACSYS_SDK_CANDIDATE}/include/ftkInterface.h")
+            set(MEDICALPRO_ATRACSYS_SDK_DIR "${MEDICALPRO_ATRACSYS_SDK_CANDIDATE}" CACHE PATH
+                "Path to the Atracsys fusionTrack SDK x64 directory" FORCE)
+            break()
+        endif()
+    endforeach()
+endif()
+
+if(NOT EXISTS "${MEDICALPRO_EIGEN_ROOT}/Eigen/Core")
+    message(FATAL_ERROR "Eigen not found at ${MEDICALPRO_EIGEN_ROOT}")
+endif()
+
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -26,7 +53,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Set encoding to UTF-8
 if(MSVC)
-    add_compile_options(/utf-8)
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/utf-8>)
 endif()
 
 # ============================================================================
@@ -110,6 +137,8 @@ if(ITK_DIR)
     if(ITK_FOUND)
         message(STATUS "Found ITK version: ${ITK_VERSION}")
         message(STATUS "ITK_DIR: ${ITK_DIR}")
+        # Repeated ITK_USE_FILE includes in subdirectories generate headers here.
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/ITKFactoryRegistration")
         include(${ITK_USE_FILE})
         add_definitions(-DITK_FOUND)
     else()
@@ -127,6 +156,8 @@ set(TS_FILES medicalpro_zh_CN.ts)
 set(FRAMEWORK_SOURCES
     Framework/StartupOrchestrator.h
     Framework/StartupOrchestrator.cpp
+    Framework/VTK/embedded_vtk_view_host.h
+    Framework/VTK/embedded_vtk_view_host.cpp
     Framework/VTKWidgetPool.h
     Framework/VTKWidgetPool.cpp
     Framework/ErrorHandler.h
@@ -153,10 +184,27 @@ set(FRAMEWORK_SOURCES
     Framework/Registration/RegistrationTypes.h
     Framework/Registration/RegistrationService.h
     Framework/Navigation/ankle_navigation_types.h
+    Framework/Navigation/innovation_experiment_types.h
+    Framework/Navigation/innovation_1_point_selection_experiment.h
+    Framework/Navigation/innovation_1_point_selection_experiment.cpp
+    Framework/Navigation/innovation_2_registration_experiment.h
+    Framework/Navigation/innovation_2_registration_experiment.cpp
+    Framework/Navigation/innovation_3_gate_experiment.h
+    Framework/Navigation/innovation_3_gate_experiment.cpp
+    Framework/Navigation/innovation_experiment_batch_runner.h
+    Framework/Navigation/innovation_experiment_batch_runner.cpp
     Framework/Navigation/ankle_case_workspace_repository.h
     Framework/Navigation/ankle_case_workspace_repository.cpp
     Framework/Navigation/ankle_planning_service.h
     Framework/Navigation/ankle_planning_service.cpp
+    Framework/Navigation/real_case_asset_bootstrapper.h
+    Framework/Navigation/real_case_asset_bootstrapper.cpp
+    Framework/Navigation/real_case_workspace_seed_coordinator.h
+    Framework/Navigation/real_case_workspace_seed_coordinator.cpp
+    Framework/Navigation/innovation_experiment_repository.h
+    Framework/Navigation/innovation_experiment_repository.cpp
+    Framework/Navigation/innovation_summary_csv_exporter.h
+    Framework/Navigation/innovation_summary_csv_exporter.cpp
     Framework/Navigation/navigation_confidence_evaluator.h
     Framework/Navigation/navigation_confidence_evaluator.cpp
     Framework/Navigation/navigation_evaluation_service.h
@@ -188,6 +236,10 @@ set(FRAMEWORK_SOURCES
     Framework/Platform/Kernel/PlatformStateStore.cpp
     Framework/Platform/Bootstrap/StartupBootstrapController.h
     Framework/Platform/Bootstrap/StartupBootstrapController.cpp
+    Framework/Platform/Bootstrap/startup_ui_coordinator.h
+    Framework/Platform/Bootstrap/startup_ui_coordinator.cpp
+    Framework/Platform/Bootstrap/startup_phase_registrar.h
+    Framework/Platform/Bootstrap/startup_phase_registrar.cpp
     Framework/Platform/Bootstrap/platform_built_in_module_bootstrap.h
     Framework/Platform/Bootstrap/platform_built_in_module_bootstrap.cpp
     Framework/Platform/Bootstrap/PlatformStateStoreHandoff.h
@@ -308,6 +360,33 @@ set(_framework_public_includes
 )
 list(REMOVE_DUPLICATES _framework_public_includes)
 target_include_directories(Framework PUBLIC ${_framework_public_includes})
+
+option(MEDICALPRO_ENABLE_MESHGPU_SUBPROJECT "Integrate the in-tree MeshGPU subproject when the toolchain is compatible" ON)
+
+set(MEDICALPRO_HAS_MESHGPU_SUBPROJECT OFF)
+if(MEDICALPRO_ENABLE_MESHGPU_SUBPROJECT AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/algorithms/meshgpu/CMakeLists.txt")
+    set(_medicalpro_meshgpu_skip_reason "")
+    find_package(CUDAToolkit QUIET)
+
+    if(NOT CUDAToolkit_FOUND)
+        set(_medicalpro_meshgpu_skip_reason "CUDAToolkit was not found")
+    elseif(MSVC AND MSVC_VERSION GREATER_EQUAL 1944 AND CUDAToolkit_VERSION VERSION_LESS 12.4)
+        set(_medicalpro_meshgpu_skip_reason
+            "CUDA ${CUDAToolkit_VERSION} is incompatible with MSVC ${MSVC_VERSION}; use CUDA 12.4+ or switch to an older MSVC toolset"
+        )
+    endif()
+
+    if(_medicalpro_meshgpu_skip_reason)
+        message(WARNING "Skipping MeshGPU subproject integration: ${_medicalpro_meshgpu_skip_reason}")
+    else()
+        add_subdirectory(algorithms/meshgpu)
+        set(MEDICALPRO_HAS_MESHGPU_SUBPROJECT ON)
+    endif()
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/algorithms/probe_calibration/CMakeLists.txt")
+    add_subdirectory(algorithms/probe_calibration)
+endif()
 
 # 鎻掍欢鐩綍鏀惧湪 Framework 瀹氫箟涔嬪悗锛岄伩鍏?PCH 澶嶇敤鏃舵壘涓嶅埌 Framework 鐩爣
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Plugins")
@@ -473,6 +552,37 @@ if(TARGET NewPagesLib)
 endif()
 
 configure_platform_descriptor_runtime_copy(medicalpro)
+
+if(TARGET medicalpro AND TARGET MeshGPULib)
+    add_dependencies(medicalpro MeshGPULib)
+    add_custom_command(TARGET medicalpro POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:MeshGPULib>"
+            "$<TARGET_FILE_DIR:medicalpro>/MeshGPULib.dll"
+        COMMENT "Copying MeshGPULib runtime DLL to medicalpro output directory"
+    )
+endif()
+
+if(TARGET medicalpro AND TARGET ProbeCalibrationDLL)
+    add_dependencies(medicalpro ProbeCalibrationDLL)
+    add_custom_command(TARGET medicalpro POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:ProbeCalibrationDLL>"
+            "$<TARGET_FILE_DIR:medicalpro>/ProbeCalibration.dll"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE_DIR:ProbeCalibrationDLL>/fusionTrack64.dll"
+            "$<TARGET_FILE_DIR:medicalpro>/fusionTrack64.dll"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE_DIR:ProbeCalibrationDLL>/device64.dll"
+            "$<TARGET_FILE_DIR:medicalpro>/device64.dll"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:medicalpro>/atracsys_geometry"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${MEDICALPRO_ATRACSYS_SDK_DIR}/data"
+            "$<TARGET_FILE_DIR:medicalpro>/atracsys_geometry"
+        COMMENT "Copying ProbeCalibration runtime DLL to medicalpro output directory"
+    )
+endif()
 
 # ============================================================================
 # VTK Linking for Main App (PRIVATE - Requirement 1.3)

@@ -41,6 +41,7 @@
 #include <QAbstractSocket>
 #include <QDataStream>
 #include <QFont>
+#include <QSettings>
 #include <QRegularExpression>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -49,6 +50,64 @@
 #include <fstream>
 #include <limits>
 #include <algorithm>
+
+namespace {
+
+QString normalizeGeometryId(QString geometryId)
+{
+    geometryId = geometryId.trimmed();
+    if (geometryId.endsWith(QStringLiteral(".ini"), Qt::CaseInsensitive)) {
+        geometryId.chop(4);
+    }
+    if (geometryId.startsWith(QStringLiteral("geometry"), Qt::CaseInsensitive)) {
+        geometryId = geometryId.mid(QStringLiteral("geometry").size());
+    }
+    return geometryId;
+}
+
+QStringList candidateGeometryNames(const QString& geometryId)
+{
+    const QString normalized = normalizeGeometryId(geometryId);
+    QStringList names;
+    if (!normalized.isEmpty()) {
+        names << QStringLiteral("geometry%1.ini").arg(normalized);
+    }
+    names.removeDuplicates();
+    return names;
+}
+
+QString sdkGeometryRoot()
+{
+#ifdef MEDICALPRO_ATRACSYS_SDK_DIR
+    return QDir::fromNativeSeparators(QStringLiteral(MEDICALPRO_ATRACSYS_SDK_DIR)) + QStringLiteral("/data");
+#else
+    return QString();
+#endif
+}
+
+QStringList candidateGeometryDirectories()
+{
+    const QString appDir = QCoreApplication::applicationDirPath();
+    QStringList directories = {
+        appDir + QStringLiteral("/atracsys_geometry"),
+        appDir + QStringLiteral("/geometry"),
+        appDir,
+        sdkGeometryRoot()
+    };
+
+    const QSettings settings(QStringLiteral("MedicalPro"), QStringLiteral("NavigationSystem"));
+    const QString configuredDir = QDir::fromNativeSeparators(
+        settings.value(QStringLiteral("optical_tracking/geometry_dir")).toString());
+    if (!configuredDir.isEmpty()) {
+        directories.prepend(configuredDir);
+    }
+
+    directories.removeAll(QString());
+    directories.removeDuplicates();
+    return directories;
+}
+
+} // namespace
 
 //-----------------------------------------------------------------------------
 OpticalTrackingServiceImpl::OpticalTrackingServiceImpl(QObject* parent)
@@ -438,6 +497,206 @@ bool OpticalTrackingServiceImpl::connectToAtracsysDevice(const QString& deviceId
     deviceIt->state["status"] = "connected";
     
     return true;
+}
+
+bool OpticalTrackingServiceImpl::loadRigidBodyGeometry(const QString& sessionId, const QString& geometryFile)
+{
+    Q_UNUSED(sessionId);
+
+    const QString resolvedPath = geometryFile.contains(QDir::separator()) || geometryFile.contains('/')
+        ? QDir::fromNativeSeparators(geometryFile)
+        : findGeometryFile(geometryFile);
+
+    if (resolvedPath.isEmpty()) {
+        if (m_lastError.isEmpty()) {
+            setError(QStringLiteral("Rigid body geometry not found"));
+        }
+        return false;
+    }
+
+    return validateGeometryFile(resolvedPath);
+}
+
+QString OpticalTrackingServiceImpl::resolveProbeCalibrationGeometry(const QString& sessionId, const QString& toolId)
+{
+    if (!m_sessions.contains(sessionId)) {
+        setError(QStringLiteral("Session not found: %1").arg(sessionId));
+        return QString();
+    }
+
+    const SessionInfo& session = m_sessions[sessionId];
+    if (!session.toolIds.contains(toolId)) {
+        setError(QStringLiteral("Tool not found: %1").arg(toolId));
+        return QString();
+    }
+
+    const QVariantMap config = session.toolConfigurations.value(toolId);
+    const QString geometryFile = config.value(QStringLiteral("geometryFile")).toString().trimmed();
+    if (!geometryFile.isEmpty()) {
+        const QString resolvedFile = geometryFile.contains(QDir::separator()) || geometryFile.contains('/')
+            ? QDir::fromNativeSeparators(geometryFile)
+            : findGeometryFile(geometryFile);
+        if (!resolvedFile.isEmpty()) {
+            setError(QString());
+            return resolvedFile;
+        }
+    }
+
+    const QString geometryId = config.value(QStringLiteral("geometryId")).toString().trimmed();
+    if (!geometryId.isEmpty()) {
+        const QString resolvedId = findGeometryFile(geometryId);
+        if (!resolvedId.isEmpty()) {
+            setError(QString());
+            return resolvedId;
+        }
+    }
+
+    const QString fallbackPath = findGeometryFile(QStringLiteral("072"));
+    if (!fallbackPath.isEmpty()) {
+        setError(QString());
+        return fallbackPath;
+    }
+
+    setError(QStringLiteral("No probe calibration geometry resolved for tool: %1").arg(toolId));
+    return QString();
+}
+
+QString OpticalTrackingServiceImpl::findGeometryFile(const QString& geometryId)
+{
+    setError(QString());
+
+    const QString normalizedInput = QDir::fromNativeSeparators(geometryId.trimmed());
+    if (!normalizedInput.isEmpty() &&
+        (normalizedInput.contains('/') || normalizedInput.contains(QDir::separator()))) {
+        if (validateGeometryFile(normalizedInput)) {
+            return normalizedInput;
+        }
+        return QString();
+    }
+
+    const QStringList names = candidateGeometryNames(geometryId);
+    const QStringList directories = candidateGeometryDirectories();
+
+    for (const QString& directoryPath : directories) {
+        const QDir directory(directoryPath);
+        if (!directory.exists()) {
+            continue;
+        }
+
+        for (const QString& fileName : names) {
+            const QString candidate = directory.filePath(fileName);
+            if (validateGeometryFile(candidate)) {
+                return QDir::fromNativeSeparators(QFileInfo(candidate).absoluteFilePath());
+            }
+        }
+    }
+
+    setError(QStringLiteral("Geometry file not found for id '%1'").arg(geometryId));
+    return QString();
+}
+
+bool OpticalTrackingServiceImpl::validateGeometryFile(const QString& filePath)
+{
+    const QFileInfo fileInfo(filePath);
+    if (!fileInfo.exists() || !fileInfo.isFile()) {
+        setError(QStringLiteral("Geometry file does not exist: %1")
+            .arg(QDir::fromNativeSeparators(filePath)));
+        return false;
+    }
+
+    if (!fileInfo.isReadable()) {
+        setError(QStringLiteral("Geometry file is not readable: %1")
+            .arg(QDir::fromNativeSeparators(filePath)));
+        return false;
+    }
+
+    const QVariantMap geometryInfo = parseGeometryInfo(filePath);
+    if (!geometryInfo.value(QStringLiteral("valid")).toBool()) {
+        if (m_lastError.isEmpty()) {
+            setError(QStringLiteral("Geometry file is invalid: %1")
+                .arg(QDir::fromNativeSeparators(filePath)));
+        }
+        return false;
+    }
+
+    setError(QString());
+    return true;
+}
+
+QVariantMap OpticalTrackingServiceImpl::parseGeometryInfo(const QString& filePath)
+{
+    QVariantMap info;
+    info[QStringLiteral("filePath")] = QDir::fromNativeSeparators(filePath);
+    info[QStringLiteral("valid")] = false;
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        setError(QStringLiteral("Failed to open geometry file: %1").arg(filePath));
+        return info;
+    }
+
+    QString currentSection;
+    int fiducialCount = 0;
+    int divotCount = 0;
+
+    while (!file.atEnd()) {
+        const QString line = QString::fromUtf8(file.readLine()).trimmed();
+        if (line.isEmpty() || line.startsWith(';') || line.startsWith('#')) {
+            continue;
+        }
+
+        if (line.startsWith('[') && line.endsWith(']')) {
+            currentSection = line.mid(1, line.size() - 2).trimmed();
+            if (currentSection.startsWith(QStringLiteral("fiducial"), Qt::CaseInsensitive)) {
+                ++fiducialCount;
+            } else if (currentSection.startsWith(QStringLiteral("divot"), Qt::CaseInsensitive)) {
+                ++divotCount;
+            }
+            continue;
+        }
+
+        const int separatorIndex = line.indexOf('=');
+        if (separatorIndex <= 0) {
+            continue;
+        }
+
+        const QString key = line.left(separatorIndex).trimmed();
+        const QString value = line.mid(separatorIndex + 1).trimmed();
+
+        if (currentSection.compare(QStringLiteral("geometry"), Qt::CaseInsensitive) == 0) {
+            if (key.compare(QStringLiteral("id"), Qt::CaseInsensitive) == 0) {
+                info[QStringLiteral("geometryId")] = value;
+            } else if (key.compare(QStringLiteral("count"), Qt::CaseInsensitive) == 0) {
+                info[QStringLiteral("declaredCount")] = value.toInt();
+            } else if (key.compare(QStringLiteral("divotCount"), Qt::CaseInsensitive) == 0) {
+                info[QStringLiteral("declaredDivotCount")] = value.toInt();
+            } else if (key.compare(QStringLiteral("version"), Qt::CaseInsensitive) == 0) {
+                info[QStringLiteral("version")] = value;
+            }
+        }
+    }
+
+    info[QStringLiteral("fiducialCount")] = fiducialCount;
+    info[QStringLiteral("divotCount")] = divotCount;
+
+    const QString geometryId = info.value(QStringLiteral("geometryId")).toString();
+    const int declaredCount = info.value(QStringLiteral("declaredCount")).toInt();
+    const int declaredDivotCount = info.value(QStringLiteral("declaredDivotCount")).toInt();
+    const bool valid = !geometryId.isEmpty()
+        && fiducialCount > 0
+        && (declaredCount == 0 || declaredCount == fiducialCount)
+        && (declaredDivotCount == 0 || declaredDivotCount == divotCount);
+
+    info[QStringLiteral("valid")] = valid;
+
+    if (!valid) {
+        setError(QStringLiteral("Geometry metadata is incomplete: %1")
+            .arg(QDir::fromNativeSeparators(filePath)));
+        return info;
+    }
+
+    setError(QString());
+    return info;
 }
 
 //=============================================================================
@@ -843,6 +1102,8 @@ QMap<QString, QVariant> OpticalTrackingServiceImpl::getToolStatus(const QString&
         const QVariantMap& config = session.toolConfigurations[toolId];
         status["toolName"] = config.value("name", "Unknown");
         status["toolType"] = config.value("type", "generic");
+        status["calibrated"] = config.value(QStringLiteral("calibrated"), status.value(QStringLiteral("calibrated"), false));
+        status["calibrationAccuracy"] = config.value(QStringLiteral("calibrationAccuracy"), 0.0);
     }
 
     return status;
@@ -3191,19 +3452,48 @@ QMap<QString, QVariant> OpticalTrackingServiceImpl::checkTrackingQuality(const Q
     QMutexLocker locker(&m_mutex);
 
     QVariantMap result;
+    auto applyReplayMetrics =
+        [&result](double visibleFrameRatio,
+                  int sampleCount,
+                  bool stable,
+                  double qualityScore,
+                  const QString& trackingProfile) {
+            const double normalizedVisibleFrameRatio = std::clamp(visibleFrameRatio, 0.0, 1.0);
+            const double normalizedQualityScore = std::clamp(qualityScore / 100.0, 0.0, 1.0);
+            const double stabilityScore = stable ? 1.0 : (sampleCount > 0 ? 0.5 : 0.0);
+            const double trackingConfidenceScore = std::clamp(
+                (normalizedQualityScore * 0.60) +
+                (normalizedVisibleFrameRatio * 0.25) +
+                (stabilityScore * 0.15),
+                0.0,
+                1.0);
+
+            result.insert(QStringLiteral("visible_frame_ratio"), normalizedVisibleFrameRatio);
+            result.insert(QStringLiteral("frame_drop_rate"), 1.0 - normalizedVisibleFrameRatio);
+            result.insert(QStringLiteral("tracking_confidence_score"), trackingConfidenceScore);
+            result.insert(QStringLiteral("replay_ready"), sampleCount >= 30);
+            result.insert(QStringLiteral("tracking_profile"), trackingProfile);
+        };
 
     if (sessionId.isEmpty() || toolId.isEmpty()) {
+        result.insert(QStringLiteral("visible"), true);
         result.insert(QStringLiteral("tracking_jitter_mm"), 0.45);
         result.insert(QStringLiteral("visible_frame_ratio"), 0.98);
         result.insert(QStringLiteral("occlusion_count"), 0);
         result.insert(QStringLiteral("sample_count"), 120);
         result.insert(QStringLiteral("valid"), true);
+        result.insert(QStringLiteral("calibrated"), true);
+        result.insert(QStringLiteral("calibration_accuracy_mm"), 0.35);
+        result.insert(QStringLiteral("qualityScore"), 95.0);
+        result.insert(QStringLiteral("qualityLevel"), QStringLiteral("good"));
+        applyReplayMetrics(0.98, 120, true, 95.0, QStringLiteral("simulated_replay_baseline"));
         return result;
     }
 
     if (!m_sessions.contains(sessionId)) {
         result["error"] = "会话不存在";
         result["valid"] = false;
+        applyReplayMetrics(0.0, 0, false, 0.0, QStringLiteral("invalid_session"));
         return result;
     }
 
@@ -3212,6 +3502,7 @@ QMap<QString, QVariant> OpticalTrackingServiceImpl::checkTrackingQuality(const Q
     if (!session.toolIds.contains(toolId)) {
         result["error"] = "工具不存在";
         result["valid"] = false;
+        applyReplayMetrics(0.0, 0, false, 0.0, QStringLiteral("invalid_tool"));
         return result;
     }
 
@@ -3225,7 +3516,12 @@ QMap<QString, QVariant> OpticalTrackingServiceImpl::checkTrackingQuality(const Q
         const ToolTrackingData& trackingData = m_toolTrackingData[sessionId][toolId];
 
         // 可见性
+        const int sampleCount = std::max(trackingData.positionHistory.size(), 1);
+        const double visibleFrameRatio = trackingData.visible ? 1.0 : 0.0;
+        bool stable = false;
         result["visible"] = trackingData.visible;
+        result["sample_count"] = sampleCount;
+        result["occlusion_count"] = trackingData.visible ? 0 : 1;
 
         // 总体质量分数（0-100）
         double qualityScore = trackingData.quality * 100.0;
@@ -3260,9 +3556,11 @@ QMap<QString, QVariant> OpticalTrackingServiceImpl::checkTrackingQuality(const Q
             }
             posVariance /= trackingData.positionHistory.size();
             result["positionVariance"] = posVariance;
+            result["tracking_jitter_mm"] = std::sqrt(std::max(posVariance, 0.0));
             result["stable"] = (posVariance < 1.0); // 小于1mm²认为稳定
         } else {
             result["positionVariance"] = 0.0;
+            result["tracking_jitter_mm"] = 0.0;
             result["stable"] = false;
         }
 
@@ -3278,11 +3576,26 @@ QMap<QString, QVariant> OpticalTrackingServiceImpl::checkTrackingQuality(const Q
 
         // 校准状态
         result["calibrated"] = !trackingData.calibrationOffset.isEmpty();
+        const QVariantMap toolConfig = session.toolConfigurations.value(toolId);
+        result["calibration_accuracy_mm"] = toolConfig.value(QStringLiteral("calibrationAccuracy"), 0.0);
+        stable = result.value("stable").toBool();
+        const QString trackingProfile =
+            trackingData.motionPattern.isEmpty()
+                ? QStringLiteral("live_tracking")
+                : trackingData.motionPattern;
+        applyReplayMetrics(visibleFrameRatio, sampleCount, stable, qualityScore, trackingProfile);
 
     } else {
         result["visible"] = false;
         result["qualityScore"] = 0.0;
         result["qualityLevel"] = "unknown";
+        result["tracking_jitter_mm"] = 0.0;
+        result["sample_count"] = 0;
+        result["occlusion_count"] = 1;
+        result["stable"] = false;
+        result["calibrated"] = false;
+        result["calibration_accuracy_mm"] = 0.0;
+        applyReplayMetrics(0.0, 0, false, 0.0, QStringLiteral("session_without_samples"));
     }
 
     // 设备特定的质量信息
@@ -5940,16 +6253,16 @@ bool OpticalTrackingServiceImpl::loadProbeCalibrationDLL(const QString& dllPath)
 {
     if (m_pcLoaded) return true;
 
+    setError(QString());
+
     QString path = dllPath;
     if (path.isEmpty()) {
         path = QCoreApplication::applicationDirPath() + "/ProbeCalibration.dll";
-        if (!QFile::exists(path)) {
-            path = "D:/Qtproject/medicalpro/ICPtry/ProbeCalibration/build/Release/ProbeCalibration.dll";
-        }
     }
 
     m_pcLib.setFileName(path);
     if (!m_pcLib.load()) {
+        setError(QString("ProbeCalibration DLL load failed: %1").arg(m_pcLib.errorString()));
         qWarning() << "[OpticalTracking] ProbeCalibration DLL load failed:" << m_pcLib.errorString();
         return false;
     }
@@ -5958,6 +6271,7 @@ bool OpticalTrackingServiceImpl::loadProbeCalibrationDLL(const QString& dllPath)
     m_pcCreate = reinterpret_cast<PC_CreatePipelineFn>(m_pcLib.resolve("PC_CreatePipeline"));
     m_pcDestroy = reinterpret_cast<PC_DestroyPipelineFn>(m_pcLib.resolve("PC_DestroyPipeline"));
     m_pcInitialize = reinterpret_cast<PC_InitializePipelineFn>(m_pcLib.resolve("PC_InitializePipeline"));
+    m_pcIsInitialized = reinterpret_cast<PC_IsInitializedFn>(m_pcLib.resolve("PC_IsInitialized"));
     m_pcShutdown = reinterpret_cast<PC_ShutdownPipelineFn>(m_pcLib.resolve("PC_ShutdownPipeline"));
     m_pcStartCalibration = reinterpret_cast<PC_StartCalibrationFn>(m_pcLib.resolve("PC_StartCalibration"));
     m_pcFinishCalibration = reinterpret_cast<PC_FinishCalibrationFn>(m_pcLib.resolve("PC_FinishCalibration"));
@@ -5970,7 +6284,9 @@ bool OpticalTrackingServiceImpl::loadProbeCalibrationDLL(const QString& dllPath)
     m_pcCollectorGetSuperPointCount = reinterpret_cast<PC_CollectorGetSuperPointCountFn>(m_pcLib.resolve("PC_CollectorGetSuperPointCount"));
     m_pcCollectorExport = reinterpret_cast<PC_CollectorExportFn>(m_pcLib.resolve("PC_CollectorExport"));
 
-    if (!m_pcCreate || !m_pcDestroy || !m_pcStartCalibration || !m_pcFinishCalibration) {
+    if (!m_pcCreate || !m_pcDestroy || !m_pcInitialize || !m_pcIsInitialized ||
+        !m_pcStartCalibration || !m_pcFinishCalibration) {
+        setError(QStringLiteral("ProbeCalibration DLL core symbols are incomplete"));
         qWarning() << "[OpticalTracking] ProbeCalibration DLL: failed to resolve core functions";
         m_pcLib.unload();
         return false;
@@ -5979,6 +6295,7 @@ bool OpticalTrackingServiceImpl::loadProbeCalibrationDLL(const QString& dllPath)
     // 创建 pipeline
     m_pcPipeline = m_pcCreate();
     if (!m_pcPipeline) {
+        setError(QStringLiteral("ProbeCalibration CreatePipeline returned null"));
         qWarning() << "[OpticalTracking] ProbeCalibration DLL: CreatePipeline returned null";
         m_pcLib.unload();
         return false;
@@ -5987,6 +6304,43 @@ bool OpticalTrackingServiceImpl::loadProbeCalibrationDLL(const QString& dllPath)
     m_pcLoaded = true;
     qDebug() << "[OpticalTracking] ProbeCalibration DLL loaded from:" << path;
     return true;
+}
+
+bool OpticalTrackingServiceImpl::initializeProbeCalibrationPipeline(const QString& geometrySelector)
+{
+    if (!m_pcLoaded && !loadProbeCalibrationDLL()) {
+        return false;
+    }
+
+    if (!m_pcPipeline || !m_pcInitialize || !m_pcIsInitialized) {
+        setError(QStringLiteral("ProbeCalibration DLL not properly initialized"));
+        return false;
+    }
+
+    if (m_pcIsInitialized(m_pcPipeline) == 1) {
+        setError(QString());
+        return true;
+    }
+
+    const QString geometryPath = geometrySelector.contains(QDir::separator()) || geometrySelector.contains('/')
+        ? QDir::fromNativeSeparators(geometrySelector)
+        : findGeometryFile(geometrySelector);
+    if (geometryPath.isEmpty()) {
+        return false;
+    }
+
+    const QByteArray geometryBytes = geometryPath.toUtf8();
+    if (m_pcInitialize(m_pcPipeline, geometryBytes.constData()) == 1) {
+        setError(QString());
+        return true;
+    }
+
+    const char* err = m_pcGetLastError ? m_pcGetLastError(m_pcPipeline) : "";
+    const QString detail = (err && err[0] != '\0')
+        ? QString::fromUtf8(err)
+        : QStringLiteral("unknown initialization failure");
+    setError(QStringLiteral("ProbeCalibration pipeline initialization failed: %1").arg(detail));
+    return false;
 }
 
 QVariantMap OpticalTrackingServiceImpl::performPivotCalibrationDLL(
@@ -6002,10 +6356,24 @@ QVariantMap OpticalTrackingServiceImpl::performPivotCalibrationDLL(
         return result;
     }
 
-    // 开始标定
-    if (m_pcStartCalibration(m_pcPipeline) != 0) {
+    const QString geometryPath = resolveProbeCalibrationGeometry(calibInfo.sessionId, calibInfo.toolId);
+    if (geometryPath.isEmpty()) {
         result["success"] = false;
-        result["error"] = "DLL StartCalibration failed";
+        result["error"] = m_lastError;
+        return result;
+    }
+
+    if (!initializeProbeCalibrationPipeline(geometryPath)) {
+        result["success"] = false;
+        result["error"] = m_lastError;
+        return result;
+    }
+
+    // 开始标定
+    if (m_pcStartCalibration(m_pcPipeline) != 1) {
+        const char* err = m_pcGetLastError ? m_pcGetLastError(m_pcPipeline) : "unknown";
+        result["success"] = false;
+        result["error"] = QString("DLL StartCalibration failed: %1").arg(err);
         return result;
     }
 
@@ -6029,7 +6397,7 @@ QVariantMap OpticalTrackingServiceImpl::performPivotCalibrationDLL(
     }
 
     // 完成标定
-    if (m_pcFinishCalibration(m_pcPipeline) != 0) {
+    if (m_pcFinishCalibration(m_pcPipeline) != 1) {
         const char* err = m_pcGetLastError ? m_pcGetLastError(m_pcPipeline) : "unknown";
         result["success"] = false;
         result["error"] = QString("DLL FinishCalibration failed: %1").arg(err);

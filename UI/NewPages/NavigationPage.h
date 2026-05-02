@@ -10,19 +10,31 @@
 #include <QMatrix4x4>
 #include <QPointer>
 #include <QTimer>
+#include <memory>
 
 namespace Ui {
 class NavigationPage;
 }
 
 class BoneSurfaceMotionSimulator;
+class BoneSegmentationService;
+class DicomViewerService;
+class EmbeddedVtkViewHost;
 class FourViewDisplayService;
+class InstrumentManagementService;
 class LegacyNavigationPageServiceAdapter;
+class NavigationEvaluationController;
 class Navigation3DViewWidget;
 class NavigationPageServiceAccess;
+class NavigationServiceBundle;
+class NavigationVtkBridge;
+class NavigationWorkflowCoordinator;
+class NavigationWorkflowContext;
 class OpticalTrackingService;
 class PointRegistrationService;
+class PreparationPlanningController;
 class RegistrationWorkflow;
+class RegistrationController;
 
 enum class AnkleWorkflowStage
 {
@@ -77,6 +89,7 @@ private slots:
     void on_disconnectTrackerButton_clicked();
     void on_startNavigationButton_clicked();
     void on_pauseNavigationButton_clicked();
+    void on_exportEvaluationSummaryButton_clicked();
     void on_resetViewButton_clicked();
     void onTrackerDataReceived();
     void onNavigationTimerUpdate();
@@ -105,6 +118,7 @@ protected:
 private:
     void setWorkflowStage(AnkleWorkflowStage stage);
     QString evaluationCasesRoot() const;
+    void refreshEvaluationSummary();
     void loadInstruments();
     void setupVTKViews();
     void cleanupVTKViews();
@@ -118,14 +132,39 @@ private:
     void updateRegistrationPointsList();
     void updateRegistrationResultDisplay(const PointRegistrationResult& result);
     bool ensurePointRegistrationService(bool tryStartPlugin = true);
+    void refreshPatientInfoLabel();
+    InstrumentManagementService* instrumentManagementService() const;
+    DicomViewerService* dicomViewerService() const;
+    BoneSegmentationService* segmentationService() const;
+    FourViewDisplayService* fourViewDisplayService() const;
+    OpticalTrackingService* opticalTrackingService() const;
+    PointRegistrationService* pointRegistrationService(bool tryStartPlugin = false) const;
+    void clearTrackingRuntimeState(bool disconnectDevice);
+    void resetProbeCalibrationState();
+    void startProbeCalibration();
+    void captureProbeCalibrationPoint();
+    void finishProbeCalibration();
+    void cancelProbeCalibration();
+    void updateProbeCalibrationUi();
+    bool tryBuildNavigationConfidenceInputs(NavigationConfidenceInputs& inputs) const;
+    void refreshNavigationConfidenceState(bool showWarnings = false);
+    void performLoadDicom();
+    void performComputeRegistration();
+    void performStartNavigation();
 
     Ui::NavigationPage* ui;
     NavigationPageServiceAccess* m_serviceAccess;
     LegacyNavigationPageServiceAdapter* m_ownedServiceAdapter;
-    QString m_caseId;
-    int m_patientId;
-    QString m_patientName;
-    AnkleWorkflowStage m_workflowStage;
+    std::unique_ptr<NavigationWorkflowContext> m_workflowContext;
+    std::unique_ptr<NavigationServiceBundle> m_serviceBundle;
+    std::unique_ptr<PreparationPlanningController> m_preparationPlanningController;
+    std::unique_ptr<RegistrationController> m_registrationController;
+    std::unique_ptr<NavigationEvaluationController> m_navigationEvaluationController;
+    std::unique_ptr<NavigationWorkflowCoordinator> m_workflowCoordinator;
+    std::unique_ptr<EmbeddedVtkViewHost> m_planningVtkHost;
+    std::unique_ptr<EmbeddedVtkViewHost> m_navigationVtkHost;
+    std::unique_ptr<EmbeddedVtkViewHost> m_registrationVtkHost;
+    std::unique_ptr<NavigationVtkBridge> m_navigationVtkBridge;
     bool m_trackerConnected;
     bool m_navigationActive;
     QString m_lastDicomDirPath;
@@ -138,16 +177,19 @@ private:
     QString m_lastLoadedModelPath;
     QPointer<QWidget> m_registrationVTKWidget;
     int m_selectedPointIndex;
+    int m_selectedInstrumentId;
     Navigation3DViewWidget* m_navigation3DView;
     BoneSurfaceMotionSimulator* m_motionSimulator;
     QTimer* m_navigationTimer;
     QMatrix4x4 m_registrationTransform;
     RegistrationWorkflow* m_registrationWorkflow;
-    FourViewDisplayService* m_fourViewService;
-    OpticalTrackingService* m_trackingService;
-    PointRegistrationService* m_pointRegistrationService;
     NavigationConfidenceEvaluator m_confidenceEvaluator;
     NavigationConfidenceResult m_lastConfidence;
+    QString m_trackingSessionId;
+    QString m_navigationToolId;
+    QString m_activeCalibrationId;
+    int m_activeCalibrationRequiredPoints;
+    int m_activeCalibrationCollectedPoints;
 };
 
 #endif // NAVIGATIONPAGE_NEW_H

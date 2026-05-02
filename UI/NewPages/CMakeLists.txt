@@ -1,24 +1,24 @@
 # =====================================================
-# NewPages - 简化UI框架 CMake配置
+# NewPages - 绠€鍖朥I妗嗘灦 CMake閰嶇疆
 # =====================================================
-# 使用方法：
-# 1. 在主 CMakeLists.txt 中添加 add_subdirectory(UI/NewPages)
-# 2. 链接目标 NewPagesLib
+# 浣跨敤鏂规硶锛?
+# 1. 鍦ㄤ富 CMakeLists.txt 涓坊鍔?add_subdirectory(UI/NewPages)
+# 2. 閾炬帴鐩爣 NewPagesLib
 # =====================================================
 
 cmake_minimum_required(VERSION 3.16)
 
-# 设置自动处理（继承父项目设置，但确保开启）
+# 璁剧疆鑷姩澶勭悊锛堢户鎵跨埗椤圭洰璁剧疆锛屼絾纭繚寮€鍚級
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-# UI文件路径
+# UI鏂囦欢璺緞
 if(NOT DEFINED UI_FORMS_DIR)
     set(UI_FORMS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Forms")
 endif()
 
-# 头文件
+# 澶存枃浠?
 set(NEWPAGES_HEADERS
     BasePage.h
     PageIndex.h
@@ -32,12 +32,20 @@ set(NEWPAGES_HEADERS
     ManagementPage.h
     DashboardPage.h
     NavigationPage.h
+    Navigation/navigation_evaluation_controller.h
+    Navigation/navigation_evaluation_summary_formatter.h
+    Navigation/navigation_vtk_bridge.h
+    Navigation/navigation_workflow_coordinator.h
+    Navigation/navigation_service_bundle.h
+    Navigation/navigation_workflow_context.h
+    Navigation/preparation_planning_controller.h
+    Navigation/registration_controller.h
     PlatformDiagnosticsPage.h
     # BoneSurfaceMotionSimulator used by NavigationPage
     ${CMAKE_SOURCE_DIR}/Plugins/OpticalTracking/BoneSurfaceMotionSimulator.h
 )
 
-# 源文件
+# 婧愭枃浠?
 set(NEWPAGES_SOURCES
     MainWindow.cpp
     ThreePagePresentationUtils.cpp
@@ -49,11 +57,19 @@ set(NEWPAGES_SOURCES
     ManagementPage.cpp
     DashboardPage.cpp
     NavigationPage.cpp
+    Navigation/navigation_evaluation_controller.cpp
+    Navigation/navigation_evaluation_summary_formatter.cpp
+    Navigation/navigation_vtk_bridge.cpp
+    Navigation/navigation_workflow_coordinator.cpp
+    Navigation/navigation_service_bundle.cpp
+    Navigation/navigation_workflow_context.cpp
+    Navigation/preparation_planning_controller.cpp
+    Navigation/registration_controller.cpp
     PlatformDiagnosticsPage.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/OpticalTracking/BoneSurfaceMotionSimulator.cpp
 )
 
-# UI文件
+# UI鏂囦欢
 if(NOT DEFINED NEWPAGES_UI_FILES)
     set(NEWPAGES_UI_FILES
         ${UI_FORMS_DIR}/WelcomePage.ui
@@ -70,7 +86,7 @@ list(APPEND NEWPAGES_UI_FILES
     ${UI_FORMS_DIR}/PlatformDiagnosticsPage.ui
 )
 
-# 创建库
+# 鍒涘缓搴?
 add_library(NewPagesLib STATIC
     ${NEWPAGES_HEADERS}
     ${NEWPAGES_SOURCES}
@@ -82,25 +98,25 @@ set_target_properties(NewPagesLib PROPERTIES
     AUTOUIC_SEARCH_PATHS "${UI_FORMS_DIR}"
 )
 
-# 设置目标属性
+# 璁剧疆鐩爣灞炴€?
 target_include_directories(NewPagesLib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
     ${UI_FORMS_DIR}
 )
 
-# 添加项目根目录到包含路径（用于访问插件服务头文件）
+# 娣诲姞椤圭洰鏍圭洰褰曞埌鍖呭惈璺緞锛堢敤浜庤闂彃浠舵湇鍔″ご鏂囦欢锛?
 target_include_directories(NewPagesLib PRIVATE
     ${CMAKE_SOURCE_DIR}
 )
 
-# 链接Qt库（使用父项目已找到的Qt版本）
+# 閾炬帴Qt搴擄紙浣跨敤鐖堕」鐩凡鎵惧埌鐨凲t鐗堟湰锛?
 target_link_libraries(NewPagesLib PUBLIC
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Widgets
 )
 
-# 链接Framework库（提供CTK/VTK支持）
+# 閾炬帴Framework搴擄紙鎻愪緵CTK/VTK鏀寔锛?
 if(TARGET Framework)
     target_link_libraries(NewPagesLib PUBLIC Framework)
     message(STATUS "NewPagesLib: Framework linked (provides shared platform/VTK access)")
@@ -111,9 +127,14 @@ if(TARGET PointRegistrationPlatformModuleLib)
     message(STATUS "NewPagesLib: PointRegistrationPlatformModuleLib linked")
 endif()
 
-# CTK编译定义（从父项目继承）
+if(TARGET OpticalTrackingPlatformModuleLib)
+    target_link_libraries(NewPagesLib PUBLIC OpticalTrackingPlatformModuleLib)
+    message(STATUS "NewPagesLib: OpticalTrackingPlatformModuleLib linked")
+endif()
 
-# 消息输出
+# CTK缂栬瘧瀹氫箟锛堜粠鐖堕」鐩户鎵匡級
+
+# 娑堟伅杈撳嚭
 message(STATUS "NewPages UI Framework configured")
 message(STATUS "  - UI Forms: ${UI_FORMS_DIR}")
 message(STATUS "  - Pages: ${NEWPAGES_HEADERS}")

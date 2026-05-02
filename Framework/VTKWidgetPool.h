@@ -35,6 +35,8 @@ public:
 
     QVTKOpenGLNativeWidget* acquireWidget(QWidget* parent = nullptr);
     void releaseWidget(QVTKOpenGLNativeWidget* widget);
+    QWidget* acquireView(QWidget* parent = nullptr);
+    void releaseView(QWidget* widget);
 
     QString getPoolStatus() const;
     int availableCount() const;

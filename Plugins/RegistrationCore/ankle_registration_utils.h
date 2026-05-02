@@ -2,6 +2,7 @@
 
 #include <QList>
 #include <QMatrix4x4>
+#include <QQuaternion>
 #include <QVector3D>
 
 struct WeightedRigidRegistrationResult
@@ -9,7 +10,16 @@ struct WeightedRigidRegistrationResult
     bool success = false;
     QMatrix4x4 transform;
     QVector3D translation;
+    QQuaternion rotation;
     double weightedRmsError = 0.0;
+};
+
+enum class AnkleRegistrationMethod
+{
+    SingleStageLandmark,
+    LandmarkPlusGlobalIcp,
+    LandmarkPlusGlobalGicp,
+    AnkleTwoStageConstrained
 };
 
 class AnkleRegistrationUtils

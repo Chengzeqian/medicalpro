@@ -23,7 +23,14 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
         PointRegistrationServiceImpl.cpp
         ProbeSimulator.cpp
         RegistrationWorkflow.cpp
+        expert_rule_point_selection_strategy.cpp
+        joint_confidence_gate_strategy.cpp
+        no_gate_strategy.cpp
+        random_point_selection_strategy.cpp
+        threshold_only_gate_strategy.cpp
+        registration_point_strategy_registry.cpp
         target_sensitive_point_selector.cpp
+        uniform_point_selection_strategy.cpp
         point_registration_module.cpp
         widgets/PointRegistrationWidget.cpp
         internal/PointRegistrationVTKWidget.cpp
@@ -35,7 +42,16 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
         PointRegistrationDataStructures.h
         ProbeSimulator.h
         RegistrationWorkflow.h
+        expert_rule_point_selection_strategy.h
+        joint_confidence_gate_strategy.h
+        navigation_gate_strategy.h
+        no_gate_strategy.h
+        random_point_selection_strategy.h
+        registration_point_selection_strategy.h
+        registration_point_strategy_registry.h
         target_sensitive_point_selector.h
+        threshold_only_gate_strategy.h
+        uniform_point_selection_strategy.h
         point_registration_module.h
         widgets/PointRegistrationWidget.h
         internal/PointRegistrationVTKWidget.h

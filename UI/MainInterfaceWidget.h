@@ -6,6 +6,7 @@
 #include <QString>
 #include <QWidget>
 
+#include "Framework/Navigation/real_case_workspace_seed_coordinator.h"
 #include "Framework/Platform/UiBridge/CoreUiRuntimeStatusProvider.h"
 #include "Framework/Platform/Diagnostics/PlatformDiagnosticsService.h"
 #include "Framework/Platform/Diagnostics/PlatformLifecycleTraceRecorder.h"
@@ -47,6 +48,7 @@ class MainInterfaceWidget : public QWidget
 public:
     explicit MainInterfaceWidget(
         INavigationFacadePort* navigationPort,
+        const RealCaseWorkspaceSeed& realCaseWorkspaceSeed,
         QWidget* parent = nullptr);
     ~MainInterfaceWidget() override;
     PlatformStateStore* platformStateStore();
@@ -97,6 +99,8 @@ private:
     void enterSurgicalNavigationSystem(int patientId);
     void exitSurgicalNavigationSystem();
     QString getProjectPath() const;
+    QString runtimeCasesRoot() const;
+    bool ensureRealCaseWorkspaceSeeded();
 
     QStackedWidget* m_stackedWidget;
     WelcomePageNew* m_welcomePage;
@@ -119,6 +123,8 @@ private:
     IdentityAppService* m_identityAppService;
     ImagingAppService* m_imagingAppService;
     NavigationAppService* m_navigationAppService;
+    RealCaseWorkspaceSeedCoordinator m_realCaseWorkspaceSeedCoordinator;
+    RealCaseWorkspaceSeed m_realCaseWorkspaceSeed;
 
     QString m_currentCaseId;
     int m_currentPatientId;

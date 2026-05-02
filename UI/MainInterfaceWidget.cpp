@@ -30,6 +30,7 @@
 
 MainInterfaceWidget::MainInterfaceWidget(
     INavigationFacadePort* navigationPort,
+    const RealCaseWorkspaceSeed& realCaseWorkspaceSeed,
     QWidget* parent)
     : QWidget(parent)
     , m_stackedWidget(nullptr)
@@ -50,6 +51,7 @@ MainInterfaceWidget::MainInterfaceWidget(
     , m_identityAppService(nullptr)
     , m_imagingAppService(nullptr)
     , m_navigationAppService(nullptr)
+    , m_realCaseWorkspaceSeed(realCaseWorkspaceSeed)
     , m_currentCaseId()
     , m_currentPatientId(-1)
     , m_isLoggedIn(false)
@@ -316,9 +318,23 @@ void MainInterfaceWidget::enterSurgicalNavigationSystem(int patientId)
 
     m_currentPatientId = patientId;
     QString patientName = QStringLiteral("患者%1").arg(patientId);
+    if (m_realCaseWorkspaceSeed.enabled) {
+        if (!ensureRealCaseWorkspaceSeeded()) {
+            qWarning() << "[MainInterfaceWidget] real case workspace seed failed";
+            return;
+        }
+
+        if (!m_realCaseWorkspaceSeed.caseId.isEmpty()) {
+            m_currentCaseId = m_realCaseWorkspaceSeed.caseId;
+        }
+        if (!m_realCaseWorkspaceSeed.patientName.isEmpty()) {
+            patientName = m_realCaseWorkspaceSeed.patientName;
+        }
+    }
+
     if (m_identityAppService) {
         const auto patient = m_identityAppService->patientById(patientId);
-        if (patient.isValid()) {
+        if (patient.isValid() && !m_realCaseWorkspaceSeed.enabled) {
             patientName = patient.name;
         }
     }
@@ -368,9 +384,18 @@ void MainInterfaceWidget::setupConnections()
             this, [this](const QString& caseId, int patientId) {
                 m_currentPatientId = patientId;
                 m_currentCaseId = caseId;
+                if (m_realCaseWorkspaceSeed.enabled) {
+                    if (!ensureRealCaseWorkspaceSeeded()) {
+                        qWarning() << "[MainInterfaceWidget] real case workspace seed failed";
+                        return;
+                    }
+                    if (!m_realCaseWorkspaceSeed.caseId.isEmpty()) {
+                        m_currentCaseId = m_realCaseWorkspaceSeed.caseId;
+                    }
+                }
                 if (m_dashboardPage) {
                     m_dashboardPage->setCurrentPatientId(patientId);
-                    m_dashboardPage->setCurrentCaseId(caseId);
+                    m_dashboardPage->setCurrentCaseId(m_currentCaseId);
                 }
             });
     connect(m_managementPage, &ManagementPageNew::enterMainSystemRequested,
@@ -487,4 +512,21 @@ QString MainInterfaceWidget::getProjectPath() const
         break;
     }
     return dir.absolutePath();
+}
+
+QString MainInterfaceWidget::runtimeCasesRoot() const
+{
+    return QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("cases"));
+}
+
+bool MainInterfaceWidget::ensureRealCaseWorkspaceSeeded()
+{
+    if (!m_realCaseWorkspaceSeed.enabled) {
+        return true;
+    }
+
+    const RealCaseWorkspaceSeedCoordinator& coordinator = m_realCaseWorkspaceSeedCoordinator;
+    return coordinator.ensureWorkspace(
+        m_realCaseWorkspaceSeed,
+        runtimeCasesRoot());
 }

@@ -75,6 +75,9 @@ class OpticalTrackingServiceImpl : public OpticalTrackingService
 {
     Q_OBJECT
     Q_INTERFACES(OpticalTrackingService)
+    friend class OpticalTrackingProbeCalibrationLoadSmokeTest;
+    friend class OpticalTrackingProbeCalibrationInitializationTest;
+    friend class OpticalTrackingProbeCalibrationToolGeometrySelectionTest;
 
 public:
     /**
@@ -580,6 +583,7 @@ private:
     QMap<QString, QList<double>> getAtracsysFrameData(const QString& sessionId);
     
     // 几何体和配置管理
+    QString resolveProbeCalibrationGeometry(const QString& sessionId, const QString& toolId);
     QString findGeometryFile(const QString& geometryId);
     bool validateGeometryFile(const QString& filePath);
     QVariantMap parseGeometryInfo(const QString& filePath);
@@ -732,6 +736,7 @@ private:
     using PC_CreatePipelineFn = void* (*)();
     using PC_DestroyPipelineFn = void (*)(void*);
     using PC_InitializePipelineFn = int (*)(void*, const char*);
+    using PC_IsInitializedFn = int (*)(void*);
     using PC_ShutdownPipelineFn = void (*)(void*);
     using PC_StartCalibrationFn = int (*)(void*);
     using PC_FinishCalibrationFn = int (*)(void*);
@@ -746,6 +751,7 @@ private:
     using PC_CollectorExportFn = int (*)(void*, float*, float*, float*, uint32_t, uint32_t*);
 
     bool loadProbeCalibrationDLL(const QString& dllPath = QString());
+    bool initializeProbeCalibrationPipeline(const QString& geometrySelector = QStringLiteral("072"));
     QVariantMap performPivotCalibrationDLL(const QString& calibrationId, CalibrationInfo& calibInfo);
 
     QLibrary m_pcLib;
@@ -756,6 +762,7 @@ private:
     PC_CreatePipelineFn m_pcCreate = nullptr;
     PC_DestroyPipelineFn m_pcDestroy = nullptr;
     PC_InitializePipelineFn m_pcInitialize = nullptr;
+    PC_IsInitializedFn m_pcIsInitialized = nullptr;
     PC_ShutdownPipelineFn m_pcShutdown = nullptr;
     PC_StartCalibrationFn m_pcStartCalibration = nullptr;
     PC_FinishCalibrationFn m_pcFinishCalibration = nullptr;

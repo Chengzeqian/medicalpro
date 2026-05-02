@@ -65,8 +65,8 @@ void PlatformRuntimeHostPortsContractTest::runtime_host_ports_define_runtime_ser
         "service access should not keep exposing the legacy ImageInteractionService");
     QVERIFY2(!serviceAccessPortSection.contains(QStringLiteral("PatientDatabaseService")),
         "service access should not keep exposing the removed PatientDatabaseService");
-    QVERIFY2(serviceAccessPortSection.contains(QStringLiteral("virtual RegistrationService* registrationService() const = 0;")),
-        "service access must expose RegistrationService");
+    QVERIFY2(serviceAccessPortSection.contains(QStringLiteral("virtual registration_core::RegistrationService* registrationService() const = 0;")),
+        "service access must expose the real RegistrationCore service contract");
     QVERIFY2(serviceAccessPortSection.contains(QStringLiteral("virtual OpticalTrackingService* opticalTrackingService() const = 0;")),
         "service access must expose OpticalTrackingService");
     QVERIFY2(source.contains(QStringLiteral("virtual void publish(")),

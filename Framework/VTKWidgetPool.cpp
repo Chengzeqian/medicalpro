@@ -167,6 +167,25 @@ void VTKWidgetPool::releaseWidget(QVTKOpenGLNativeWidget* widget)
 #endif
 }
 
+QWidget* VTKWidgetPool::acquireView(QWidget* parent)
+{
+#ifdef VTK_FOUND
+    return acquireWidget(parent);
+#else
+    Q_UNUSED(parent);
+    return nullptr;
+#endif
+}
+
+void VTKWidgetPool::releaseView(QWidget* widget)
+{
+#ifdef VTK_FOUND
+    releaseWidget(qobject_cast<QVTKOpenGLNativeWidget*>(widget));
+#else
+    Q_UNUSED(widget);
+#endif
+}
+
 QString VTKWidgetPool::getPoolStatus() const
 {
 #ifdef VTK_FOUND
