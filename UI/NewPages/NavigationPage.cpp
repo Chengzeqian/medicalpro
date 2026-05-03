@@ -1416,6 +1416,7 @@ void NavigationPageNew::performStartNavigation()
         return;
     }
 
+    setWorkflowStage(AnkleWorkflowStage::Navigation);
 
     // 鍔犺浇楠ㄩ妯″瀷鍒板鑸?D瑙嗗浘
     if (m_navigation3DView && !m_lastLoadedModelPath.isEmpty()) {

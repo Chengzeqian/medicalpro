@@ -339,8 +339,12 @@ void AnkleNavigationWorkflowContractTest::navigation_page_recomputes_gate_inside
 
     QVERIFY2(startBody.contains(QStringLiteral("refreshNavigationConfidenceState(true);")),
         "navigation start flow must recompute runtime gate inside performStartNavigation()");
+    QVERIFY2(startBody.contains(QStringLiteral("setWorkflowStage(AnkleWorkflowStage::Navigation);")),
+        "navigation start flow must enter navigation stage only after performStartNavigation() passes the runtime gate");
     QVERIFY2(!workflowCoordinatorSource.contains(QStringLiteral("!m_navigationEvaluationController->canStartNavigation()")),
         "workflow coordinator must not preemptively block navigation based on a potentially stale cached gate");
+    QVERIFY2(!workflowCoordinatorSource.contains(QStringLiteral("enterStage(AnkleWorkflowStage::Navigation);")),
+        "workflow coordinator must not enter navigation stage before page-level start flow confirms navigation can begin");
     QVERIFY2(evaluationControllerSource.contains(QStringLiteral("return confidenceResult().allowNavigation;")),
         "navigation evaluation controller may still expose the current cached gate, but start flow must not preemptively block on it");
 }

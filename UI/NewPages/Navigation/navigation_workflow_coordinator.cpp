@@ -54,6 +54,5 @@ void NavigationWorkflowCoordinator::handleStartNavigation() const
         return;
     }
 
-    enterStage(AnkleWorkflowStage::Navigation);
     m_navigationEvaluationController->startNavigation();
 }
