@@ -17,6 +17,7 @@ private slots:
     void registration_controller_submits_result_to_runtime_coordinator();
     void navigation_controller_reads_allow_navigation_from_runtime_coordinator();
     void coordinator_routes_navigation_start_only_when_runtime_gate_allows();
+    void coordinator_does_not_preemptively_block_navigation_when_runtime_gate_is_stale();
 };
 
 void NavigationWorkflowCoordinatorTest::coordinator_updates_stage_and_routes_registration_start()
@@ -99,8 +100,8 @@ void NavigationWorkflowCoordinatorTest::coordinator_routes_navigation_start_only
         &runtimeCoordinator);
 
     coordinator.handleStartNavigation();
-    QCOMPARE(context.currentStage(), AnkleWorkflowStage::Preparation);
-    QCOMPARE(navigationStartCount, 0);
+    QCOMPARE(context.currentStage(), AnkleWorkflowStage::Navigation);
+    QCOMPARE(navigationStartCount, 1);
 
     NavigationConfidenceResult confidenceResult;
     confidenceResult.allowNavigation = true;
@@ -108,6 +109,37 @@ void NavigationWorkflowCoordinatorTest::coordinator_routes_navigation_start_only
     runtimeState.setConfidenceResult(confidenceResult);
 
     coordinator.handleStartNavigation();
+    QCOMPARE(context.currentStage(), AnkleWorkflowStage::Navigation);
+    QCOMPARE(navigationStartCount, 2);
+}
+
+void NavigationWorkflowCoordinatorTest::coordinator_does_not_preemptively_block_navigation_when_runtime_gate_is_stale()
+{
+    NavigationWorkflowContext context;
+    int navigationStartCount = 0;
+
+    PreparationPlanningController preparationController;
+    RegistrationController registrationController;
+    NavigationRuntimeState runtimeState;
+    NavigationRuntimeCoordinator runtimeCoordinator(&runtimeState);
+    NavigationEvaluationController navigationController({
+        .startNavigation = [&navigationStartCount]() { ++navigationStartCount; }
+    }, &runtimeCoordinator);
+
+    NavigationWorkflowCoordinator coordinator(
+        &context,
+        &preparationController,
+        &registrationController,
+        &navigationController,
+        &runtimeCoordinator);
+
+    NavigationConfidenceResult staleConfidenceResult;
+    staleConfidenceResult.allowNavigation = false;
+    staleConfidenceResult.score = 0.2;
+    runtimeState.setConfidenceResult(staleConfidenceResult);
+
+    coordinator.handleStartNavigation();
+
     QCOMPARE(context.currentStage(), AnkleWorkflowStage::Navigation);
     QCOMPARE(navigationStartCount, 1);
 }

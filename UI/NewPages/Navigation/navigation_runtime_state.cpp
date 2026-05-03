@@ -5,9 +5,25 @@ void NavigationRuntimeState::setCaseContext(
     const QString& trackingSessionId,
     const QString& navigationToolId)
 {
+    const bool caseContextChanged =
+        m_caseId != caseId
+        || m_trackingSessionId != trackingSessionId
+        || m_navigationToolId != navigationToolId;
+
     m_caseId = caseId;
     m_trackingSessionId = trackingSessionId;
     m_navigationToolId = navigationToolId;
+
+    if (!caseContextChanged) {
+        return;
+    }
+
+    m_trackingQuality.clear();
+    m_registrationResult = PointRegistrationResult();
+    m_confidenceResult = NavigationConfidenceResult();
+    m_hasTrackingQuality = false;
+    m_hasRegistrationResult = false;
+    m_hasConfidenceResult = false;
 }
 
 void NavigationRuntimeState::setTrackingQuality(const QVariantMap& trackingQuality)
@@ -26,6 +42,24 @@ void NavigationRuntimeState::setConfidenceResult(const NavigationConfidenceResul
 {
     m_confidenceResult = confidenceResult;
     m_hasConfidenceResult = true;
+}
+
+void NavigationRuntimeState::clearTrackingQuality()
+{
+    m_trackingQuality.clear();
+    m_hasTrackingQuality = false;
+}
+
+void NavigationRuntimeState::clearRegistrationResult()
+{
+    m_registrationResult = PointRegistrationResult();
+    m_hasRegistrationResult = false;
+}
+
+void NavigationRuntimeState::clearConfidenceResult()
+{
+    m_confidenceResult = NavigationConfidenceResult();
+    m_hasConfidenceResult = false;
 }
 
 const QString& NavigationRuntimeState::caseId() const

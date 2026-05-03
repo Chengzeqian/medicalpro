@@ -13,6 +13,9 @@ public:
     void setTrackingQuality(const QVariantMap& trackingQuality);
     void setRegistrationResult(const PointRegistrationResult& registrationResult);
     void setConfidenceResult(const NavigationConfidenceResult& confidenceResult);
+    void clearTrackingQuality();
+    void clearRegistrationResult();
+    void clearConfidenceResult();
 
     const QString& caseId() const;
     const QString& trackingSessionId() const;

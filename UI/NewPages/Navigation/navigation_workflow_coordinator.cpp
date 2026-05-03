@@ -50,12 +50,10 @@ void NavigationWorkflowCoordinator::handleComputeRegistration() const
 
 void NavigationWorkflowCoordinator::handleStartNavigation() const
 {
-    if (m_navigationEvaluationController && !m_navigationEvaluationController->canStartNavigation()) {
+    if (!m_navigationEvaluationController) {
         return;
     }
 
     enterStage(AnkleWorkflowStage::Navigation);
-    if (m_navigationEvaluationController) {
-        m_navigationEvaluationController->startNavigation();
-    }
+    m_navigationEvaluationController->startNavigation();
 }

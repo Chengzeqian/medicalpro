@@ -18,6 +18,9 @@ private slots:
     void navigation_page_subscribes_runtime_status_changes_for_gate_refresh();
     void navigation_page_enforces_runtime_navigation_gate_while_active();
     void navigation_page_persists_navigation_gate_evidence_into_evaluation_report();
+    void navigation_page_recomputes_gate_inside_navigation_start_flow();
+    void navigation_page_resets_runtime_snapshots_when_case_context_changes();
+    void navigation_page_resets_gate_ui_when_registration_becomes_unavailable();
     void navigation_page_exposes_batch_evaluation_summary_export_entry();
     void navigation_page_exports_innovation_summaries_with_data_root_above_cases_directory();
     void navigation_page_uses_data_root_above_cases_directory_for_case_workspace_repository();
@@ -316,6 +319,71 @@ void AnkleNavigationWorkflowContractTest::navigation_page_persists_navigation_ga
         "navigation page must persist registration record after registration completes");
     QVERIFY2(registrationBody.contains(QStringLiteral("persistEvaluationReportSnapshot();")),
         "registration completion must refresh shared evaluation report state after persisting registration record");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_recomputes_gate_inside_navigation_start_flow()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString workflowCoordinatorSource = readFile(QStringLiteral("UI/NewPages/Navigation/navigation_workflow_coordinator.cpp"));
+    const QString evaluationControllerSource = readFile(QStringLiteral("UI/NewPages/Navigation/navigation_evaluation_controller.cpp"));
+
+    const QString startFunctionStart = QStringLiteral("void NavigationPageNew::performStartNavigation()");
+    const QString startFunctionNext = QStringLiteral("void NavigationPageNew::on_pauseNavigationButton_clicked()");
+    const int startIndex = navigationSource.indexOf(startFunctionStart);
+    QVERIFY2(startIndex >= 0, "navigation page must define performStartNavigation()");
+
+    const int endIndex = navigationSource.indexOf(startFunctionNext, startIndex);
+    QVERIFY2(endIndex > startIndex, "navigation page must keep pause handler after performStartNavigation()");
+
+    const QString startBody = navigationSource.mid(startIndex, endIndex - startIndex);
+
+    QVERIFY2(startBody.contains(QStringLiteral("refreshNavigationConfidenceState(true);")),
+        "navigation start flow must recompute runtime gate inside performStartNavigation()");
+    QVERIFY2(!workflowCoordinatorSource.contains(QStringLiteral("!m_navigationEvaluationController->canStartNavigation()")),
+        "workflow coordinator must not preemptively block navigation based on a potentially stale cached gate");
+    QVERIFY2(evaluationControllerSource.contains(QStringLiteral("return confidenceResult().allowNavigation;")),
+        "navigation evaluation controller may still expose the current cached gate, but start flow must not preemptively block on it");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_resets_runtime_snapshots_when_case_context_changes()
+{
+    const QString runtimeStateSource = readFile(QStringLiteral("UI/NewPages/Navigation/navigation_runtime_state.cpp"));
+
+    QVERIFY2(runtimeStateSource.contains(QStringLiteral("m_trackingQuality.clear();")),
+        "runtime state must clear tracking quality when case context changes");
+    QVERIFY2(runtimeStateSource.contains(QStringLiteral("m_registrationResult = PointRegistrationResult();")),
+        "runtime state must clear registration result when case context changes");
+    QVERIFY2(runtimeStateSource.contains(QStringLiteral("m_confidenceResult = NavigationConfidenceResult();")),
+        "runtime state must clear confidence result when case context changes");
+    QVERIFY2(runtimeStateSource.contains(QStringLiteral("m_hasTrackingQuality = false;")),
+        "runtime state must reset tracking snapshot presence when case context changes");
+    QVERIFY2(runtimeStateSource.contains(QStringLiteral("m_hasRegistrationResult = false;")),
+        "runtime state must reset registration snapshot presence when case context changes");
+    QVERIFY2(runtimeStateSource.contains(QStringLiteral("m_hasConfidenceResult = false;")),
+        "runtime state must reset confidence snapshot presence when case context changes");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_resets_gate_ui_when_registration_becomes_unavailable()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString functionStart = QStringLiteral("void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)");
+    const QString nextFunctionStart = QStringLiteral("void NavigationPageNew::persistEvaluationReportSnapshot(bool exportMetricsCsv)");
+    const int startIndex = navigationSource.indexOf(functionStart);
+    QVERIFY2(startIndex >= 0, "navigation page must define refreshNavigationConfidenceState()");
+
+    const int endIndex = navigationSource.indexOf(nextFunctionStart, startIndex);
+    QVERIFY2(endIndex > startIndex, "navigation page must keep persistEvaluationReportSnapshot() after refreshNavigationConfidenceState()");
+
+    const QString body = navigationSource.mid(startIndex, endIndex - startIndex);
+
+    QVERIFY2(body.contains(QStringLiteral("registrationTransform.isIdentity() || !registrationResult.success")),
+        "navigation confidence refresh must detect unavailable registration state");
+    QVERIFY2(body.contains(QStringLiteral("navigationReadinessLabel->setText(QStringLiteral(\"导航准入：未就绪\"))")),
+        "navigation confidence refresh must reset readiness label when registration becomes unavailable");
+    QVERIFY2(body.contains(QStringLiteral("navigationConfidenceLabel->setText(QStringLiteral(\"可信度评分：待评估\"))")),
+        "navigation confidence refresh must reset confidence label when registration becomes unavailable");
+    QVERIFY2(body.contains(QStringLiteral("resetGateUi(false);")),
+        "navigation confidence refresh must disable the start button when registration becomes unavailable");
 }
 
 void AnkleNavigationWorkflowContractTest::navigation_page_exposes_batch_evaluation_summary_export_entry()

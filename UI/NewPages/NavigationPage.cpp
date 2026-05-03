@@ -1700,9 +1700,10 @@ void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
 {
     auto* navigationReadinessLabel = findChild<QLabel*>(QStringLiteral("navigationReadinessLabel"));
     auto* navigationConfidenceLabel = findChild<QLabel*>(QStringLiteral("navigationConfidenceLabel"));
-
-    if (!m_runtimeCoordinator || !m_runtimeState || !m_trackerConnected || m_trackingSessionId.isEmpty() || m_navigationToolId.isEmpty()) {
-        m_lastConfidence = NavigationConfidenceResult();
+    const auto resetGateUi = [this, navigationReadinessLabel, navigationConfidenceLabel](bool enableStartButton) {
+        if (m_runtimeState) {
+            m_runtimeState->clearConfidenceResult();
+        }
 
         if (navigationReadinessLabel) {
             navigationReadinessLabel->setText(QStringLiteral("导航准入：未就绪"));
@@ -1713,14 +1714,21 @@ void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
             navigationConfidenceLabel->setStyleSheet(QStringLiteral("color: #95a5a6;"));
         }
         if (ui && ui->startNavigationButton && !m_navigationActive) {
-            ui->startNavigationButton->setEnabled(m_trackerConnected);
+            ui->startNavigationButton->setEnabled(enableStartButton);
         }
+    };
+
+    if (!m_runtimeCoordinator || !m_runtimeState || !m_trackerConnected || m_trackingSessionId.isEmpty() || m_navigationToolId.isEmpty()) {
+        m_lastConfidence = NavigationConfidenceResult();
+        resetGateUi(m_trackerConnected);
         return;
     }
 
     auto* registrationService = pointRegistrationService();
     if (!registrationService) {
         m_lastConfidence = NavigationConfidenceResult();
+        m_runtimeState->clearRegistrationResult();
+        resetGateUi(false);
         return;
     }
 
@@ -1729,6 +1737,8 @@ void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
         m_registrationWorkflow ? m_registrationWorkflow->getLastResult() : PointRegistrationResult();
     if (registrationTransform.isIdentity() || !registrationResult.success) {
         m_lastConfidence = NavigationConfidenceResult();
+        m_runtimeState->clearRegistrationResult();
+        resetGateUi(false);
         return;
     }
 

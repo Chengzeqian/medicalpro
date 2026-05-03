@@ -11,6 +11,7 @@ private slots:
     void state_stores_tracking_quality_snapshot();
     void state_stores_registration_result_snapshot();
     void state_stores_confidence_result_snapshot();
+    void state_clears_runtime_snapshots_when_case_context_changes();
 };
 
 void NavigationRuntimeStateTest::state_keeps_case_context_and_starts_without_runtime_snapshots()
@@ -71,6 +72,35 @@ void NavigationRuntimeStateTest::state_stores_confidence_result_snapshot()
     QVERIFY(state.hasConfidenceResult());
     QCOMPARE(state.confidenceResult().allowNavigation, true);
     QCOMPARE(state.confidenceResult().score, 0.88);
+}
+
+void NavigationRuntimeStateTest::state_clears_runtime_snapshots_when_case_context_changes()
+{
+    NavigationRuntimeState state;
+    state.setCaseContext(QStringLiteral("case-001"), QStringLiteral("tracking-001"), QStringLiteral("tool-001"));
+
+    QVariantMap trackingQuality;
+    trackingQuality.insert(QStringLiteral("calibrated"), true);
+    state.setTrackingQuality(trackingQuality);
+
+    PointRegistrationResult registrationResult;
+    registrationResult.success = true;
+    registrationResult.targetRegionTre = 1.4;
+    state.setRegistrationResult(registrationResult);
+
+    NavigationConfidenceResult confidenceResult;
+    confidenceResult.allowNavigation = true;
+    confidenceResult.score = 0.82;
+    state.setConfidenceResult(confidenceResult);
+
+    state.setCaseContext(QStringLiteral("case-002"), QStringLiteral("tracking-002"), QStringLiteral("tool-002"));
+
+    QCOMPARE(state.caseId(), QStringLiteral("case-002"));
+    QCOMPARE(state.trackingSessionId(), QStringLiteral("tracking-002"));
+    QCOMPARE(state.navigationToolId(), QStringLiteral("tool-002"));
+    QVERIFY(!state.hasTrackingQuality());
+    QVERIFY(!state.hasRegistrationResult());
+    QVERIFY(!state.hasConfidenceResult());
 }
 
 QTEST_APPLESS_MAIN(NavigationRuntimeStateTest)
