@@ -1227,6 +1227,10 @@ void NavigationPageNew::finishProbeCalibration()
     const double calibrationAccuracy = calibrationResult.value(QStringLiteral("accuracy")).toDouble();
     resetProbeCalibrationState();
     refreshNavigationConfidenceState();
+    QVariantMap trackingQuality;
+    trackingQuality.insert(QStringLiteral("calibrated"), true);
+    trackingQuality.insert(QStringLiteral("calibration_accuracy_mm"), calibrationAccuracy);
+    persistEvaluationReportSnapshot(trackingQuality);
     showInfo("校准", QStringLiteral("探针标定完成，已应用到当前导航器械。\n精度：%1 mm")
                            .arg(calibrationAccuracy, 0, 'f', 3));
 }
@@ -1482,28 +1486,10 @@ void NavigationPageNew::on_pauseNavigationButton_clicked()
         run.metrics.insert(QStringLiteral("tracking_confidence_score"), trackingQuality.value(QStringLiteral("tracking_confidence_score")).toDouble());
         evaluationService.saveNavigationRun(run);
 
-        AnkleEvaluationReport report;
-        report.caseId = caseId;
-        report.translationErrorMm = m_registrationWorkflow ? m_registrationWorkflow->getLastResult().targetRegionTre : 0.0;
-        report.rotationErrorDeg = 0.0;
-        report.allowNavigation = m_lastConfidence.allowNavigation;
-        report.confidenceScore = m_lastConfidence.score;
-        report.gateReasons = m_lastConfidence.recommendations;
-        report.calibrated = !m_trackingSessionId.isEmpty() && !m_navigationToolId.isEmpty();
-        if (!trackingQuality.isEmpty()) {
-            report.calibrated = trackingQuality.value(QStringLiteral("calibrated")).toBool();
-            report.calibrationAccuracyMm = trackingQuality.value(QStringLiteral("calibration_accuracy_mm")).toDouble();
-        }
-        report.metrics = run.metrics;
-        report.metrics.insert(QStringLiteral("allow_navigation"), report.allowNavigation);
-        report.metrics.insert(QStringLiteral("gate_reason_count"), report.gateReasons.size());
-        evaluationService.saveEvaluationReport(report);
-        evaluationService.exportMetricsCsv(caseId);
-        evaluationService.exportCaseSummary(caseId);
+        persistEvaluationReportSnapshot(trackingQuality, true);
     }
 
     refreshNavigationConfidenceState();
-    refreshEvaluationSummary();
 }
 
 void NavigationPageNew::on_exportEvaluationSummaryButton_clicked()
@@ -1784,6 +1770,68 @@ void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
             : m_lastConfidence.recommendations.join(QStringLiteral("；"));
         showWarning(QStringLiteral("导航准入"), warningText);
     }
+}
+
+void NavigationPageNew::persistEvaluationReportSnapshot(const QVariantMap& trackingQuality, bool exportMetricsCsv)
+{
+    const QString caseId = m_workflowContext ? m_workflowContext->caseId() : QString();
+    if (caseId.isEmpty()) {
+        refreshEvaluationSummary();
+        return;
+    }
+
+    NavigationEvaluationService evaluationService(evaluationCasesRoot());
+    const AnkleEvaluationSnapshot snapshot = evaluationService.loadEvaluationSnapshot(caseId);
+    const PointRegistrationResult registrationResult =
+        m_registrationWorkflow ? m_registrationWorkflow->getLastResult() : PointRegistrationResult();
+
+    AnkleEvaluationReport report;
+    report.caseId = caseId;
+    report.translationErrorMm = registrationResult.success
+        ? registrationResult.targetRegionTre
+        : snapshot.translationErrorMm;
+    report.rotationErrorDeg = snapshot.rotationErrorDeg;
+    report.allowNavigation = m_lastConfidence.allowNavigation;
+    report.confidenceScore = m_lastConfidence.score;
+    report.gateReasons = m_lastConfidence.recommendations;
+    report.calibrated = !m_trackingSessionId.isEmpty() && !m_navigationToolId.isEmpty();
+    report.calibrationAccuracyMm = snapshot.calibrationAccuracyMm;
+
+    if (!trackingQuality.isEmpty()) {
+        report.calibrated = trackingQuality.value(QStringLiteral("calibrated")).toBool();
+        report.calibrationAccuracyMm = trackingQuality.value(QStringLiteral("calibration_accuracy_mm")).toDouble();
+    } else if (snapshot.hasEvaluationReport) {
+        report.calibrated = snapshot.calibrated;
+    }
+
+    report.metrics = snapshot.evaluationMetrics;
+    if (snapshot.hasNavigationRun) {
+        report.metrics.unite(snapshot.navigationMetrics);
+    }
+    if (registrationResult.success) {
+        report.metrics.unite(registrationResult.metrics);
+        report.metrics.insert(QStringLiteral("registration_mode"), registrationResult.metrics.value(QStringLiteral("registration_mode")));
+        report.metrics.insert(QStringLiteral("target_region_tre_mm"), registrationResult.targetRegionTre);
+        report.metrics.insert(QStringLiteral("coverage_score"), registrationResult.coverageScore);
+    }
+    if (!trackingQuality.isEmpty()) {
+        report.metrics.insert(QStringLiteral("tracking_jitter_mm"), trackingQuality.value(QStringLiteral("tracking_jitter_mm")).toDouble());
+        report.metrics.insert(QStringLiteral("visible_frame_ratio"), trackingQuality.value(QStringLiteral("visible_frame_ratio")).toDouble());
+        report.metrics.insert(QStringLiteral("tracking_profile"), trackingQuality.value(QStringLiteral("tracking_profile")).toString());
+        report.metrics.insert(QStringLiteral("tracking_confidence_score"), trackingQuality.value(QStringLiteral("tracking_confidence_score")).toDouble());
+    }
+
+    report.metrics.insert(QStringLiteral("allow_navigation"), report.allowNavigation);
+    report.metrics.insert(QStringLiteral("gate_reason_count"), report.gateReasons.size());
+    report.metrics.insert(QStringLiteral("calibrated"), report.calibrated);
+    report.metrics.insert(QStringLiteral("calibration_accuracy_mm"), report.calibrationAccuracyMm);
+
+    evaluationService.saveEvaluationReport(report);
+    if (exportMetricsCsv) {
+        evaluationService.exportMetricsCsv(caseId);
+    }
+    evaluationService.exportCaseSummary(caseId);
+    refreshEvaluationSummary();
 }
 
 void NavigationPageNew::updateProbeCalibrationUi()
@@ -2375,7 +2423,7 @@ void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& r
         record.coverageScore = result.coverageScore;
         record.metrics = result.metrics;
         evaluationService.saveRegistrationRecord(record);
-        evaluationService.exportCaseSummary(caseId);
+        persistEvaluationReportSnapshot();
     }
 
     // 鑾峰彇璐ㄩ噺鎻忚堪
@@ -2388,7 +2436,6 @@ void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& r
     }
 
     showInfo("配准完成", message);
-    refreshEvaluationSummary();
 
 }
 

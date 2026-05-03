@@ -148,6 +148,7 @@ private:
     void updateProbeCalibrationUi();
     bool tryBuildNavigationConfidenceInputs(NavigationConfidenceInputs& inputs) const;
     void refreshNavigationConfidenceState(bool showWarnings = false);
+    void persistEvaluationReportSnapshot(const QVariantMap& trackingQuality = {}, bool exportMetricsCsv = false);
     void performLoadDicom();
     void performComputeRegistration();
     void performStartNavigation();

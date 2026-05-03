@@ -13,6 +13,7 @@ private slots:
     void navigation_page_calibration_button_runs_active_tool_probe_calibration();
     void navigation_page_exposes_stepwise_probe_calibration_flow();
     void navigation_page_refreshes_navigation_confidence_after_probe_calibration();
+    void navigation_page_persists_probe_calibration_evidence_into_evaluation_report();
     void navigation_page_refreshes_navigation_confidence_after_registration_state_changes();
     void navigation_page_subscribes_runtime_status_changes_for_gate_refresh();
     void navigation_page_enforces_runtime_navigation_gate_while_active();
@@ -177,6 +178,52 @@ void AnkleNavigationWorkflowContractTest::navigation_page_refreshes_navigation_c
         "navigation page must expose confidence score text");
 }
 
+void AnkleNavigationWorkflowContractTest::navigation_page_persists_probe_calibration_evidence_into_evaluation_report()
+{
+    const QString navigationHeader = readFile(QStringLiteral("UI/NewPages/NavigationPage.h"));
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString functionStart = QStringLiteral("void NavigationPageNew::finishProbeCalibration()");
+    const QString nextFunctionStart = QStringLiteral("void NavigationPageNew::cancelProbeCalibration()");
+    const int startIndex = navigationSource.indexOf(functionStart);
+    QVERIFY2(startIndex >= 0, "navigation page must define finishProbeCalibration()");
+
+    const int endIndex = navigationSource.indexOf(nextFunctionStart, startIndex);
+    QVERIFY2(endIndex > startIndex, "navigation page must keep cancelProbeCalibration() after finishProbeCalibration()");
+
+    const QString body = navigationSource.mid(startIndex, endIndex - startIndex);
+
+    const QString helperStart = QStringLiteral("void NavigationPageNew::persistEvaluationReportSnapshot(const QVariantMap& trackingQuality, bool exportMetricsCsv)");
+    const QString helperNextStart = QStringLiteral("void NavigationPageNew::updateProbeCalibrationUi()");
+    const int helperStartIndex = navigationSource.indexOf(helperStart);
+    QVERIFY2(helperStartIndex >= 0, "navigation page must define persistEvaluationReportSnapshot()");
+
+    const int helperEndIndex = navigationSource.indexOf(helperNextStart, helperStartIndex);
+    QVERIFY2(helperEndIndex > helperStartIndex, "navigation page must keep updateProbeCalibrationUi() after persistEvaluationReportSnapshot()");
+
+    const QString helperBody = navigationSource.mid(helperStartIndex, helperEndIndex - helperStartIndex);
+
+    QVERIFY2(navigationHeader.contains(QStringLiteral("void persistEvaluationReportSnapshot(const QVariantMap& trackingQuality = {}, bool exportMetricsCsv = false);")),
+        "navigation page must declare a shared evaluation report persistence helper");
+    QVERIFY2(helperBody.contains(QStringLiteral("NavigationEvaluationService evaluationService(evaluationCasesRoot());")),
+        "shared evaluation report helper must open evaluation service for the active case");
+    QVERIFY2(helperBody.contains(QStringLiteral("AnkleEvaluationReport report;")),
+        "shared evaluation report helper must construct an evaluation report snapshot");
+    QVERIFY2(helperBody.contains(QStringLiteral("report.allowNavigation = m_lastConfidence.allowNavigation;")),
+        "shared evaluation report helper must persist the latest navigation gate decision");
+    QVERIFY2(helperBody.contains(QStringLiteral("report.confidenceScore = m_lastConfidence.score;")),
+        "shared evaluation report helper must persist the latest navigation confidence score");
+    QVERIFY2(helperBody.contains(QStringLiteral("report.gateReasons = m_lastConfidence.recommendations;")),
+        "shared evaluation report helper must persist latest gate reasons");
+    QVERIFY2(helperBody.contains(QStringLiteral("evaluationService.saveEvaluationReport(report);")),
+        "shared evaluation report helper must write the updated evaluation report");
+    QVERIFY2(helperBody.contains(QStringLiteral("evaluationService.exportCaseSummary(caseId);")),
+        "shared evaluation report helper must refresh the persisted case evaluation summary");
+    QVERIFY2(helperBody.contains(QStringLiteral("refreshEvaluationSummary();")),
+        "shared evaluation report helper must refresh the evaluation tab summary in-page");
+    QVERIFY2(body.contains(QStringLiteral("persistEvaluationReportSnapshot(trackingQuality);")),
+        "probe calibration completion must hand off evaluation persistence to the shared helper");
+}
+
 void AnkleNavigationWorkflowContractTest::navigation_page_refreshes_navigation_confidence_after_registration_state_changes()
 {
     const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
@@ -259,16 +306,12 @@ void AnkleNavigationWorkflowContractTest::navigation_page_persists_navigation_ga
 
     const QString registrationBody = navigationSource.mid(registrationStartIndex, registrationEndIndex - registrationStartIndex);
 
-    QVERIFY2(pauseBody.contains(QStringLiteral("report.confidenceScore = m_lastConfidence.score;")),
-        "navigation page must persist the latest confidence score into evaluation report");
-    QVERIFY2(pauseBody.contains(QStringLiteral("report.gateReasons = m_lastConfidence.recommendations;")),
-        "navigation page must persist gate reasons into evaluation report");
-    QVERIFY2(pauseBody.contains(QStringLiteral("evaluationService.exportCaseSummary(caseId);")),
-        "navigation page must export case evaluation summary after persisting evaluation report");
+    QVERIFY2(pauseBody.contains(QStringLiteral("persistEvaluationReportSnapshot(trackingQuality, true);")),
+        "navigation pause must hand off evaluation persistence to the shared helper and export metrics");
     QVERIFY2(registrationBody.contains(QStringLiteral("evaluationService.saveRegistrationRecord(record);")),
         "navigation page must persist registration record after registration completes");
-    QVERIFY2(registrationBody.contains(QStringLiteral("evaluationService.exportCaseSummary(caseId);")),
-        "navigation page must export case evaluation summary after registration record persistence");
+    QVERIFY2(registrationBody.contains(QStringLiteral("persistEvaluationReportSnapshot();")),
+        "registration completion must refresh shared evaluation report state after persisting registration record");
 }
 
 void AnkleNavigationWorkflowContractTest::navigation_page_exposes_batch_evaluation_summary_export_entry()
