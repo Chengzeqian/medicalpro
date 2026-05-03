@@ -1200,9 +1200,69 @@ add_test(
     COMMAND navigation_workflow_context_test
 )
 
+add_executable(navigation_runtime_state_test
+    NavigationRuntimeStateTest.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_runtime_state.cpp
+)
+
+target_include_directories(navigation_runtime_state_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(navigation_runtime_state_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+if(MSVC)
+    target_compile_options(navigation_runtime_state_test PRIVATE /utf-8)
+endif()
+
+add_test(
+    NAME navigation_runtime_state_test
+    COMMAND navigation_runtime_state_test
+)
+
+set_tests_properties(navigation_runtime_state_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_runtime_state_test>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$ENV{PATH}"
+)
+
+add_executable(navigation_runtime_coordinator_contract_test
+    NavigationRuntimeCoordinatorContractTest.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_runtime_coordinator.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_runtime_state.cpp
+)
+
+target_include_directories(navigation_runtime_coordinator_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(navigation_runtime_coordinator_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+if(MSVC)
+    target_compile_options(navigation_runtime_coordinator_contract_test PRIVATE /utf-8)
+endif()
+
+add_test(
+    NAME navigation_runtime_coordinator_contract_test
+    COMMAND navigation_runtime_coordinator_contract_test
+)
+
+set_tests_properties(navigation_runtime_coordinator_contract_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_runtime_coordinator_contract_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$ENV{PATH}"
+)
+
 add_executable(navigation_workflow_coordinator_test
     NavigationWorkflowCoordinatorTest.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_evaluation_controller.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_runtime_coordinator.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_runtime_state.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_workflow_coordinator.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_workflow_context.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/preparation_planning_controller.cpp
@@ -1215,8 +1275,10 @@ target_include_directories(navigation_workflow_coordinator_test PRIVATE
 
 target_link_libraries(navigation_workflow_coordinator_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Test
+    Framework
 )
 
 if(MSVC)
@@ -1226,6 +1288,10 @@ endif()
 add_test(
     NAME navigation_workflow_coordinator_test
     COMMAND navigation_workflow_coordinator_test
+)
+
+set_tests_properties(navigation_workflow_coordinator_test PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_workflow_coordinator_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$ENV{PATH}"
 )
 
 add_executable(embedded_vtk_view_host_test

@@ -5,6 +5,7 @@
 #include <functional>
 
 class NavigationEvaluationController;
+class NavigationRuntimeCoordinator;
 class PreparationPlanningController;
 class RegistrationController;
 
@@ -18,6 +19,7 @@ public:
         PreparationPlanningController* preparationPlanningController,
         RegistrationController* registrationController,
         NavigationEvaluationController* navigationEvaluationController,
+        NavigationRuntimeCoordinator* runtimeCoordinator = nullptr,
         StageApplier stageApplier = {});
 
     void enterStage(AnkleWorkflowStage stage) const;
@@ -30,5 +32,6 @@ private:
     PreparationPlanningController* m_preparationPlanningController = nullptr;
     RegistrationController* m_registrationController = nullptr;
     NavigationEvaluationController* m_navigationEvaluationController = nullptr;
+    NavigationRuntimeCoordinator* m_runtimeCoordinator = nullptr;
     StageApplier m_stageApplier;
 };

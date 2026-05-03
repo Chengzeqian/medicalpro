@@ -10,6 +10,8 @@
 #include "Framework/VTK/embedded_vtk_view_host.h"
 #include "UI/NewPages/Navigation/navigation_evaluation_controller.h"
 #include "UI/NewPages/Navigation/navigation_evaluation_summary_formatter.h"
+#include "UI/NewPages/Navigation/navigation_runtime_coordinator.h"
+#include "UI/NewPages/Navigation/navigation_runtime_state.h"
 #include "UI/NewPages/Navigation/navigation_service_bundle.h"
 #include "UI/NewPages/Navigation/navigation_vtk_bridge.h"
 #include "UI/NewPages/Navigation/navigation_workflow_coordinator.h"
@@ -124,6 +126,9 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
     m_workflowContext = std::make_unique<NavigationWorkflowContext>();
     m_workflowContext->setCasesRoot(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("cases")));
     m_serviceBundle = std::make_unique<NavigationServiceBundle>(m_serviceAccess);
+    m_runtimeState = std::make_unique<NavigationRuntimeState>();
+    m_runtimeCoordinator = std::make_unique<NavigationRuntimeCoordinator>(m_runtimeState.get());
+    m_runtimeCoordinator->setCasesRoot(m_workflowContext->casesRoot());
     m_planningVtkHost = std::make_unique<EmbeddedVtkViewHost>(
         ui->planningViewLayout ? ui->planningViewLayout->parentWidget() : nullptr,
         ui->planningViewLayout,
@@ -156,16 +161,19 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
     m_registrationController = std::make_unique<RegistrationController>(
         RegistrationController::Actions {
             .computeRegistration = [this]() { performComputeRegistration(); }
-        });
+        },
+        m_runtimeCoordinator.get());
     m_navigationEvaluationController = std::make_unique<NavigationEvaluationController>(
         NavigationEvaluationController::Actions {
             .startNavigation = [this]() { performStartNavigation(); }
-        });
+        },
+        m_runtimeCoordinator.get());
     m_workflowCoordinator = std::make_unique<NavigationWorkflowCoordinator>(
         m_workflowContext.get(),
         m_preparationPlanningController.get(),
         m_registrationController.get(),
         m_navigationEvaluationController.get(),
+        m_runtimeCoordinator.get(),
         [this](AnkleWorkflowStage stage) { setWorkflowStage(stage); });
 
     ui->tabWidget->setTabText(ui->tabWidget->indexOf(ui->instrumentTab), QStringLiteral("准备"));
@@ -337,6 +345,9 @@ void NavigationPageNew::onDeactivated()
 void NavigationPageNew::setCaseContext(const QString& caseId, int patientId, const QString& patientName)
 {
     m_workflowContext->setCaseIdentity(caseId, patientId, patientName);
+    if (m_runtimeState) {
+        m_runtimeState->setCaseContext(caseId, m_trackingSessionId, m_navigationToolId);
+    }
     refreshPatientInfoLabel();
     setWorkflowStage(AnkleWorkflowStage::Preparation);
     refreshEvaluationSummary();
@@ -1226,11 +1237,14 @@ void NavigationPageNew::finishProbeCalibration()
 
     const double calibrationAccuracy = calibrationResult.value(QStringLiteral("accuracy")).toDouble();
     resetProbeCalibrationState();
+    if (m_runtimeCoordinator) {
+        QVariantMap trackingQuality;
+        trackingQuality.insert(QStringLiteral("calibrated"), true);
+        trackingQuality.insert(QStringLiteral("calibration_accuracy_mm"), calibrationAccuracy);
+        m_runtimeCoordinator->handleCalibrationCompleted(trackingQuality);
+    }
     refreshNavigationConfidenceState();
-    QVariantMap trackingQuality;
-    trackingQuality.insert(QStringLiteral("calibrated"), true);
-    trackingQuality.insert(QStringLiteral("calibration_accuracy_mm"), calibrationAccuracy);
-    persistEvaluationReportSnapshot(trackingQuality);
+    persistEvaluationReportSnapshot();
     showInfo("校准", QStringLiteral("探针标定完成，已应用到当前导航器械。\n精度：%1 mm")
                            .arg(calibrationAccuracy, 0, 'f', 3));
 }
@@ -1348,6 +1362,12 @@ void NavigationPageNew::on_connectTrackerButton_clicked()
 
     m_trackingSessionId = sessionId;
     m_navigationToolId = toolId;
+    if (m_runtimeState) {
+        m_runtimeState->setCaseContext(
+            m_workflowContext ? m_workflowContext->caseId() : QString(),
+            m_trackingSessionId,
+            m_navigationToolId);
+    }
     updateTrackerStatus(true);
     showInfo("追踪器", QStringLiteral("追踪器已连接，当前器械已接入导航会话。"));
 }
@@ -1486,7 +1506,7 @@ void NavigationPageNew::on_pauseNavigationButton_clicked()
         run.metrics.insert(QStringLiteral("tracking_confidence_score"), trackingQuality.value(QStringLiteral("tracking_confidence_score")).toDouble());
         evaluationService.saveNavigationRun(run);
 
-        persistEvaluationReportSnapshot(trackingQuality, true);
+        persistEvaluationReportSnapshot(true);
     }
 
     refreshNavigationConfidenceState();
@@ -1659,6 +1679,12 @@ void NavigationPageNew::clearTrackingRuntimeState(bool disconnectDevice)
 
     m_trackingSessionId.clear();
     m_navigationToolId.clear();
+    if (m_runtimeState) {
+        m_runtimeState->setCaseContext(
+            m_workflowContext ? m_workflowContext->caseId() : QString(),
+            m_trackingSessionId,
+            m_navigationToolId);
+    }
     resetProbeCalibrationState();
 }
 
@@ -1670,60 +1696,12 @@ void NavigationPageNew::resetProbeCalibrationState()
     updateProbeCalibrationUi();
 }
 
-bool NavigationPageNew::tryBuildNavigationConfidenceInputs(NavigationConfidenceInputs& inputs) const
-{
-    if (!m_trackerConnected || m_trackingSessionId.isEmpty() || m_navigationToolId.isEmpty()) {
-        return false;
-    }
-
-    auto* registrationService = pointRegistrationService();
-    if (!registrationService) {
-        return false;
-    }
-
-    const QMatrix4x4 registrationTransform = registrationService->getTransformMatrix();
-    if (registrationTransform.isIdentity()) {
-        return false;
-    }
-
-    const PointRegistrationResult registrationResult =
-        m_registrationWorkflow ? m_registrationWorkflow->getLastResult() : PointRegistrationResult();
-    if (!registrationResult.success) {
-        return false;
-    }
-
-    inputs.fre = registrationResult.rmsError;
-    inputs.targetTre = registrationResult.targetRegionTre;
-    inputs.coverageScore = registrationResult.coverageScore;
-    inputs.surfaceResidual = registrationResult.metrics.value(QStringLiteral("refined_rms")).toDouble();
-
-    QVariantMap trackingQuality;
-    if (auto* trackingService = opticalTrackingService()) {
-        trackingService->getRealTimeData(m_trackingSessionId);
-        trackingQuality = trackingService->checkTrackingQuality(m_trackingSessionId, m_navigationToolId);
-    }
-
-    if (trackingQuality.isEmpty()) {
-        trackingQuality.insert(QStringLiteral("tracking_jitter_mm"), 0.4);
-        trackingQuality.insert(QStringLiteral("visible_frame_ratio"), 1.0);
-        trackingQuality.insert(QStringLiteral("calibrated"), false);
-        trackingQuality.insert(QStringLiteral("calibration_accuracy_mm"), 0.0);
-    }
-
-    inputs.trackingJitter = trackingQuality.value(QStringLiteral("tracking_jitter_mm")).toDouble();
-    inputs.visibleFrameRatio = trackingQuality.value(QStringLiteral("visible_frame_ratio")).toDouble();
-    inputs.toolCalibrated = trackingQuality.value(QStringLiteral("calibrated")).toBool();
-    inputs.calibrationAccuracy = trackingQuality.value(QStringLiteral("calibration_accuracy_mm")).toDouble();
-    return true;
-}
-
 void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
 {
     auto* navigationReadinessLabel = findChild<QLabel*>(QStringLiteral("navigationReadinessLabel"));
     auto* navigationConfidenceLabel = findChild<QLabel*>(QStringLiteral("navigationConfidenceLabel"));
 
-    NavigationConfidenceInputs inputs;
-    if (!tryBuildNavigationConfidenceInputs(inputs)) {
+    if (!m_runtimeCoordinator || !m_runtimeState || !m_trackerConnected || m_trackingSessionId.isEmpty() || m_navigationToolId.isEmpty()) {
         m_lastConfidence = NavigationConfidenceResult();
 
         if (navigationReadinessLabel) {
@@ -1740,7 +1718,43 @@ void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
         return;
     }
 
-    m_lastConfidence = m_confidenceEvaluator.evaluate(inputs);
+    auto* registrationService = pointRegistrationService();
+    if (!registrationService) {
+        m_lastConfidence = NavigationConfidenceResult();
+        return;
+    }
+
+    const QMatrix4x4 registrationTransform = registrationService->getTransformMatrix();
+    const PointRegistrationResult registrationResult =
+        m_registrationWorkflow ? m_registrationWorkflow->getLastResult() : PointRegistrationResult();
+    if (registrationTransform.isIdentity() || !registrationResult.success) {
+        m_lastConfidence = NavigationConfidenceResult();
+        return;
+    }
+
+    QVariantMap trackingQuality;
+    if (auto* trackingService = opticalTrackingService()) {
+        trackingService->getRealTimeData(m_trackingSessionId);
+        trackingQuality = trackingService->checkTrackingQuality(m_trackingSessionId, m_navigationToolId);
+    }
+
+    if (trackingQuality.isEmpty()) {
+        trackingQuality.insert(QStringLiteral("tracking_jitter_mm"), 0.4);
+        trackingQuality.insert(QStringLiteral("visible_frame_ratio"), 1.0);
+        trackingQuality.insert(QStringLiteral("calibrated"), false);
+        trackingQuality.insert(QStringLiteral("calibration_accuracy_mm"), 0.0);
+    }
+
+    m_runtimeCoordinator->handleRegistrationResult(registrationResult);
+    m_runtimeCoordinator->handleTrackingQuality(trackingQuality);
+    m_runtimeCoordinator->recomputeConfidence();
+
+    if (!m_runtimeCoordinator->runtimeState()->hasConfidenceResult()) {
+        m_lastConfidence = NavigationConfidenceResult();
+        return;
+    }
+
+    m_lastConfidence = m_runtimeCoordinator->runtimeState()->confidenceResult();
 
     if (navigationReadinessLabel) {
         navigationReadinessLabel->setText(m_lastConfidence.allowNavigation
@@ -1772,65 +1786,14 @@ void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
     }
 }
 
-void NavigationPageNew::persistEvaluationReportSnapshot(const QVariantMap& trackingQuality, bool exportMetricsCsv)
+void NavigationPageNew::persistEvaluationReportSnapshot(bool exportMetricsCsv)
 {
-    const QString caseId = m_workflowContext ? m_workflowContext->caseId() : QString();
-    if (caseId.isEmpty()) {
+    if (!m_runtimeCoordinator) {
         refreshEvaluationSummary();
         return;
     }
 
-    NavigationEvaluationService evaluationService(evaluationCasesRoot());
-    const AnkleEvaluationSnapshot snapshot = evaluationService.loadEvaluationSnapshot(caseId);
-    const PointRegistrationResult registrationResult =
-        m_registrationWorkflow ? m_registrationWorkflow->getLastResult() : PointRegistrationResult();
-
-    AnkleEvaluationReport report;
-    report.caseId = caseId;
-    report.translationErrorMm = registrationResult.success
-        ? registrationResult.targetRegionTre
-        : snapshot.translationErrorMm;
-    report.rotationErrorDeg = snapshot.rotationErrorDeg;
-    report.allowNavigation = m_lastConfidence.allowNavigation;
-    report.confidenceScore = m_lastConfidence.score;
-    report.gateReasons = m_lastConfidence.recommendations;
-    report.calibrated = !m_trackingSessionId.isEmpty() && !m_navigationToolId.isEmpty();
-    report.calibrationAccuracyMm = snapshot.calibrationAccuracyMm;
-
-    if (!trackingQuality.isEmpty()) {
-        report.calibrated = trackingQuality.value(QStringLiteral("calibrated")).toBool();
-        report.calibrationAccuracyMm = trackingQuality.value(QStringLiteral("calibration_accuracy_mm")).toDouble();
-    } else if (snapshot.hasEvaluationReport) {
-        report.calibrated = snapshot.calibrated;
-    }
-
-    report.metrics = snapshot.evaluationMetrics;
-    if (snapshot.hasNavigationRun) {
-        report.metrics.unite(snapshot.navigationMetrics);
-    }
-    if (registrationResult.success) {
-        report.metrics.unite(registrationResult.metrics);
-        report.metrics.insert(QStringLiteral("registration_mode"), registrationResult.metrics.value(QStringLiteral("registration_mode")));
-        report.metrics.insert(QStringLiteral("target_region_tre_mm"), registrationResult.targetRegionTre);
-        report.metrics.insert(QStringLiteral("coverage_score"), registrationResult.coverageScore);
-    }
-    if (!trackingQuality.isEmpty()) {
-        report.metrics.insert(QStringLiteral("tracking_jitter_mm"), trackingQuality.value(QStringLiteral("tracking_jitter_mm")).toDouble());
-        report.metrics.insert(QStringLiteral("visible_frame_ratio"), trackingQuality.value(QStringLiteral("visible_frame_ratio")).toDouble());
-        report.metrics.insert(QStringLiteral("tracking_profile"), trackingQuality.value(QStringLiteral("tracking_profile")).toString());
-        report.metrics.insert(QStringLiteral("tracking_confidence_score"), trackingQuality.value(QStringLiteral("tracking_confidence_score")).toDouble());
-    }
-
-    report.metrics.insert(QStringLiteral("allow_navigation"), report.allowNavigation);
-    report.metrics.insert(QStringLiteral("gate_reason_count"), report.gateReasons.size());
-    report.metrics.insert(QStringLiteral("calibrated"), report.calibrated);
-    report.metrics.insert(QStringLiteral("calibration_accuracy_mm"), report.calibrationAccuracyMm);
-
-    evaluationService.saveEvaluationReport(report);
-    if (exportMetricsCsv) {
-        evaluationService.exportMetricsCsv(caseId);
-    }
-    evaluationService.exportCaseSummary(caseId);
+    m_runtimeCoordinator->persistEvaluationReportSnapshot(exportMetricsCsv);
     refreshEvaluationSummary();
 }
 
@@ -2407,6 +2370,9 @@ void NavigationPageNew::onRegistrationProbePointCaptured(int index, const QVecto
 void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& result)
 {
     updateRegistrationResultDisplay(result);
+    if (m_registrationController) {
+        m_registrationController->handleRegistrationCompleted(result);
+    }
     refreshNavigationConfidenceState();
     if (!m_registrationWorkflow) {
         return;

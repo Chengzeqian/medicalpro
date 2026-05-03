@@ -160,18 +160,30 @@ void AnkleNavigationWorkflowContractTest::navigation_page_refreshes_navigation_c
 
     QVERIFY2(navigationHeader.contains(QStringLiteral("void refreshNavigationConfidenceState(bool showWarnings = false);")),
         "navigation page must expose a shared navigation confidence refresh helper");
-    QVERIFY2(navigationHeader.contains(QStringLiteral("bool tryBuildNavigationConfidenceInputs(NavigationConfidenceInputs& inputs) const;")),
-        "navigation page must expose a shared navigation confidence input builder");
+    QVERIFY2(navigationHeader.contains(QStringLiteral("class NavigationRuntimeCoordinator;")),
+        "navigation page must forward declare NavigationRuntimeCoordinator");
+    QVERIFY2(navigationHeader.contains(QStringLiteral("std::unique_ptr<NavigationRuntimeCoordinator> m_runtimeCoordinator;")),
+        "navigation page must own a dedicated runtime coordinator");
+    QVERIFY2(!navigationHeader.contains(QStringLiteral("bool tryBuildNavigationConfidenceInputs(NavigationConfidenceInputs& inputs) const;")),
+        "navigation page must not keep a full confidence input builder after runtime coordinator extraction");
     QVERIFY2(navigationSource.contains(QStringLiteral("refreshNavigationConfidenceState(true);")),
         "navigation start must evaluate navigation confidence through the shared refresh helper");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_runtimeCoordinator->handleTrackingQuality(")),
+        "navigation page must hand tracking quality snapshots to runtime coordinator");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_runtimeCoordinator->handleCalibrationCompleted(")),
+        "navigation page must hand calibration completion snapshots to runtime coordinator");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_runtimeCoordinator->recomputeConfidence();")),
+        "navigation page must delegate confidence recompute to runtime coordinator");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_lastConfidence = m_runtimeCoordinator->runtimeState()->confidenceResult();")),
+        "navigation page must read the latest confidence snapshot back from runtime coordinator");
     QVERIFY2(navigationSource.contains(QStringLiteral("applyCalibrationResult(m_trackingSessionId, m_navigationToolId, calibrationResult)")),
         "probe calibration completion must still apply calibration result to the active tool");
     QVERIFY2(navigationSource.contains(QStringLiteral("refreshNavigationConfidenceState();")),
         "probe calibration completion must refresh navigation confidence state after applying calibration");
-    QVERIFY2(navigationSource.contains(QStringLiteral("inputs.toolCalibrated")),
-        "navigation confidence inputs must include probe calibration completion state");
-    QVERIFY2(navigationSource.contains(QStringLiteral("inputs.calibrationAccuracy")),
-        "navigation confidence inputs must include probe calibration accuracy");
+    QVERIFY2(!navigationSource.contains(QStringLiteral("inputs.toolCalibrated")),
+        "navigation page must not assemble calibrated state directly after runtime coordinator extraction");
+    QVERIFY2(!navigationSource.contains(QStringLiteral("inputs.calibrationAccuracy")),
+        "navigation page must not assemble calibration accuracy directly after runtime coordinator extraction");
     QVERIFY2(navigationSource.contains(QStringLiteral("navigationReadinessLabel")),
         "navigation page must expose readiness status text");
     QVERIFY2(navigationSource.contains(QStringLiteral("navigationConfidenceLabel")),
@@ -192,7 +204,7 @@ void AnkleNavigationWorkflowContractTest::navigation_page_persists_probe_calibra
 
     const QString body = navigationSource.mid(startIndex, endIndex - startIndex);
 
-    const QString helperStart = QStringLiteral("void NavigationPageNew::persistEvaluationReportSnapshot(const QVariantMap& trackingQuality, bool exportMetricsCsv)");
+    const QString helperStart = QStringLiteral("void NavigationPageNew::persistEvaluationReportSnapshot(bool exportMetricsCsv)");
     const QString helperNextStart = QStringLiteral("void NavigationPageNew::updateProbeCalibrationUi()");
     const int helperStartIndex = navigationSource.indexOf(helperStart);
     QVERIFY2(helperStartIndex >= 0, "navigation page must define persistEvaluationReportSnapshot()");
@@ -202,25 +214,17 @@ void AnkleNavigationWorkflowContractTest::navigation_page_persists_probe_calibra
 
     const QString helperBody = navigationSource.mid(helperStartIndex, helperEndIndex - helperStartIndex);
 
-    QVERIFY2(navigationHeader.contains(QStringLiteral("void persistEvaluationReportSnapshot(const QVariantMap& trackingQuality = {}, bool exportMetricsCsv = false);")),
+    QVERIFY2(navigationHeader.contains(QStringLiteral("void persistEvaluationReportSnapshot(bool exportMetricsCsv = false);")),
         "navigation page must declare a shared evaluation report persistence helper");
-    QVERIFY2(helperBody.contains(QStringLiteral("NavigationEvaluationService evaluationService(evaluationCasesRoot());")),
-        "shared evaluation report helper must open evaluation service for the active case");
-    QVERIFY2(helperBody.contains(QStringLiteral("AnkleEvaluationReport report;")),
-        "shared evaluation report helper must construct an evaluation report snapshot");
-    QVERIFY2(helperBody.contains(QStringLiteral("report.allowNavigation = m_lastConfidence.allowNavigation;")),
-        "shared evaluation report helper must persist the latest navigation gate decision");
-    QVERIFY2(helperBody.contains(QStringLiteral("report.confidenceScore = m_lastConfidence.score;")),
-        "shared evaluation report helper must persist the latest navigation confidence score");
-    QVERIFY2(helperBody.contains(QStringLiteral("report.gateReasons = m_lastConfidence.recommendations;")),
-        "shared evaluation report helper must persist latest gate reasons");
-    QVERIFY2(helperBody.contains(QStringLiteral("evaluationService.saveEvaluationReport(report);")),
-        "shared evaluation report helper must write the updated evaluation report");
-    QVERIFY2(helperBody.contains(QStringLiteral("evaluationService.exportCaseSummary(caseId);")),
-        "shared evaluation report helper must refresh the persisted case evaluation summary");
+    QVERIFY2(helperBody.contains(QStringLiteral("m_runtimeCoordinator->persistEvaluationReportSnapshot(exportMetricsCsv);")),
+        "shared evaluation report helper must delegate evaluation report persistence to runtime coordinator");
     QVERIFY2(helperBody.contains(QStringLiteral("refreshEvaluationSummary();")),
         "shared evaluation report helper must refresh the evaluation tab summary in-page");
-    QVERIFY2(body.contains(QStringLiteral("persistEvaluationReportSnapshot(trackingQuality);")),
+    QVERIFY2(!helperBody.contains(QStringLiteral("NavigationEvaluationService evaluationService(evaluationCasesRoot());")),
+        "shared evaluation report helper must not open evaluation service directly after runtime coordinator extraction");
+    QVERIFY2(!helperBody.contains(QStringLiteral("AnkleEvaluationReport report;")),
+        "shared evaluation report helper must not assemble evaluation reports directly after runtime coordinator extraction");
+    QVERIFY2(body.contains(QStringLiteral("persistEvaluationReportSnapshot();")),
         "probe calibration completion must hand off evaluation persistence to the shared helper");
 }
 
@@ -306,7 +310,7 @@ void AnkleNavigationWorkflowContractTest::navigation_page_persists_navigation_ga
 
     const QString registrationBody = navigationSource.mid(registrationStartIndex, registrationEndIndex - registrationStartIndex);
 
-    QVERIFY2(pauseBody.contains(QStringLiteral("persistEvaluationReportSnapshot(trackingQuality, true);")),
+    QVERIFY2(pauseBody.contains(QStringLiteral("persistEvaluationReportSnapshot(true);")),
         "navigation pause must hand off evaluation persistence to the shared helper and export metrics");
     QVERIFY2(registrationBody.contains(QStringLiteral("evaluationService.saveRegistrationRecord(record);")),
         "navigation page must persist registration record after registration completes");

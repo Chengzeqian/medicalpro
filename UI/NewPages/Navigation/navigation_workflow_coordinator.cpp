@@ -1,6 +1,7 @@
 #include "UI/NewPages/Navigation/navigation_workflow_coordinator.h"
 
 #include "UI/NewPages/Navigation/navigation_evaluation_controller.h"
+#include "UI/NewPages/Navigation/navigation_runtime_coordinator.h"
 #include "UI/NewPages/Navigation/preparation_planning_controller.h"
 #include "UI/NewPages/Navigation/registration_controller.h"
 
@@ -9,11 +10,13 @@ NavigationWorkflowCoordinator::NavigationWorkflowCoordinator(
     PreparationPlanningController* preparationPlanningController,
     RegistrationController* registrationController,
     NavigationEvaluationController* navigationEvaluationController,
+    NavigationRuntimeCoordinator* runtimeCoordinator,
     StageApplier stageApplier)
     : m_context(context)
     , m_preparationPlanningController(preparationPlanningController)
     , m_registrationController(registrationController)
     , m_navigationEvaluationController(navigationEvaluationController)
+    , m_runtimeCoordinator(runtimeCoordinator)
     , m_stageApplier(std::move(stageApplier))
 {
 }
@@ -47,6 +50,10 @@ void NavigationWorkflowCoordinator::handleComputeRegistration() const
 
 void NavigationWorkflowCoordinator::handleStartNavigation() const
 {
+    if (m_navigationEvaluationController && !m_navigationEvaluationController->canStartNavigation()) {
+        return;
+    }
+
     enterStage(AnkleWorkflowStage::Navigation);
     if (m_navigationEvaluationController) {
         m_navigationEvaluationController->startNavigation();

@@ -34,6 +34,8 @@ set(NEWPAGES_HEADERS
     NavigationPage.h
     Navigation/navigation_evaluation_controller.h
     Navigation/navigation_evaluation_summary_formatter.h
+    Navigation/navigation_runtime_coordinator.h
+    Navigation/navigation_runtime_state.h
     Navigation/navigation_vtk_bridge.h
     Navigation/navigation_workflow_coordinator.h
     Navigation/navigation_service_bundle.h
@@ -59,6 +61,8 @@ set(NEWPAGES_SOURCES
     NavigationPage.cpp
     Navigation/navigation_evaluation_controller.cpp
     Navigation/navigation_evaluation_summary_formatter.cpp
+    Navigation/navigation_runtime_coordinator.cpp
+    Navigation/navigation_runtime_state.cpp
     Navigation/navigation_vtk_bridge.cpp
     Navigation/navigation_workflow_coordinator.cpp
     Navigation/navigation_service_bundle.cpp

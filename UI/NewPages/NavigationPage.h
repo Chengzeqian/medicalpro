@@ -26,6 +26,8 @@ class LegacyNavigationPageServiceAdapter;
 class NavigationEvaluationController;
 class Navigation3DViewWidget;
 class NavigationPageServiceAccess;
+class NavigationRuntimeCoordinator;
+class NavigationRuntimeState;
 class NavigationServiceBundle;
 class NavigationVtkBridge;
 class NavigationWorkflowCoordinator;
@@ -146,9 +148,8 @@ private:
     void finishProbeCalibration();
     void cancelProbeCalibration();
     void updateProbeCalibrationUi();
-    bool tryBuildNavigationConfidenceInputs(NavigationConfidenceInputs& inputs) const;
     void refreshNavigationConfidenceState(bool showWarnings = false);
-    void persistEvaluationReportSnapshot(const QVariantMap& trackingQuality = {}, bool exportMetricsCsv = false);
+    void persistEvaluationReportSnapshot(bool exportMetricsCsv = false);
     void performLoadDicom();
     void performComputeRegistration();
     void performStartNavigation();
@@ -161,6 +162,8 @@ private:
     std::unique_ptr<PreparationPlanningController> m_preparationPlanningController;
     std::unique_ptr<RegistrationController> m_registrationController;
     std::unique_ptr<NavigationEvaluationController> m_navigationEvaluationController;
+    std::unique_ptr<NavigationRuntimeState> m_runtimeState;
+    std::unique_ptr<NavigationRuntimeCoordinator> m_runtimeCoordinator;
     std::unique_ptr<NavigationWorkflowCoordinator> m_workflowCoordinator;
     std::unique_ptr<EmbeddedVtkViewHost> m_planningVtkHost;
     std::unique_ptr<EmbeddedVtkViewHost> m_navigationVtkHost;
@@ -184,7 +187,6 @@ private:
     QTimer* m_navigationTimer;
     QMatrix4x4 m_registrationTransform;
     RegistrationWorkflow* m_registrationWorkflow;
-    NavigationConfidenceEvaluator m_confidenceEvaluator;
     NavigationConfidenceResult m_lastConfidence;
     QString m_trackingSessionId;
     QString m_navigationToolId;
