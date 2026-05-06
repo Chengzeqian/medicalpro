@@ -11,6 +11,7 @@ class OpticalTrackingProbeCalibrationToolGeometrySelectionTest : public QObject
 
 private slots:
     void session_tool_geometry_configuration_drives_probe_calibration_geometry_resolution();
+    void probe_calibration_geometry_resolution_requires_explicit_tool_geometry();
 };
 
 void OpticalTrackingProbeCalibrationToolGeometrySelectionTest::session_tool_geometry_configuration_drives_probe_calibration_geometry_resolution()
@@ -39,6 +40,26 @@ void OpticalTrackingProbeCalibrationToolGeometrySelectionTest::session_tool_geom
 
     const QVariantMap geometryInfo = service.parseGeometryInfo(geometryPath);
     QCOMPARE(geometryInfo.value(QStringLiteral("geometryId")).toString(), QStringLiteral("074"));
+}
+
+void OpticalTrackingProbeCalibrationToolGeometrySelectionTest::probe_calibration_geometry_resolution_requires_explicit_tool_geometry()
+{
+    OpticalTrackingServiceImpl service;
+
+    const QString sessionId = service.createTrackingSession(QStringLiteral("simulated_fusiontrack_001"),
+        QStringLiteral("geometry-required-test"));
+
+    QVariantMap toolConfig;
+    toolConfig[QStringLiteral("name")] = QStringLiteral("Probe-No-Geometry");
+    toolConfig[QStringLiteral("type")] = QStringLiteral("probe");
+
+    const QString toolId = service.addTrackingTool(sessionId, QStringLiteral("Probe-No-Geometry"), toolConfig);
+    QVERIFY(!toolId.isEmpty());
+
+    const QString geometryPath = service.resolveProbeCalibrationGeometry(sessionId, toolId);
+    QVERIFY(geometryPath.isEmpty());
+    QCOMPARE(service.getLastError(),
+        QStringLiteral("No probe calibration geometry resolved for tool: %1").arg(toolId));
 }
 
 int main(int argc, char** argv)

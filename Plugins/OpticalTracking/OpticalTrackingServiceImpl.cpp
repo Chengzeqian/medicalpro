@@ -107,6 +107,27 @@ QStringList candidateGeometryDirectories()
     return directories;
 }
 
+uint32_t geometryIdFromPath(const QString& geometryPath)
+{
+    const QString baseName = QFileInfo(geometryPath).completeBaseName();
+    const QRegularExpressionMatch match = QRegularExpression(QStringLiteral("(\\d+)$")).match(baseName);
+    if (!match.hasMatch()) {
+        return 0;
+    }
+
+    bool ok = false;
+    const uint32_t geometryId = match.captured(1).toUInt(&ok);
+    return ok ? geometryId : 0;
+}
+
+QString probeCalibrationErrorDetail(const char* errorText)
+{
+    if (!errorText || errorText[0] == '\0') {
+        return QStringLiteral("unknown");
+    }
+    return QString::fromUtf8(errorText);
+}
+
 } // namespace
 
 //-----------------------------------------------------------------------------
@@ -217,13 +238,19 @@ QStringList OpticalTrackingServiceImpl::scanAvailableDevices()
         }
     }
     
-    // 如果没有找到真实设备，添加模拟设备用于测试
+    // 如果没有找到真实设备，保持显式状态分离，避免实机流程静默切到模拟设备
     if (deviceIds.isEmpty()) {
-        qDebug() << "[OpticalTrackingServiceImpl] No physical devices found, adding simulated devices";
+#ifdef ATRACSYS_SDK_AVAILABLE
+        setError(QStringLiteral("No physical tracking devices found"));
+        qWarning() << "[OpticalTrackingServiceImpl] No physical tracking devices found during scan";
+#else
+        setError(QString());
+        qDebug() << "[OpticalTrackingServiceImpl] SDK unavailable, exposing simulation devices";
         addSimulatedDevices();
         for (auto it = m_devices.begin(); it != m_devices.end(); ++it) {
             deviceIds << it.key();
         }
+#endif
     }
     
     qDebug() << "[OpticalTrackingServiceImpl] Scan complete, discovered" << deviceIds.size() << " devices";
@@ -416,6 +443,7 @@ bool OpticalTrackingServiceImpl::scanAtracsysDevices()
             deviceInfo.parameters = impl->m_defaultDeviceParameters.value(deviceInfo.deviceType, QVariantMap());
             deviceInfo.state["serialNumber"] = QString::number(sn);
             deviceInfo.state["deviceType"] = static_cast<int>(type);
+            deviceInfo.state["runtimeMode"] = QStringLiteral("physical");
             
             impl->m_devices[deviceId] = deviceInfo;
             impl->m_deviceTypes[deviceId] = deviceInfo.deviceType;
@@ -487,6 +515,7 @@ bool OpticalTrackingServiceImpl::connectToAtracsysDevice(const QString& deviceId
     uint64 serialNumber = deviceIt->state["serialNumber"].toString().toULongLong();
     m_currentDeviceSerial = serialNumber;
     m_deviceInitialized = true;
+    deviceIt->state["runtimeMode"] = QStringLiteral("simulation");
     qDebug() << "[OpticalTrackingServiceImpl] Simulated device connected:" << deviceId;
 #endif
 
@@ -549,12 +578,6 @@ QString OpticalTrackingServiceImpl::resolveProbeCalibrationGeometry(const QStrin
             setError(QString());
             return resolvedId;
         }
-    }
-
-    const QString fallbackPath = findGeometryFile(QStringLiteral("072"));
-    if (!fallbackPath.isEmpty()) {
-        setError(QString());
-        return fallbackPath;
     }
 
     setError(QStringLiteral("No probe calibration geometry resolved for tool: %1").arg(toolId));
@@ -713,6 +736,7 @@ void OpticalTrackingServiceImpl::addSimulatedDevices()
     simulatedDevice1.parameters = m_defaultDeviceParameters.value("FusionTrack 500", QVariantMap());
     simulatedDevice1.state["serialNumber"] = "1001";
     simulatedDevice1.state["deviceType"] = 2;
+    simulatedDevice1.state["runtimeMode"] = QStringLiteral("simulation");
     
     DeviceInfo simulatedDevice2;
     simulatedDevice2.deviceId = "simulated_sprytrack_001";
@@ -722,6 +746,7 @@ void OpticalTrackingServiceImpl::addSimulatedDevices()
     simulatedDevice2.parameters = m_defaultDeviceParameters.value("SpryTrack 180", QVariantMap());
     simulatedDevice2.state["serialNumber"] = "2001";
     simulatedDevice2.state["deviceType"] = 4;
+    simulatedDevice2.state["runtimeMode"] = QStringLiteral("simulation");
     
     m_devices["simulated_fusiontrack_001"] = simulatedDevice1;
     m_devices["simulated_sprytrack_001"] = simulatedDevice2;
@@ -1375,7 +1400,7 @@ bool OpticalTrackingServiceImpl::applyCalibrationResult(const QString& sessionId
 
     if (offset.size() < 3) {
         // 如果没有明确的偏移，尝试从pivotPoint提取
-        if (calibrationResult.contains("pivotPoint")) {
+        if (false && calibrationResult.contains("pivotPoint")) {
             QVariant pivotVar = calibrationResult["pivotPoint"];
             if (pivotVar.canConvert<QList<QVariant>>()) {
                 QList<QVariant> pivotList = pivotVar.toList();
@@ -1387,7 +1412,7 @@ bool OpticalTrackingServiceImpl::applyCalibrationResult(const QString& sessionId
     }
 
     if (offset.size() < 3) {
-        setError("Calibration result does not contain valid offset data");
+        setError("Calibration result does not contain valid tipOffset data");
         return false;
     }
 
@@ -1423,6 +1448,29 @@ bool OpticalTrackingServiceImpl::applyCalibrationResult(const QString& sessionId
 
 QVariantMap OpticalTrackingServiceImpl::performPivotCalibration(const QString& calibrationId, CalibrationInfo& calibInfo)
 {
+    QString runtimeMode;
+    if (m_sessions.contains(calibInfo.sessionId)) {
+        const SessionInfo& session = m_sessions[calibInfo.sessionId];
+        const DeviceInfo* deviceInfo = getDeviceInfoPtr(session.deviceId);
+        if (deviceInfo) {
+            runtimeMode = deviceInfo->state.value(QStringLiteral("runtimeMode")).toString();
+        } else if (session.deviceId.startsWith(QStringLiteral("simulated_"), Qt::CaseInsensitive)) {
+            runtimeMode = QStringLiteral("simulation");
+        }
+    }
+
+    qDebug() << "[OpticalTracking] Pivot calibration start"
+             << "sessionId=" << calibInfo.sessionId
+             << "toolId=" << calibInfo.toolId
+             << "runtimeMode=" << runtimeMode;
+
+    if (runtimeMode != QStringLiteral("physical")) {
+        QVariantMap result;
+        result["success"] = false;
+        result["error"] = QStringLiteral("Probe calibration requires a physical tracking device");
+        return result;
+    }
+
     // 优先使用 ProbeCalibration DLL（如果可用）
     if (!m_pcLoaded) {
         loadProbeCalibrationDLL();
@@ -6279,13 +6327,20 @@ bool OpticalTrackingServiceImpl::loadProbeCalibrationDLL(const QString& dllPath)
     m_pcLoadCalibration = reinterpret_cast<PC_LoadCalibrationFn>(m_pcLib.resolve("PC_LoadCalibration"));
     m_pcIsCalibrated = reinterpret_cast<PC_IsCalibrated>(m_pcLib.resolve("PC_IsCalibrated"));
     m_pcGetLastError = reinterpret_cast<PC_GetLastErrorFn>(m_pcLib.resolve("PC_GetLastError"));
+    m_pcConfigureGeometry = reinterpret_cast<PC_ConfigureGeometryFn>(m_pcLib.resolve("PC_ConfigureGeometry"));
+    m_pcResetCalibrationSession = reinterpret_cast<PC_ResetCalibrationSessionFn>(m_pcLib.resolve("PC_ResetCalibrationSession"));
+    m_pcAddPoseSample = reinterpret_cast<PC_AddPoseSampleFn>(m_pcLib.resolve("PC_AddPoseSample"));
+    m_pcGetCalibrationResult = reinterpret_cast<PC_GetCalibrationResultFn>(m_pcLib.resolve("PC_GetCalibrationResult"));
+    m_pcGetCalibrationStats = reinterpret_cast<PC_GetCalibrationStatsFn>(m_pcLib.resolve("PC_GetCalibrationStats"));
     m_pcCollectorReset = reinterpret_cast<PC_CollectorResetFn>(m_pcLib.resolve("PC_CollectorReset"));
     m_pcCollectorAddPoint = reinterpret_cast<PC_CollectorAddPointFn>(m_pcLib.resolve("PC_CollectorAddPoint"));
     m_pcCollectorGetSuperPointCount = reinterpret_cast<PC_CollectorGetSuperPointCountFn>(m_pcLib.resolve("PC_CollectorGetSuperPointCount"));
     m_pcCollectorExport = reinterpret_cast<PC_CollectorExportFn>(m_pcLib.resolve("PC_CollectorExport"));
 
     if (!m_pcCreate || !m_pcDestroy || !m_pcInitialize || !m_pcIsInitialized ||
-        !m_pcStartCalibration || !m_pcFinishCalibration) {
+        !m_pcStartCalibration || !m_pcFinishCalibration || !m_pcConfigureGeometry ||
+        !m_pcResetCalibrationSession || !m_pcAddPoseSample || !m_pcGetCalibrationResult ||
+        !m_pcGetCalibrationStats) {
         setError(QStringLiteral("ProbeCalibration DLL core symbols are incomplete"));
         qWarning() << "[OpticalTracking] ProbeCalibration DLL: failed to resolve core functions";
         m_pcLib.unload();
@@ -6350,7 +6405,9 @@ QVariantMap OpticalTrackingServiceImpl::performPivotCalibrationDLL(
     result["calibrationType"] = "pivot";
     result["calibrationId"] = calibrationId;
 
-    if (!m_pcPipeline || !m_pcStartCalibration || !m_pcFinishCalibration) {
+    if (!m_pcPipeline || !m_pcStartCalibration || !m_pcFinishCalibration ||
+        !m_pcConfigureGeometry || !m_pcResetCalibrationSession || !m_pcAddPoseSample ||
+        !m_pcGetCalibrationResult || !m_pcGetCalibrationStats) {
         result["success"] = false;
         result["error"] = "ProbeCalibration DLL not properly initialized";
         return result;
@@ -6363,6 +6420,21 @@ QVariantMap OpticalTrackingServiceImpl::performPivotCalibrationDLL(
         return result;
     }
 
+    QString runtimeMode;
+    if (m_sessions.contains(calibInfo.sessionId)) {
+        const SessionInfo& session = m_sessions[calibInfo.sessionId];
+        const DeviceInfo* deviceInfo = getDeviceInfoPtr(session.deviceId);
+        if (deviceInfo) {
+            runtimeMode = deviceInfo->state.value(QStringLiteral("runtimeMode")).toString();
+        }
+    }
+
+    qDebug() << "[OpticalTracking] Pivot calibration start"
+             << "sessionId=" << calibInfo.sessionId
+             << "toolId=" << calibInfo.toolId
+             << "geometryPath=" << geometryPath
+             << "runtimeMode=" << runtimeMode;
+
     if (!initializeProbeCalibrationPipeline(geometryPath)) {
         result["success"] = false;
         result["error"] = m_lastError;
@@ -6370,55 +6442,120 @@ QVariantMap OpticalTrackingServiceImpl::performPivotCalibrationDLL(
     }
 
     // 开始标定
-    if (m_pcStartCalibration(m_pcPipeline) != 1) {
-        const char* err = m_pcGetLastError ? m_pcGetLastError(m_pcPipeline) : "unknown";
+    const uint32_t geometryId = geometryIdFromPath(geometryPath);
+    const QByteArray geometryBytes = geometryPath.toUtf8();
+    if (m_pcConfigureGeometry(m_pcPipeline, geometryBytes.constData(), geometryId) != 1) {
         result["success"] = false;
-        result["error"] = QString("DLL StartCalibration failed: %1").arg(err);
+        result["error"] = QString("DLL ConfigureGeometry failed: %1").arg(
+            probeCalibrationErrorDetail(m_pcGetLastError ? m_pcGetLastError(m_pcPipeline) : nullptr));
+        return result;
+    }
+
+    if (m_pcResetCalibrationSession(m_pcPipeline) != 1) {
+        result["success"] = false;
+        result["error"] = QString("DLL ResetCalibrationSession failed: %1").arg(
+            probeCalibrationErrorDetail(m_pcGetLastError ? m_pcGetLastError(m_pcPipeline) : nullptr));
+        return result;
+    }
+
+    if (m_pcStartCalibration(m_pcPipeline) != 1) {
+        result["success"] = false;
+        result["error"] = QString("DLL StartCalibration failed: %1").arg(
+            probeCalibrationErrorDetail(m_pcGetLastError ? m_pcGetLastError(m_pcPipeline) : nullptr));
         return result;
     }
 
     // 如果有 Collector API，通过它添加采集点
-    if (m_pcCollectorReset && m_pcCollectorAddPoint) {
-        m_pcCollectorReset(m_pcPipeline);
+    int acceptedPoseCount = 0;
+    for (int i = 0; i < calibInfo.calibrationPoints.size(); ++i) {
+        const QList<double>& pos = calibInfo.calibrationPoints[i];
+        if (pos.size() < 6) {
+            continue;
+        }
 
-        for (int i = 0; i < calibInfo.calibrationPoints.size(); ++i) {
-            const QList<double>& pos = calibInfo.calibrationPoints[i];
-            if (pos.size() >= 3) {
-                uint64_t ts = (i < calibInfo.timeStamps.size())
-                    ? static_cast<uint64_t>(calibInfo.timeStamps[i]) * 1000
-                    : static_cast<uint64_t>(i) * 33000; // 30Hz fallback
-                m_pcCollectorAddPoint(m_pcPipeline,
-                    static_cast<float>(pos[0]),
-                    static_cast<float>(pos[1]),
-                    static_cast<float>(pos[2]),
-                    ts);
-            }
+        const QList<double> rotation = eulerToRotationMatrix(pos[3], pos[4], pos[5]);
+        PC_PoseSample sample{};
+        sample.geometry_id = geometryId;
+        sample.timestamp_us = (i < calibInfo.timeStamps.size())
+            ? static_cast<uint64_t>(calibInfo.timeStamps[i]) * 1000
+            : static_cast<uint64_t>(i) * 33000;
+        sample.registration_error = 0.1f;
+        sample.is_valid = 1;
+        sample.transform.m[0] = static_cast<float>(rotation[0]);
+        sample.transform.m[1] = static_cast<float>(rotation[1]);
+        sample.transform.m[2] = static_cast<float>(rotation[2]);
+        sample.transform.m[3] = static_cast<float>(pos[0]);
+        sample.transform.m[4] = static_cast<float>(rotation[3]);
+        sample.transform.m[5] = static_cast<float>(rotation[4]);
+        sample.transform.m[6] = static_cast<float>(rotation[5]);
+        sample.transform.m[7] = static_cast<float>(pos[1]);
+        sample.transform.m[8] = static_cast<float>(rotation[6]);
+        sample.transform.m[9] = static_cast<float>(rotation[7]);
+        sample.transform.m[10] = static_cast<float>(rotation[8]);
+        sample.transform.m[11] = static_cast<float>(pos[2]);
+        sample.transform.m[12] = 0.0f;
+        sample.transform.m[13] = 0.0f;
+        sample.transform.m[14] = 0.0f;
+        sample.transform.m[15] = 1.0f;
+
+        if (m_pcAddPoseSample(m_pcPipeline, &sample) == 1) {
+            ++acceptedPoseCount;
         }
     }
 
     // 完成标定
     if (m_pcFinishCalibration(m_pcPipeline) != 1) {
-        const char* err = m_pcGetLastError ? m_pcGetLastError(m_pcPipeline) : "unknown";
         result["success"] = false;
-        result["error"] = QString("DLL FinishCalibration failed: %1").arg(err);
+        result["error"] = QString("DLL FinishCalibration failed: %1").arg(
+            probeCalibrationErrorDetail(m_pcGetLastError ? m_pcGetLastError(m_pcPipeline) : nullptr));
         return result;
     }
 
     // 导出超级点（如果可用）
-    uint32_t superPointCount = 0;
-    if (m_pcCollectorGetSuperPointCount) {
-        m_pcCollectorGetSuperPointCount(m_pcPipeline, &superPointCount);
+    PC_CalibrationResult calibrationResult{};
+    if (m_pcGetCalibrationResult(m_pcPipeline, &calibrationResult) != 1 || calibrationResult.is_valid == 0) {
+        result["success"] = false;
+        result["error"] = QString("DLL GetCalibrationResult failed: %1").arg(
+            probeCalibrationErrorDetail(m_pcGetLastError ? m_pcGetLastError(m_pcPipeline) : nullptr));
+        return result;
+    }
+
+    PC_CalibrationStats calibrationStats{};
+    if (m_pcGetCalibrationStats(m_pcPipeline, &calibrationStats) != 1) {
+        result["success"] = false;
+        result["error"] = QString("DLL GetCalibrationStats failed: %1").arg(
+            probeCalibrationErrorDetail(m_pcGetLastError ? m_pcGetLastError(m_pcPipeline) : nullptr));
+        return result;
     }
 
     result["success"] = true;
     result["algorithm"] = "ProbeCalibration DLL";
-    result["pointsUsed"] = calibInfo.calibrationPoints.size();
-    result["superPointCount"] = static_cast<int>(superPointCount);
-    result["accuracy"] = 0.0; // DLL 内部计算，后续可通过 GetTipPose 获取
+    result["pointsUsed"] = static_cast<int>(calibrationResult.num_poses_used);
+    result["acceptedPoseCount"] = acceptedPoseCount;
+    result["geometryId"] = static_cast<int>(calibrationResult.geometry_id);
+    result["accuracy"] = calibrationResult.residual_error;
+    result["tipOffset"] = QVariantList{
+        calibrationResult.tip_offset.x,
+        calibrationResult.tip_offset.y,
+        calibrationResult.tip_offset.z
+    };
+    result["angularCoverage"] = calibrationStats.angular_coverage;
+    result["meanRegistrationError"] = calibrationStats.mean_registration_error;
+    result["totalReceived"] = static_cast<int>(calibrationStats.total_received);
+    result["totalAccepted"] = static_cast<int>(calibrationStats.total_accepted);
+    result["rejectedInvalid"] = static_cast<int>(calibrationStats.rejected_invalid);
+    result["rejectedHighError"] = static_cast<int>(calibrationStats.rejected_high_error);
+    result["rejectedSimilar"] = static_cast<int>(calibrationStats.rejected_similar);
 
     qDebug() << "[OpticalTracking] DLL Pivot calibration completed:"
-             << "Points=" << calibInfo.calibrationPoints.size()
-             << "SuperPoints=" << superPointCount;
+             << "InputPoints=" << calibInfo.calibrationPoints.size()
+             << "AcceptedPoints=" << calibrationStats.total_accepted
+             << "GeometryId=" << calibrationResult.geometry_id
+             << "Residual=" << calibrationResult.residual_error;
+    qDebug() << "[OpticalTracking] Pivot calibration result"
+             << "tipOffset=" << result["tipOffset"]
+             << "accuracy=" << result["accuracy"]
+             << "geometryId=" << result["geometryId"];
 
     return result;
 }

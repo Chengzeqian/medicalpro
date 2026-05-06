@@ -1783,6 +1783,49 @@ set_tests_properties(probe_calibration_runtime_smoke_test PROPERTIES
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:probe_calibration_runtime_smoke_test>"
 )
 
+add_executable(probe_calibration_pose_sample_api_test
+    ProbeCalibrationPoseSampleApiTest.cpp
+    ${CMAKE_SOURCE_DIR}/algorithms/probe_calibration/src/calibration_recorder.cpp
+    ${CMAKE_SOURCE_DIR}/algorithms/probe_calibration/src/probe_calibration_c_api.cpp
+    ${CMAKE_SOURCE_DIR}/algorithms/probe_calibration/src/realtime_transform.cpp
+    ${CMAKE_SOURCE_DIR}/algorithms/probe_calibration/src/tip_calibration_solver.cpp
+)
+
+set_target_properties(probe_calibration_pose_sample_api_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo"
+)
+
+target_include_directories(probe_calibration_pose_sample_api_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/algorithms/probe_calibration/include
+    ${MEDICALPRO_EIGEN_ROOT}
+)
+
+target_link_libraries(probe_calibration_pose_sample_api_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+if(MSVC)
+    target_compile_options(probe_calibration_pose_sample_api_test PRIVATE /utf-8)
+endif()
+
+target_compile_definitions(probe_calibration_pose_sample_api_test PRIVATE PROBECALIB_CAPI_EXPORTS)
+
+add_test(
+    NAME probe_calibration_pose_sample_api_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:probe_calibration_pose_sample_api_test>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        $<TARGET_FILE:probe_calibration_pose_sample_api_test>
+)
+
+set_tests_properties(probe_calibration_pose_sample_api_test PROPERTIES
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:probe_calibration_pose_sample_api_test>"
+)
+
 add_executable(optical_tracking_probe_calibration_load_smoke_test
     OpticalTrackingProbeCalibrationLoadSmokeTest.cpp
 )
@@ -1898,6 +1941,73 @@ add_test(
 
 set_tests_properties(optical_tracking_probe_calibration_tool_geometry_selection_test PROPERTIES
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:optical_tracking_probe_calibration_tool_geometry_selection_test>"
+)
+
+add_executable(optical_tracking_probe_calibration_result_application_test
+    OpticalTrackingProbeCalibrationResultApplicationTest.cpp
+)
+
+set_target_properties(optical_tracking_probe_calibration_result_application_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo"
+)
+
+target_include_directories(optical_tracking_probe_calibration_result_application_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(optical_tracking_probe_calibration_result_application_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+    Qt${QT_VERSION_MAJOR}::Test
+    OpticalTrackingPlatformModuleLib
+)
+
+medicalpro_sync_probe_calibration_runtime(optical_tracking_probe_calibration_result_application_test)
+
+add_test(
+    NAME optical_tracking_probe_calibration_result_application_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:optical_tracking_probe_calibration_result_application_test>;$<TARGET_FILE_DIR:medicalpro>;$<TARGET_FILE_DIR:Framework>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Network>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        $<TARGET_FILE:optical_tracking_probe_calibration_result_application_test>
+)
+
+set_tests_properties(optical_tracking_probe_calibration_result_application_test PROPERTIES
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:optical_tracking_probe_calibration_result_application_test>"
+)
+
+add_executable(optical_tracking_physical_device_mode_test
+    OpticalTrackingPhysicalDeviceModeTest.cpp
+)
+
+set_target_properties(optical_tracking_physical_device_mode_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo"
+)
+
+target_include_directories(optical_tracking_physical_device_mode_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(optical_tracking_physical_device_mode_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+add_test(
+    NAME optical_tracking_physical_device_mode_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:optical_tracking_physical_device_mode_test>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        $<TARGET_FILE:optical_tracking_physical_device_mode_test>
+)
+
+set_tests_properties(optical_tracking_physical_device_mode_test PROPERTIES
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:optical_tracking_physical_device_mode_test>"
 )
 
 add_executable(innovation_1_point_selection_experiment_test

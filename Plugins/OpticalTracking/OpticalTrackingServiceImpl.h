@@ -23,6 +23,8 @@
 #include <fstream>
 #include <random>
 
+#include "algorithms/probe_calibration/include/probe_calibration_c_api.h"
+
 // 必要的Qt包含（在SDK定义之前）
 #include <QString>
 #include <QList>
@@ -744,6 +746,11 @@ private:
     using PC_LoadCalibrationFn = int (*)(void*, const char*);
     using PC_IsCalibrated = int (*)(void*);
     using PC_GetLastErrorFn = const char* (*)(void*);
+    using PC_ConfigureGeometryFn = int (*)(void*, const char*, uint32_t);
+    using PC_ResetCalibrationSessionFn = int (*)(void*);
+    using PC_AddPoseSampleFn = int (*)(void*, const PC_PoseSample*);
+    using PC_GetCalibrationResultFn = int (*)(void*, PC_CalibrationResult*);
+    using PC_GetCalibrationStatsFn = int (*)(void*, PC_CalibrationStats*);
     // Collector API
     using PC_CollectorResetFn = int (*)(void*);
     using PC_CollectorAddPointFn = int (*)(void*, float, float, float, uint64_t);
@@ -770,6 +777,11 @@ private:
     PC_LoadCalibrationFn m_pcLoadCalibration = nullptr;
     PC_IsCalibrated m_pcIsCalibrated = nullptr;
     PC_GetLastErrorFn m_pcGetLastError = nullptr;
+    PC_ConfigureGeometryFn m_pcConfigureGeometry = nullptr;
+    PC_ResetCalibrationSessionFn m_pcResetCalibrationSession = nullptr;
+    PC_AddPoseSampleFn m_pcAddPoseSample = nullptr;
+    PC_GetCalibrationResultFn m_pcGetCalibrationResult = nullptr;
+    PC_GetCalibrationStatsFn m_pcGetCalibrationStats = nullptr;
     PC_CollectorResetFn m_pcCollectorReset = nullptr;
     PC_CollectorAddPointFn m_pcCollectorAddPoint = nullptr;
     PC_CollectorGetSuperPointCountFn m_pcCollectorGetSuperPointCount = nullptr;

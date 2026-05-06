@@ -6,45 +6,11 @@
 #include "realtime_transform.h"
 #include "calibration_recorder.h"
 #include "tip_calibration_solver.h"
-#include <array>
 #include <filesystem>
-#include <iostream>
 #include <fstream>
-#include <vector>
-#ifdef _WIN32
-#include <windows.h>
-#endif
+#include <iostream>
 
 namespace ProbeCalib {
-namespace {
-
-std::string findTrackerConfigPath() {
-    std::vector<std::filesystem::path> candidates;
-    candidates.emplace_back("ftk_config.json");
-    candidates.emplace_back("./ftk_config.json");
-    candidates.emplace_back("../ftk_config.json");
-    candidates.emplace_back("../../ftk_config.json");
-
-#ifdef _WIN32
-    char exe_path[MAX_PATH] = {};
-    const DWORD n = GetModuleFileNameA(nullptr, exe_path, MAX_PATH);
-    if (n > 0 && n < MAX_PATH) {
-        const std::filesystem::path exe_dir = std::filesystem::path(exe_path).parent_path();
-        candidates.emplace_back(exe_dir / "ftk_config.json");
-        candidates.emplace_back(exe_dir.parent_path() / "ftk_config.json");
-    }
-#endif
-
-    for (const auto& p : candidates) {
-        std::error_code ec;
-        if (std::filesystem::exists(p, ec) && !ec) {
-            return p.string();
-        }
-    }
-    return std::string();
-}
-
-} // namespace
 
 // ============================================================================
 // RealtimeTransform Implementation
@@ -143,12 +109,23 @@ TipPosition RealtimeTransform::getLatestTipPosition() const {
     return latest_tip_;
 }
 
+void RealtimeTransform::reset() {
+    tip_offset_ = Vector3f::Zero();
+    target_geometry_id_ = 0;
+    is_calibrated_ = false;
+    total_computed_ = 0;
+
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_tip_ = TipPosition();
+}
+
 // ============================================================================
 // ProbeTrackingPipeline Implementation
 // ============================================================================
 
 ProbeTrackingPipeline::ProbeTrackingPipeline()
     : is_initialized_(false)
+    , has_geometry_configured_(false)
     , geometry_id_(0)
 {
 }
@@ -158,64 +135,45 @@ ProbeTrackingPipeline::~ProbeTrackingPipeline() {
 }
 
 bool ProbeTrackingPipeline::initialize(const std::string& geometry_path) {
-    std::cout << "\n========================================" << std::endl;
-    std::cout << "Probe Tracking Pipeline Initialization" << std::endl;
-    std::cout << "========================================" << std::endl;
+    return configureGeometry(geometry_path, 0);
+}
 
-    // Create and initialize tracker
-    tracker_ = std::make_unique<AtracsysTracker>();
-
-    bool tracker_initialized = false;
-    const std::string cfg_path = findTrackerConfigPath();
-    if (!cfg_path.empty()) {
-        std::cout << "[ProbeTrackingPipeline] Using tracker config: " << cfg_path << std::endl;
-        tracker_initialized = tracker_->initialize(cfg_path);
-        if (!tracker_initialized) {
-            std::cerr << "[ProbeTrackingPipeline] WARNING: Init with config failed, retry without config" << std::endl;
-        }
-    }
-    if (!tracker_initialized) {
-        tracker_initialized = tracker_->initialize();
-    }
-    if (!tracker_initialized) {
-        std::cerr << "[ProbeTrackingPipeline] ERROR: Failed to initialize tracker" << std::endl;
+bool ProbeTrackingPipeline::configureGeometry(const std::string& geometry_path, uint32_t geometry_id) {
+    if (geometry_path.empty()) {
+        std::cerr << "[ProbeTrackingPipeline] ERROR: Geometry path is empty" << std::endl;
         return false;
     }
 
-    // Load geometry
-    if (!tracker_->loadGeometry(geometry_path)) {
-        std::cerr << "[ProbeTrackingPipeline] ERROR: Failed to load geometry" << std::endl;
+    std::error_code ec;
+    if (!std::filesystem::exists(geometry_path, ec) || ec) {
+        std::cerr << "[ProbeTrackingPipeline] ERROR: Geometry file does not exist: " << geometry_path << std::endl;
         return false;
     }
 
-    // Set up pose callback
-    tracker_->setPoseCallback([this](const PoseData& pose) {
-        this->onPoseReceived(pose);
-    });
-
-    // Start tracking
-    if (!tracker_->startTracking()) {
-        std::cerr << "[ProbeTrackingPipeline] ERROR: Failed to start tracking" << std::endl;
-        return false;
-    }
-
+    geometry_path_ = geometry_path;
+    geometry_id_ = geometry_id;
+    has_geometry_configured_ = true;
     is_initialized_ = true;
-    std::cout << "[ProbeTrackingPipeline] Initialization complete!" << std::endl;
+
+    resetCalibrationSession();
+
+    std::cout << "[ProbeTrackingPipeline] Geometry configured" << std::endl;
+    std::cout << "  Path: " << geometry_path_ << std::endl;
+    std::cout << "  Geometry ID: " << geometry_id_ << std::endl;
     return true;
 }
 
 void ProbeTrackingPipeline::shutdown() {
-    if (tracker_) {
-        tracker_->stopTracking();
-        tracker_->shutdown();
-        tracker_.reset();
-    }
+    resetCalibrationSession();
+    has_geometry_configured_ = false;
     is_initialized_ = false;
+    geometry_id_ = 0;
+    geometry_path_.clear();
 }
 
 void ProbeTrackingPipeline::startCalibration() {
-    if (!is_initialized_) {
-        std::cerr << "[ProbeTrackingPipeline] ERROR: Not initialized" << std::endl;
+    if (!has_geometry_configured_) {
+        std::cerr << "[ProbeTrackingPipeline] ERROR: Geometry is not configured" << std::endl;
         return;
     }
 
@@ -238,6 +196,12 @@ void ProbeTrackingPipeline::startCalibration() {
     std::cout << "  4. Cover various orientations (at least 90 deg)" << std::endl;
     std::cout << "  5. Press Enter or call finishCalibration() when done" << std::endl;
     std::cout << "========================================\n" << std::endl;
+}
+
+void ProbeTrackingPipeline::resetCalibrationSession() {
+    recorder_.clear();
+    calibration_result_ = CalibrationResult();
+    transform_.reset();
 }
 
 bool ProbeTrackingPipeline::finishCalibration() {
@@ -311,6 +275,24 @@ bool ProbeTrackingPipeline::finishCalibration() {
     return true;
 }
 
+bool ProbeTrackingPipeline::addPoseSample(const PoseData& pose) {
+    if (!has_geometry_configured_) {
+        return false;
+    }
+
+    const bool accepted = recorder_.isRecording() ? recorder_.addPose(pose) : false;
+
+    if (transform_.isCalibrated()) {
+        transform_.processPose(pose);
+    }
+
+    return accepted;
+}
+
+RecordingStats ProbeTrackingPipeline::getRecordingStats() const {
+    return recorder_.getStats();
+}
+
 bool ProbeTrackingPipeline::saveCalibration(const std::string& path) {
     if (!calibration_result_.is_valid) {
         std::cerr << "[ProbeTrackingPipeline] ERROR: No valid calibration to save" << std::endl;
@@ -370,6 +352,8 @@ bool ProbeTrackingPipeline::loadCalibration(const std::string& path) {
     result.is_valid = true;
     calibration_result_ = result;
     geometry_id_ = geom_id;
+    has_geometry_configured_ = true;
+    is_initialized_ = true;
     transform_.setTipOffset(result, geom_id);
 
     std::cout << "[ProbeTrackingPipeline] Calibration loaded from: " << path << std::endl;
@@ -393,27 +377,16 @@ void ProbeTrackingPipeline::setTipCallback(RealtimeTransform::TipCallback callba
 }
 
 void ProbeTrackingPipeline::onPoseReceived(const PoseData& pose) {
-    // Store geometry ID from first valid pose
-    if (geometry_id_ == 0 && pose.is_valid) {
-        geometry_id_ = pose.geometry_id;
+    const bool accepted = addPoseSample(pose);
+    if (!accepted || !recorder_.isRecording()) {
+        return;
     }
 
-    // If recording, add to recorder
-    if (recorder_.isRecording()) {
-        recorder_.addPose(pose);
-
-        // Print progress periodically
-        static int count = 0;
-        if (++count % 100 == 0) {
-            auto stats = recorder_.getStats();
-            std::cout << "\r  Recording: " << stats.total_accepted << " poses accepted, "
-                      << "angular coverage: " << stats.angular_coverage << " deg" << std::flush;
-        }
-    }
-
-    // If calibrated, compute tip position
-    if (transform_.isCalibrated()) {
-        transform_.processPose(pose);
+    static int count = 0;
+    if (++count % 100 == 0) {
+        const auto stats = recorder_.getStats();
+        std::cout << "\r  Recording: " << stats.total_accepted << " poses accepted, "
+                  << "angular coverage: " << stats.angular_coverage << " deg" << std::flush;
     }
 }
 

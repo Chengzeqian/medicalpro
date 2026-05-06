@@ -108,7 +108,7 @@ int PC_FinishCalibration(PC_PipelineHandle handle) {
     // Mirror calibration into collector so GUI/demo can fuse points immediately.
     const auto result = impl->pipeline.getCalibrationResult();
     if (result.is_valid) {
-        impl->collector.setCalibration(result, 0);
+        impl->collector.setCalibration(result, impl->pipeline.geometryId());
     }
     return 1;
 }
@@ -143,7 +143,7 @@ int PC_LoadCalibration(PC_PipelineHandle handle, const char* calibration_path) {
 
     const auto result = impl->pipeline.getCalibrationResult();
     if (result.is_valid) {
-        impl->collector.setCalibration(result, 0);
+        impl->collector.setCalibration(result, impl->pipeline.geometryId());
     }
     return 1;
 }
@@ -181,6 +181,97 @@ int PC_IsInitialized(PC_PipelineHandle handle) {
 int PC_IsCalibrated(PC_PipelineHandle handle) {
     auto* impl = castHandle(handle);
     return (impl && impl->pipeline.isCalibrated()) ? 1 : 0;
+}
+
+int PC_ConfigureGeometry(PC_PipelineHandle handle, const char* geometry_path, uint32_t geometry_id) {
+    auto* impl = castHandle(handle);
+    if (!impl) {
+        return 0;
+    }
+    if (!geometry_path || geometry_path[0] == '\0') {
+        return setError(impl, "geometry_path is empty") ? 1 : 0;
+    }
+
+    clearError(impl);
+    if (!impl->pipeline.configureGeometry(geometry_path, geometry_id)) {
+        return setError(impl, "configureGeometry failed") ? 1 : 0;
+    }
+    return 1;
+}
+
+int PC_ResetCalibrationSession(PC_PipelineHandle handle) {
+    auto* impl = castHandle(handle);
+    if (!impl) {
+        return 0;
+    }
+
+    impl->pipeline.resetCalibrationSession();
+    clearError(impl);
+    return 1;
+}
+
+int PC_AddPoseSample(PC_PipelineHandle handle, const PC_PoseSample* sample) {
+    auto* impl = castHandle(handle);
+    if (!impl || !sample) {
+        return 0;
+    }
+
+    ProbeCalib::PoseData pose;
+    pose.geometry_id = sample->geometry_id;
+    pose.timestamp_us = sample->timestamp_us;
+    pose.registration_error = sample->registration_error;
+    pose.is_valid = sample->is_valid != 0;
+    pose.tracking_id = 0;
+
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            pose.transform(row, col) = sample->transform.m[row * 4 + col];
+        }
+    }
+
+    clearError(impl);
+    if (!impl->pipeline.addPoseSample(pose)) {
+        return setError(impl, "pose sample was rejected") ? 1 : 0;
+    }
+    return 1;
+}
+
+int PC_GetCalibrationResult(PC_PipelineHandle handle, PC_CalibrationResult* out_result) {
+    auto* impl = castHandle(handle);
+    if (!impl || !out_result) {
+        return 0;
+    }
+
+    const auto result = impl->pipeline.getCalibrationResult();
+    out_result->tip_offset.x = result.tip_offset.x();
+    out_result->tip_offset.y = result.tip_offset.y();
+    out_result->tip_offset.z = result.tip_offset.z();
+    out_result->residual_error = result.residual_error;
+    out_result->geometry_id = impl->pipeline.geometryId();
+    out_result->num_poses_used = result.num_poses_used >= 0
+        ? static_cast<uint32_t>(result.num_poses_used)
+        : 0u;
+    out_result->is_valid = result.is_valid ? 1 : 0;
+    clearError(impl);
+    return 1;
+}
+
+int PC_GetCalibrationStats(PC_PipelineHandle handle, PC_CalibrationStats* out_stats) {
+    auto* impl = castHandle(handle);
+    if (!impl || !out_stats) {
+        return 0;
+    }
+
+    const auto stats = impl->pipeline.getRecordingStats();
+    out_stats->total_received = static_cast<uint32_t>(stats.total_received);
+    out_stats->total_accepted = static_cast<uint32_t>(stats.total_accepted);
+    out_stats->rejected_invalid = static_cast<uint32_t>(stats.rejected_invalid);
+    out_stats->rejected_high_error = static_cast<uint32_t>(stats.rejected_high_error);
+    out_stats->rejected_similar = static_cast<uint32_t>(stats.rejected_similar);
+    out_stats->angular_coverage = stats.angular_coverage;
+    out_stats->mean_registration_error = stats.mean_registration_error;
+    clearError(impl);
+    return 1;
 }
 
 int PC_CollectorSetVoxelSize(PC_PipelineHandle handle, float voxel_size_mm) {

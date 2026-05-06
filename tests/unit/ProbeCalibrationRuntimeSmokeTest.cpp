@@ -1,9 +1,39 @@
 #include <QtTest/QtTest>
 
+#include <type_traits>
+
 #include <QFileInfo>
 #include <QLibrary>
 
 #include "algorithms/probe_calibration/include/probe_calibration_c_api.h"
+
+static_assert(std::is_standard_layout_v<PC_Matrix4x4f>, "PC_Matrix4x4f must remain standard layout");
+static_assert(std::is_standard_layout_v<PC_PoseSample>, "PC_PoseSample must remain standard layout");
+static_assert(std::is_standard_layout_v<PC_CalibrationResult>, "PC_CalibrationResult must remain standard layout");
+static_assert(std::is_standard_layout_v<PC_CalibrationStats>, "PC_CalibrationStats must remain standard layout");
+static_assert(sizeof(PC_Matrix4x4f) == sizeof(float) * 16, "PC_Matrix4x4f must contain 16 floats");
+static_assert(std::is_same_v<decltype(((PC_Matrix4x4f*)nullptr)->m[0]), float&>,
+    "PC_Matrix4x4f.m element type mismatch");
+static_assert(std::is_same_v<decltype(((PC_PoseSample*)nullptr)->geometry_id), uint32_t>,
+    "PC_PoseSample.geometry_id type mismatch");
+static_assert(std::is_same_v<decltype(((PC_PoseSample*)nullptr)->timestamp_us), uint64_t>,
+    "PC_PoseSample.timestamp_us type mismatch");
+static_assert(std::is_same_v<decltype(((PC_PoseSample*)nullptr)->registration_error), float>,
+    "PC_PoseSample.registration_error type mismatch");
+static_assert(std::is_same_v<decltype(((PC_PoseSample*)nullptr)->is_valid), int>,
+    "PC_PoseSample.is_valid type mismatch");
+static_assert(std::is_same_v<decltype(((PC_PoseSample*)nullptr)->transform), PC_Matrix4x4f>,
+    "PC_PoseSample.transform type mismatch");
+static_assert(std::is_same_v<decltype(((PC_CalibrationResult*)nullptr)->tip_offset), PC_Vector3f>,
+    "PC_CalibrationResult.tip_offset type mismatch");
+static_assert(std::is_same_v<decltype(((PC_CalibrationResult*)nullptr)->residual_error), float>,
+    "PC_CalibrationResult.residual_error type mismatch");
+static_assert(std::is_same_v<decltype(((PC_CalibrationResult*)nullptr)->geometry_id), uint32_t>,
+    "PC_CalibrationResult.geometry_id type mismatch");
+static_assert(std::is_same_v<decltype(((PC_CalibrationResult*)nullptr)->num_poses_used), uint32_t>,
+    "PC_CalibrationResult.num_poses_used type mismatch");
+static_assert(std::is_same_v<decltype(((PC_CalibrationResult*)nullptr)->is_valid), int>,
+    "PC_CalibrationResult.is_valid type mismatch");
 
 class ProbeCalibrationRuntimeSmokeTest : public QObject
 {
@@ -12,6 +42,7 @@ class ProbeCalibrationRuntimeSmokeTest : public QObject
 private slots:
     void runtime_output_contains_probe_calibration_and_sdk_dlls();
     void probe_calibration_runtime_exports_core_c_api_and_collector_path();
+    void probe_calibration_runtime_exports_unified_tracking_calibration_contract();
 };
 
 void ProbeCalibrationRuntimeSmokeTest::runtime_output_contains_probe_calibration_and_sdk_dlls()
@@ -63,6 +94,32 @@ void ProbeCalibrationRuntimeSmokeTest::probe_calibration_runtime_exports_core_c_
     QVERIFY2(superPointCount >= 1u, "ProbeCalibration collector path did not produce any fused points");
 
     destroyPipeline(pipeline);
+    library.unload();
+}
+
+void ProbeCalibrationRuntimeSmokeTest::probe_calibration_runtime_exports_unified_tracking_calibration_contract()
+{
+    const QString runtimeDllPath = QCoreApplication::applicationDirPath() + QStringLiteral("/ProbeCalibration.dll");
+    QLibrary library(runtimeDllPath);
+    QVERIFY2(library.load(), qPrintable(library.errorString()));
+
+    auto configureGeometry = reinterpret_cast<int (*)(PC_PipelineHandle, const char*, uint32_t)>(
+        library.resolve("PC_ConfigureGeometry"));
+    auto resetCalibrationSession = reinterpret_cast<int (*)(PC_PipelineHandle)>(
+        library.resolve("PC_ResetCalibrationSession"));
+    auto addPoseSample = reinterpret_cast<int (*)(PC_PipelineHandle, const PC_PoseSample*)>(
+        library.resolve("PC_AddPoseSample"));
+    auto getCalibrationResult = reinterpret_cast<int (*)(PC_PipelineHandle, PC_CalibrationResult*)>(
+        library.resolve("PC_GetCalibrationResult"));
+    auto getCalibrationStats = reinterpret_cast<int (*)(PC_PipelineHandle, PC_CalibrationStats*)>(
+        library.resolve("PC_GetCalibrationStats"));
+
+    QVERIFY(configureGeometry);
+    QVERIFY(resetCalibrationSession);
+    QVERIFY(addPoseSample);
+    QVERIFY(getCalibrationResult);
+    QVERIFY(getCalibrationStats);
+
     library.unload();
 }
 

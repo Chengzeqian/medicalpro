@@ -17,13 +17,11 @@
  */
 
 #include "types.h"
-#include "atracsys_tracker.h"
 #include "calibration_recorder.h"
 #include "tip_calibration_solver.h"
 #include <functional>
 #include <mutex>
 #include <atomic>
-#include <memory>
 #include <string>
 
 namespace ProbeCalib {
@@ -135,6 +133,11 @@ public:
      */
     uint64_t getTotalComputed() const { return total_computed_.load(); }
 
+    /**
+     * Clear calibration and latest tip state.
+     */
+    void reset();
+
 private:
     // Tip offset calibration
     Vector3f tip_offset_;
@@ -152,7 +155,7 @@ private:
 
 /**
  * @class ProbeTrackingPipeline
- * @brief High-level class that combines tracker, recorder, solver, and transform
+ * @brief High-level class that manages geometry, calibration session, and transforms
  *
  * This provides a simple interface for the complete probe calibration workflow.
  */
@@ -173,6 +176,14 @@ public:
     bool initialize(const std::string& geometry_path);
 
     /**
+     * Configure geometry metadata for external pose sample intake.
+     * @param geometry_path Path to the probe geometry .ini file
+     * @param geometry_id Target geometry ID for filtering
+     * @return true if successful
+     */
+    bool configureGeometry(const std::string& geometry_path, uint32_t geometry_id);
+
+    /**
      * Shutdown the pipeline.
      */
     void shutdown();
@@ -188,15 +199,31 @@ public:
     void startCalibration();
 
     /**
+     * Clear recorder state and calibration result while preserving geometry config.
+     */
+    void resetCalibrationSession();
+
+    /**
      * Stop calibration recording and compute tip offset.
      * @return true if calibration succeeded
      */
     bool finishCalibration();
 
     /**
+     * Feed an externally produced pose sample into the pipeline.
+     * @return true if the sample was accepted by the recorder
+     */
+    bool addPoseSample(const PoseData& pose);
+
+    /**
      * Get calibration result.
      */
     CalibrationResult getCalibrationResult() const { return calibration_result_; }
+
+    /**
+     * Get recording statistics for the current calibration session.
+     */
+    RecordingStats getRecordingStats() const;
 
     /**
      * Save calibration to file.
@@ -230,22 +257,26 @@ public:
 
     bool isInitialized() const { return is_initialized_; }
     bool isCalibrated() const { return transform_.isCalibrated(); }
-    bool isTracking() const { return tracker_ ? tracker_->isTracking() : false; }
+    bool isTracking() const { return recorder_.isRecording(); }
     CalibrationState getCalibrationState() const { return recorder_.getState(); }
+    bool hasGeometryConfigured() const { return has_geometry_configured_; }
+    uint32_t geometryId() const { return geometry_id_; }
+    std::string geometryPath() const { return geometry_path_; }
 
 private:
-    // Internal callback for tracker poses
+    // Internal helper for shared pose handling.
     void onPoseReceived(const PoseData& pose);
 
     // Components
-    std::unique_ptr<AtracsysTracker> tracker_;
     CalibrationRecorder recorder_;
     TipCalibrationSolver solver_;
     RealtimeTransform transform_;
 
     // State
     bool is_initialized_;
+    bool has_geometry_configured_;
     uint32_t geometry_id_;
+    std::string geometry_path_;
     CalibrationResult calibration_result_;
 };
 
