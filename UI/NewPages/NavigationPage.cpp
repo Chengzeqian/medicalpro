@@ -28,11 +28,18 @@
 #include "Plugins/PointRegistration/RegistrationWorkflow.h"
 #include "UI/Dialogs/InstrumentPreviewDialog.h"
 
-#include <QFileDialog>
 #include <QCoreApplication>
+#include <QFileDialog>
+#include <QFrame>
 #include <QGroupBox>
+#include <QHBoxLayout>
+#include <QHash>
 #include <QLabel>
+#include <QLayoutItem>
 #include <QPushButton>
+#include <QSizePolicy>
+#include <QStyle>
+#include <QTabBar>
 #include <QVBoxLayout>
 #include <QMouseEvent>
 #include <QDir>
@@ -117,6 +124,7 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
 {
     ui->setupUi(this);
     setObjectName("NavigationPage");
+    setupNavigationWorkspaceShell();
 
     if (!m_serviceAccess) {
         m_ownedServiceAdapter = new LegacyNavigationPageServiceAdapter();
@@ -300,6 +308,323 @@ NavigationPageNew::~NavigationPageNew()
     delete m_ownedServiceAdapter;
 }
 
+QPushButton* NavigationPageNew::createWorkflowRailButton(const QString& text, AnkleWorkflowStage stage)
+{
+    auto* button = new QPushButton(text, this);
+    button->setCursor(Qt::PointingHandCursor);
+    button->setCheckable(true);
+    button->setMinimumHeight(44);
+    button->setProperty("workflowState", QStringLiteral("idle"));
+    connect(button, &QPushButton::clicked, this, [this, stage]() {
+        setWorkflowStage(stage);
+    });
+    m_workflowRailButtons.insert(stage, button);
+    return button;
+}
+
+QLabel* NavigationPageNew::createNavigationStatusValueLabel(const QString& objectName, const QString& initialText)
+{
+    auto* label = new QLabel(initialText, this);
+    label->setObjectName(objectName);
+    label->setWordWrap(true);
+    label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    label->setProperty("statusTone", QStringLiteral("warning"));
+    return label;
+}
+
+QFrame* NavigationPageNew::createNavigationStatusCard(const QString& title, QWidget* valueWidget)
+{
+    auto* card = new QFrame(this);
+    card->setObjectName(QStringLiteral("navigationStatusCard"));
+    card->setFrameShape(QFrame::StyledPanel);
+
+    auto* layout = new QVBoxLayout(card);
+    layout->setContentsMargins(14, 12, 14, 12);
+    layout->setSpacing(8);
+
+    auto* titleLabel = new QLabel(title, card);
+    titleLabel->setObjectName(QStringLiteral("navigationStatusCardTitleLabel"));
+    layout->addWidget(titleLabel);
+    layout->addWidget(valueWidget);
+
+    return card;
+}
+
+void NavigationPageNew::setupNavigationWorkspaceShell()
+{
+    if (!ui || !ui->mainLayout || !ui->tabWidget) {
+        return;
+    }
+
+    setStyleSheet(QString());
+    if (ui->tabWidget->tabBar()) {
+        ui->tabWidget->tabBar()->hide();
+    }
+    ui->tabWidget->setDocumentMode(true);
+
+    const QList<QWidget*> legacyStyledWidgets = {
+        ui->planningViewFrame,
+        ui->planningViewPlaceholder,
+        ui->planningControlPanel,
+        ui->registrationViewFrame,
+        ui->registrationViewPlaceholder,
+        ui->registrationControlPanel,
+        ui->registrationPointsTable,
+        ui->deletePointButton,
+        ui->clearAllPointsButton,
+        ui->axialViewFrame,
+        ui->sagittalViewFrame,
+        ui->coronalViewFrame,
+        ui->view3DFrame,
+        ui->axialLabel,
+        ui->sagittalLabel,
+        ui->coronalLabel,
+        ui->view3DLabel,
+        ui->navigationControlPanel,
+        ui->trackerStatusLabel,
+        ui->connectTrackerButton,
+        ui->disconnectTrackerButton,
+        ui->xValueLabel,
+        ui->yValueLabel,
+        ui->zValueLabel,
+        ui->accuracyValueLabel,
+        ui->regErrorLabel
+    };
+    for (auto* widget : legacyStyledWidgets) {
+        if (widget) {
+            widget->setStyleSheet(QString());
+        }
+    }
+
+    ui->backButton->setText(QStringLiteral("返回病例工作台"));
+    ui->titleLabel->setText(QStringLiteral("手术导航工作区"));
+    ui->patientInfoLabel->setMinimumWidth(260);
+    ui->patientInfoLabel->setWordWrap(true);
+
+    QLayoutItem* headerItem = ui->mainLayout->takeAt(0);
+    QLayoutItem* tabItem = ui->mainLayout->takeAt(0);
+    auto* headerLayout = headerItem ? qobject_cast<QHBoxLayout*>(headerItem->layout()) : nullptr;
+    delete headerItem;
+    delete tabItem;
+
+    auto* headerFrame = new QFrame(this);
+    headerFrame->setObjectName(QStringLiteral("navigationHeaderFrame"));
+    auto* headerFrameLayout = new QHBoxLayout(headerFrame);
+    headerFrameLayout->setContentsMargins(24, 20, 24, 20);
+    headerFrameLayout->setSpacing(18);
+
+    if (headerLayout) {
+        while (QLayoutItem* child = headerLayout->takeAt(0)) {
+            delete child;
+        }
+        delete headerLayout;
+    }
+    ui->patientInfoLabel->setParent(headerFrame);
+    ui->patientInfoLabel->hide();
+
+    ui->backButton->setParent(headerFrame);
+    headerFrameLayout->addWidget(ui->backButton, 0, Qt::AlignTop);
+
+    auto* titleContainer = new QWidget(headerFrame);
+    auto* titleLayout = new QVBoxLayout(titleContainer);
+    titleLayout->setContentsMargins(0, 0, 0, 0);
+    titleLayout->setSpacing(6);
+
+    auto* eyebrowLabel = new QLabel(QStringLiteral("ANKLE NAVIGATION WORKSPACE"), titleContainer);
+    eyebrowLabel->setObjectName(QStringLiteral("navigationEyebrowLabel"));
+    titleLayout->addWidget(eyebrowLabel);
+
+    ui->titleLabel->setParent(titleContainer);
+    titleLayout->addWidget(ui->titleLabel);
+
+    auto* subtitleLabel = new QLabel(
+        QStringLiteral("按准备、规划、配准、导航、评估推进当前病例。"),
+        titleContainer);
+    subtitleLabel->setObjectName(QStringLiteral("navigationSubtitleLabel"));
+    subtitleLabel->setWordWrap(true);
+    titleLayout->addWidget(subtitleLabel);
+
+    headerFrameLayout->addWidget(titleContainer, 1);
+
+    m_navigationPatientSummaryLabel = createNavigationStatusValueLabel(
+        QStringLiteral("navigationPatientSummaryLabel"),
+        QStringLiteral("患者：-"));
+    m_navigationPatientSummaryLabel->setParent(headerFrame);
+    headerFrameLayout->addWidget(m_navigationPatientSummaryLabel, 0, Qt::AlignTop);
+
+    auto* bodyFrame = new QFrame(this);
+    bodyFrame->setObjectName(QStringLiteral("navigationBodyFrame"));
+    auto* bodyLayout = new QHBoxLayout(bodyFrame);
+    bodyLayout->setContentsMargins(0, 0, 0, 0);
+    bodyLayout->setSpacing(18);
+
+    auto* workflowRail = new QFrame(bodyFrame);
+    workflowRail->setObjectName(QStringLiteral("navigationWorkflowRailFrame"));
+    workflowRail->setMinimumWidth(192);
+    workflowRail->setMaximumWidth(224);
+    auto* workflowLayout = new QVBoxLayout(workflowRail);
+    workflowLayout->setContentsMargins(16, 18, 16, 18);
+    workflowLayout->setSpacing(10);
+
+    auto* workflowTitleLabel = new QLabel(QStringLiteral("导航流程"), workflowRail);
+    workflowTitleLabel->setObjectName(QStringLiteral("navigationRailTitleLabel"));
+    workflowLayout->addWidget(workflowTitleLabel);
+
+    m_navigationStageSummaryLabel = new QLabel(QStringLiteral("当前阶段：准备"), workflowRail);
+    m_navigationStageSummaryLabel->setObjectName(QStringLiteral("navigationRailSummaryLabel"));
+    m_navigationStageSummaryLabel->setWordWrap(true);
+    workflowLayout->addWidget(m_navigationStageSummaryLabel);
+    workflowLayout->addSpacing(10);
+
+    workflowLayout->addWidget(createWorkflowRailButton(QStringLiteral("准备"), AnkleWorkflowStage::Preparation));
+    workflowLayout->addWidget(createWorkflowRailButton(QStringLiteral("规划"), AnkleWorkflowStage::Planning));
+    workflowLayout->addWidget(createWorkflowRailButton(QStringLiteral("配准"), AnkleWorkflowStage::Registration));
+    workflowLayout->addWidget(createWorkflowRailButton(QStringLiteral("导航"), AnkleWorkflowStage::Navigation));
+    workflowLayout->addWidget(createWorkflowRailButton(QStringLiteral("评估"), AnkleWorkflowStage::Evaluation));
+    workflowLayout->addStretch();
+
+    auto* workspaceFrame = new QFrame(bodyFrame);
+    workspaceFrame->setObjectName(QStringLiteral("navigationWorkspaceFrame"));
+    auto* workspaceLayout = new QVBoxLayout(workspaceFrame);
+    workspaceLayout->setContentsMargins(0, 0, 0, 0);
+    workspaceLayout->setSpacing(0);
+    ui->tabWidget->setParent(workspaceFrame);
+    workspaceLayout->addWidget(ui->tabWidget);
+
+    auto* statusRail = new QFrame(bodyFrame);
+    statusRail->setObjectName(QStringLiteral("navigationStatusRailFrame"));
+    statusRail->setMinimumWidth(264);
+    statusRail->setMaximumWidth(320);
+    auto* statusLayout = new QVBoxLayout(statusRail);
+    statusLayout->setContentsMargins(16, 18, 16, 18);
+    statusLayout->setSpacing(12);
+
+    auto* statusTitleLabel = new QLabel(QStringLiteral("运行状态"), statusRail);
+    statusTitleLabel->setObjectName(QStringLiteral("navigationStatusTitleLabel"));
+    statusLayout->addWidget(statusTitleLabel);
+
+    m_navigationCaseStatusLabel = createNavigationStatusValueLabel(
+        QStringLiteral("navigationCaseStatusLabel"),
+        QStringLiteral("未选择病例"));
+    statusLayout->addWidget(createNavigationStatusCard(QStringLiteral("当前病例"), m_navigationCaseStatusLabel));
+    statusLayout->addWidget(createNavigationStatusCard(QStringLiteral("追踪器"), ui->trackerStatusLabel));
+    statusLayout->addWidget(createNavigationStatusCard(QStringLiteral("配准误差"), ui->regErrorLabel));
+
+    auto* readinessLabel = findChild<QLabel*>(QStringLiteral("navigationReadinessLabel"));
+    if (!readinessLabel) {
+        readinessLabel = createNavigationStatusValueLabel(
+            QStringLiteral("navigationReadinessLabel"),
+            QStringLiteral("导航准入：未就绪"));
+    }
+    statusLayout->addWidget(createNavigationStatusCard(QStringLiteral("导航准入"), readinessLabel));
+
+    auto* confidenceLabel = findChild<QLabel*>(QStringLiteral("navigationConfidenceLabel"));
+    if (!confidenceLabel) {
+        confidenceLabel = createNavigationStatusValueLabel(
+            QStringLiteral("navigationConfidenceLabel"),
+            QStringLiteral("可信度评分：待评估"));
+    }
+    statusLayout->addWidget(createNavigationStatusCard(QStringLiteral("可信度"), confidenceLabel));
+
+    auto* calibrationLabel = findChild<QLabel*>(QStringLiteral("calibrationStatusLabel"));
+    if (!calibrationLabel) {
+        calibrationLabel = createNavigationStatusValueLabel(
+            QStringLiteral("calibrationStatusLabel"),
+            QStringLiteral("标定状态：待开始"));
+    }
+    statusLayout->addWidget(createNavigationStatusCard(QStringLiteral("探针标定"), calibrationLabel));
+    statusLayout->addWidget(createNavigationStatusCard(QStringLiteral("当前精度"), ui->accuracyValueLabel));
+    statusLayout->addWidget(ui->accuracyBar);
+    statusLayout->addStretch();
+
+    bodyLayout->addWidget(workflowRail);
+    bodyLayout->addWidget(workspaceFrame, 1);
+    bodyLayout->addWidget(statusRail);
+
+    ui->mainLayout->addWidget(headerFrame);
+    ui->mainLayout->addWidget(bodyFrame, 1);
+    ui->mainLayout->setContentsMargins(32, 26, 32, 26);
+    ui->mainLayout->setSpacing(18);
+
+    syncWorkflowRailState();
+    syncNavigationStatusSummary();
+}
+
+void NavigationPageNew::polishNavigationWidget(QWidget* widget)
+{
+    if (!widget) {
+        return;
+    }
+    widget->style()->unpolish(widget);
+    widget->style()->polish(widget);
+    widget->update();
+}
+
+void NavigationPageNew::setStatusTone(QWidget* widget, const QString& tone)
+{
+    if (!widget) {
+        return;
+    }
+    widget->setProperty("statusTone", tone);
+    polishNavigationWidget(widget);
+}
+
+void NavigationPageNew::syncWorkflowRailState()
+{
+    const AnkleWorkflowStage currentStage = m_workflowContext
+        ? m_workflowContext->currentStage()
+        : AnkleWorkflowStage::Preparation;
+    const QHash<AnkleWorkflowStage, QString> stageNames = {
+        { AnkleWorkflowStage::Preparation, QStringLiteral("准备") },
+        { AnkleWorkflowStage::Planning, QStringLiteral("规划") },
+        { AnkleWorkflowStage::Registration, QStringLiteral("配准") },
+        { AnkleWorkflowStage::Navigation, QStringLiteral("导航") },
+        { AnkleWorkflowStage::Evaluation, QStringLiteral("评估") }
+    };
+
+    for (auto it = m_workflowRailButtons.begin(); it != m_workflowRailButtons.end(); ++it) {
+        auto* button = it.value().data();
+        if (!button) {
+            continue;
+        }
+        const bool active = it.key() == currentStage;
+        button->setChecked(active);
+        button->setProperty("workflowState", active ? QStringLiteral("active") : QStringLiteral("idle"));
+        polishNavigationWidget(button);
+    }
+
+    if (m_navigationStageSummaryLabel) {
+        m_navigationStageSummaryLabel->setText(
+            QStringLiteral("当前阶段：%1").arg(stageNames.value(currentStage)));
+    }
+}
+
+void NavigationPageNew::syncNavigationStatusSummary()
+{
+    if (!m_workflowContext) {
+        return;
+    }
+
+    const QString summary = m_workflowContext->patientSummary();
+    if (ui && ui->patientInfoLabel) {
+        ui->patientInfoLabel->setText(summary);
+    }
+    if (m_navigationPatientSummaryLabel) {
+        m_navigationPatientSummaryLabel->setText(summary);
+        setStatusTone(m_navigationPatientSummaryLabel, summary.contains(QStringLiteral("-"))
+            ? QStringLiteral("warning")
+            : QStringLiteral("ok"));
+    }
+    if (m_navigationCaseStatusLabel) {
+        m_navigationCaseStatusLabel->setText(summary.contains(QStringLiteral("-"))
+            ? QStringLiteral("未选择病例")
+            : summary);
+        setStatusTone(m_navigationCaseStatusLabel, summary.contains(QStringLiteral("-"))
+            ? QStringLiteral("warning")
+            : QStringLiteral("ok"));
+    }
+}
+
 void NavigationPageNew::onActivated()
 {
     BasePage::onActivated();
@@ -409,6 +734,7 @@ void NavigationPageNew::setWorkflowStage(AnkleWorkflowStage stage)
         ui->tabWidget->setCurrentWidget(ui->evaluationTab);
         break;
     }
+    syncWorkflowRailState();
 }
 
 QString NavigationPageNew::evaluationCasesRoot() const
@@ -437,7 +763,6 @@ void NavigationPageNew::refreshEvaluationSummary()
         label->setObjectName(labelName);
         label->setWordWrap(true);
         label->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        label->setStyleSheet(QStringLiteral("color: #ecf0f1; font-size: 14px;"));
         layout->addWidget(label);
         ui->evaluationTabLayout->addWidget(group);
         return label;
@@ -449,7 +774,6 @@ void NavigationPageNew::refreshEvaluationSummary()
         headerLabel->setObjectName(QStringLiteral("evaluationHeaderLabel"));
         headerLabel->setWordWrap(true);
         headerLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        headerLabel->setStyleSheet(QStringLiteral("color: #ffffff; font-size: 18px; font-weight: bold;"));
         ui->evaluationTabLayout->insertWidget(0, headerLabel);
     }
 
@@ -500,6 +824,7 @@ void NavigationPageNew::refreshPatientInfoLabel()
     }
 
     ui->patientInfoLabel->setText(m_workflowContext->patientSummary());
+    syncNavigationStatusSummary();
 }
 
 InstrumentManagementService* NavigationPageNew::instrumentManagementService() const
@@ -1640,12 +1965,10 @@ void NavigationPageNew::updateTrackerStatus(bool connected)
 
     if (connected) {
         ui->trackerStatusLabel->setText("已连接");
-        ui->trackerStatusLabel->setStyleSheet("color: #27ae60; font-weight: bold;");
         ui->connectTrackerButton->setEnabled(false);
         ui->disconnectTrackerButton->setEnabled(true);
     } else {
         ui->trackerStatusLabel->setText("未连接");
-        ui->trackerStatusLabel->setStyleSheet("color: #c0392b; font-weight: bold;");
         ui->connectTrackerButton->setEnabled(true);
         ui->disconnectTrackerButton->setEnabled(false);
 
@@ -1654,6 +1977,7 @@ void NavigationPageNew::updateTrackerStatus(bool connected)
         ui->pauseNavigationButton->setEnabled(false);
     }
 
+    setStatusTone(ui->trackerStatusLabel, connected ? QStringLiteral("ok") : QStringLiteral("danger"));
     updateProbeCalibrationUi();
     refreshNavigationConfidenceState();
 }
@@ -1708,11 +2032,11 @@ void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
 
         if (navigationReadinessLabel) {
             navigationReadinessLabel->setText(QStringLiteral("导航准入：未就绪"));
-            navigationReadinessLabel->setStyleSheet(QStringLiteral("color: #f39c12; font-weight: bold;"));
+            setStatusTone(navigationReadinessLabel, QStringLiteral("warning"));
         }
         if (navigationConfidenceLabel) {
             navigationConfidenceLabel->setText(QStringLiteral("可信度评分：待评估"));
-            navigationConfidenceLabel->setStyleSheet(QStringLiteral("color: #95a5a6;"));
+            setStatusTone(navigationConfidenceLabel, QStringLiteral("warning"));
         }
         if (ui && ui->startNavigationButton && !m_navigationActive) {
             ui->startNavigationButton->setEnabled(enableStartButton);
@@ -1771,8 +2095,9 @@ void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
         navigationReadinessLabel->setText(m_lastConfidence.allowNavigation
             ? QStringLiteral("导航准入：允许进入导航")
             : QStringLiteral("导航准入：暂不允许进入导航"));
-        navigationReadinessLabel->setStyleSheet(QStringLiteral("color: %1; font-weight: bold;")
-            .arg(m_lastConfidence.allowNavigation ? QStringLiteral("#27ae60") : QStringLiteral("#c0392b")));
+        setStatusTone(navigationReadinessLabel, m_lastConfidence.allowNavigation
+            ? QStringLiteral("ok")
+            : QStringLiteral("danger"));
     }
 
     if (navigationConfidenceLabel) {
@@ -1782,7 +2107,9 @@ void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
         navigationConfidenceLabel->setText(QStringLiteral("可信度评分：%1 | 建议：%2")
                                                .arg(m_lastConfidence.score, 0, 'f', 2)
                                                .arg(recommendationText));
-        navigationConfidenceLabel->setStyleSheet(QStringLiteral("color: #ecf0f1;"));
+        setStatusTone(navigationConfidenceLabel, m_lastConfidence.allowNavigation
+            ? QStringLiteral("ok")
+            : QStringLiteral("warning"));
     }
 
     if (ui && ui->startNavigationButton && !m_navigationActive) {
@@ -1861,11 +2188,13 @@ void NavigationPageNew::updateProbeCalibrationUi()
 
     if (!trackingReady) {
         calibrationStatusLabel->setText(QStringLiteral("标定状态：请先连接追踪器械。"));
+        setStatusTone(calibrationStatusLabel, QStringLiteral("warning"));
         return;
     }
 
     if (!hasActiveCalibration) {
         calibrationStatusLabel->setText(QStringLiteral("标定状态：待开始"));
+        setStatusTone(calibrationStatusLabel, QStringLiteral("warning"));
         return;
     }
 
@@ -1873,6 +2202,7 @@ void NavigationPageNew::updateProbeCalibrationUi()
                                         .arg(calibrationStateText)
                                         .arg(m_activeCalibrationCollectedPoints)
                                         .arg(m_activeCalibrationRequiredPoints));
+    setStatusTone(calibrationStatusLabel, canFinishCalibration ? QStringLiteral("ok") : QStringLiteral("warning"));
 }
 
 void NavigationPageNew::updatePositionDisplay(double x, double y, double z)
@@ -1886,18 +2216,12 @@ void NavigationPageNew::updateAccuracyDisplay(double accuracy)
 {
     ui->accuracyValueLabel->setText(QString("%1 mm").arg(accuracy, 0, 'f', 2));
 
-    // 鏍规嵁绮惧害璁剧疆棰滆壊
-    if (accuracy <= 1.0) {
-        ui->accuracyValueLabel->setStyleSheet("color: #27ae60; font-weight: bold; font-size: 16px;");
-    } else if (accuracy <= 2.0) {
-        ui->accuracyValueLabel->setStyleSheet("color: #f39c12; font-weight: bold; font-size: 16px;");
-    } else {
-        ui->accuracyValueLabel->setStyleSheet("color: #e74c3c; font-weight: bold; font-size: 16px;");
-    }
-
     // 鏇存柊杩涘害鏉★紙鍋囪5mm鏄渶澶ц宸級
     int progress = qBound(0, static_cast<int>((5.0 - accuracy) / 5.0 * 100), 100);
     ui->accuracyBar->setValue(progress);
+    setStatusTone(
+        ui->accuracyValueLabel,
+        accuracy < 1.0 ? QStringLiteral("ok") : (accuracy < 2.0 ? QStringLiteral("warning") : QStringLiteral("danger")));
 }
 
 // ========== 鍒嗗壊浠诲姟鍥炶皟 ==========
@@ -2294,6 +2618,7 @@ void NavigationPageNew::updateRegistrationResultDisplay(const PointRegistrationR
 {
     if (!result.success) {
         ui->regErrorLabel->setText("--");
+        setStatusTone(ui->regErrorLabel, QStringLiteral("warning"));
         return;
     }
 
@@ -2302,16 +2627,9 @@ void NavigationPageNew::updateRegistrationResultDisplay(const PointRegistrationR
     // 鏇存柊閰嶅噯璇樊鏄剧ず
     ui->regErrorLabel->setText(QString("%1 mm").arg(result.rmsError, 0, 'f', 2));
 
-    // 鏍规嵁璇樊璁剧疆棰滆壊
-    QString color;
-    if (result.rmsError < 1.0) {
-        color = "#27ae60";  // 缁胯壊 - 浼樼
-    } else if (result.rmsError < 2.0) {
-        color = "#f39c12";  // 榛勮壊 - 鑹ソ
-    } else {
-        color = "#e74c3c";  // 绾㈣壊 - 杈冨樊
-    }
-    ui->regErrorLabel->setStyleSheet(QString("color: %1; font-weight: bold;").arg(color));
+    setStatusTone(
+        ui->regErrorLabel,
+        result.rmsError < 1.0 ? QStringLiteral("ok") : (result.rmsError < 2.0 ? QStringLiteral("warning") : QStringLiteral("danger")));
 }
 
 // ========== 閰嶅噯宸ヤ綔娴佸洖璋?==========

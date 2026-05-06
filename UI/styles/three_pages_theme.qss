@@ -2,7 +2,8 @@ QWidget#WelcomePage,
 QWidget#ModuleSelectionPage,
 QWidget#ManagementPage,
 QWidget#DashboardPage,
-QWidget#SystemSettingsPage {
+QWidget#SystemSettingsPage,
+QWidget#NavigationPage {
     background: qlineargradient(
         x1: 0, y1: 0, x2: 1, y2: 1,
         stop: 0 ${PAGE_BG_START},
@@ -16,7 +17,8 @@ QWidget#WelcomePage QLabel,
 QWidget#ModuleSelectionPage QLabel,
 QWidget#ManagementPage QLabel,
 QWidget#DashboardPage QLabel,
-QWidget#SystemSettingsPage QLabel {
+QWidget#SystemSettingsPage QLabel,
+QWidget#NavigationPage QLabel {
     color: ${TEXT_SECONDARY};
     font-size: 14px;
 }
@@ -25,7 +27,8 @@ QWidget#WelcomePage QLabel#titleLabel,
 QWidget#ModuleSelectionPage QLabel#titleLabel,
 QWidget#ManagementPage QLabel#titleLabel,
 QWidget#DashboardPage QLabel#titleLabel,
-QWidget#SystemSettingsPage QLabel#titleLabel {
+QWidget#SystemSettingsPage QLabel#titleLabel,
+QWidget#NavigationPage QLabel#titleLabel {
     color: ${TEXT_PRIMARY};
     font-size: 30px;
     font-weight: 700;
@@ -34,7 +37,8 @@ QWidget#SystemSettingsPage QLabel#titleLabel {
 QWidget#WelcomePage QLabel#subtitleLabel,
 QWidget#ModuleSelectionPage QLabel#subtitleLabel,
 QWidget#ManagementPage QLabel#subtitleLabel,
-QWidget#SystemSettingsPage QLabel#subtitleLabel {
+QWidget#SystemSettingsPage QLabel#subtitleLabel,
+QWidget#NavigationPage QLabel#subtitleLabel {
     color: ${TEXT_SECONDARY};
     font-size: 16px;
 }
@@ -55,7 +59,8 @@ QWidget#WelcomePage QPushButton,
 QWidget#ModuleSelectionPage QPushButton,
 QWidget#ManagementPage QPushButton,
 QWidget#DashboardPage QPushButton,
-QWidget#SystemSettingsPage QPushButton {
+QWidget#SystemSettingsPage QPushButton,
+QWidget#NavigationPage QPushButton {
     min-height: 42px;
     padding: 10px 20px;
     border-radius: 12px;
@@ -70,7 +75,8 @@ QWidget#WelcomePage QPushButton:hover,
 QWidget#ModuleSelectionPage QPushButton:hover,
 QWidget#ManagementPage QPushButton:hover,
 QWidget#DashboardPage QPushButton:hover,
-QWidget#SystemSettingsPage QPushButton:hover {
+QWidget#SystemSettingsPage QPushButton:hover,
+QWidget#NavigationPage QPushButton:hover {
     background-color: ${SURFACE_CARD_HOVER};
     border-color: ${ACCENT_SECONDARY};
 }
@@ -79,7 +85,8 @@ QWidget#WelcomePage QPushButton:pressed,
 QWidget#ModuleSelectionPage QPushButton:pressed,
 QWidget#ManagementPage QPushButton:pressed,
 QWidget#DashboardPage QPushButton:pressed,
-QWidget#SystemSettingsPage QPushButton:pressed {
+QWidget#SystemSettingsPage QPushButton:pressed,
+QWidget#NavigationPage QPushButton:pressed {
     padding-top: 11px;
     padding-bottom: 9px;
 }
@@ -110,7 +117,8 @@ QWidget#ModuleSelectionPage QPushButton#logoutButton,
 QWidget#ManagementPage QPushButton#backButton,
 QWidget#DashboardPage QPushButton#logoutButton,
 QWidget#DashboardPage QPushButton#backButton,
-QWidget#SystemSettingsPage QPushButton#backButton {
+QWidget#SystemSettingsPage QPushButton#backButton,
+QWidget#NavigationPage QPushButton#backButton {
     background-color: transparent;
     color: ${TEXT_SECONDARY};
     border-color: ${BORDER_STRONG};
@@ -121,7 +129,8 @@ QWidget#ModuleSelectionPage QPushButton#logoutButton:hover,
 QWidget#ManagementPage QPushButton#backButton:hover,
 QWidget#DashboardPage QPushButton#logoutButton:hover,
 QWidget#DashboardPage QPushButton#backButton:hover,
-QWidget#SystemSettingsPage QPushButton#backButton:hover {
+QWidget#SystemSettingsPage QPushButton#backButton:hover,
+QWidget#NavigationPage QPushButton#backButton:hover {
     color: ${TEXT_PRIMARY};
     border-color: ${ACCENT_SECONDARY};
 }
@@ -944,6 +953,211 @@ QWidget#DashboardPage QLabel#navigationCtaTitleLabel[statusTone="danger"] {
 QWidget#DashboardPage QLabel#dicomMetaLabel {
     color: ${TEXT_SECONDARY};
     font-size: 11px;
+    font-weight: 600;
+}
+
+QWidget#NavigationPage QFrame#navigationHeaderFrame,
+QWidget#NavigationPage QFrame#navigationWorkflowRailFrame,
+QWidget#NavigationPage QFrame#navigationWorkspaceFrame,
+QWidget#NavigationPage QFrame#navigationStatusRailFrame {
+    background-color: rgba(8, 18, 30, 0.88);
+    border: 1px solid rgba(124, 160, 191, 0.16);
+    border-radius: 18px;
+}
+
+QWidget#NavigationPage QFrame#navigationHeaderFrame {
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 1,
+        stop: 0 rgba(10, 25, 40, 0.96),
+        stop: 1 rgba(8, 18, 30, 0.88)
+    );
+}
+
+QWidget#NavigationPage QFrame#navigationBodyFrame {
+    background: transparent;
+    border: none;
+}
+
+QWidget#NavigationPage QFrame#navigationWorkspaceFrame {
+    background-color: rgba(7, 16, 27, 0.58);
+    border-color: rgba(124, 160, 191, 0.10);
+}
+
+QWidget#NavigationPage QLabel#navigationEyebrowLabel,
+QWidget#NavigationPage QLabel#navigationRailTitleLabel,
+QWidget#NavigationPage QLabel#navigationStatusTitleLabel {
+    color: ${ACCENT_SECONDARY};
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+QWidget#NavigationPage QLabel#titleLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 34px;
+    font-weight: 700;
+}
+
+QWidget#NavigationPage QLabel#navigationSubtitleLabel,
+QWidget#NavigationPage QLabel#navigationRailSummaryLabel,
+QWidget#NavigationPage QLabel#patientInfoLabel {
+    color: ${TEXT_SECONDARY};
+    font-size: 14px;
+}
+
+QWidget#NavigationPage QLabel#navigationPatientSummaryLabel,
+QWidget#NavigationPage QLabel#navigationCaseStatusLabel,
+QWidget#NavigationPage QLabel#trackerStatusLabel,
+QWidget#NavigationPage QLabel#regErrorLabel,
+QWidget#NavigationPage QLabel#navigationReadinessLabel,
+QWidget#NavigationPage QLabel#navigationConfidenceLabel,
+QWidget#NavigationPage QLabel#calibrationStatusLabel,
+QWidget#NavigationPage QLabel#accuracyValueLabel {
+    color: ${TEXT_PRIMARY};
+    font-size: 14px;
+    font-weight: 700;
+}
+
+QWidget#NavigationPage QPushButton[workflowState="idle"] {
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 14px;
+    background-color: rgba(8, 18, 30, 0.40);
+    border: 1px solid rgba(124, 160, 191, 0.12);
+    color: ${TEXT_SECONDARY};
+    text-align: left;
+}
+
+QWidget#NavigationPage QPushButton[workflowState="idle"]:hover {
+    background-color: rgba(11, 22, 35, 0.60);
+    border-color: rgba(124, 160, 191, 0.24);
+    color: ${TEXT_PRIMARY};
+}
+
+QWidget#NavigationPage QPushButton[workflowState="active"] {
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 14px;
+    background-color: rgba(91, 182, 255, 0.16);
+    border: 1px solid rgba(91, 182, 255, 0.34);
+    color: ${TEXT_PRIMARY};
+    text-align: left;
+}
+
+QWidget#NavigationPage QFrame#navigationStatusCard {
+    background-color: rgba(9, 19, 31, 0.70);
+    border: 1px solid rgba(124, 160, 191, 0.10);
+    border-radius: 14px;
+}
+
+QWidget#NavigationPage QLabel#navigationStatusCardTitleLabel {
+    color: ${TEXT_MUTED};
+    font-size: 12px;
+    font-weight: 700;
+}
+
+QWidget#NavigationPage QLabel[statusTone="ok"] {
+    color: ${SUCCESS};
+}
+
+QWidget#NavigationPage QLabel[statusTone="warning"] {
+    color: ${WARNING};
+}
+
+QWidget#NavigationPage QLabel[statusTone="danger"] {
+    color: ${DANGER};
+}
+
+QWidget#NavigationPage QTabWidget::pane {
+    border: none;
+    background-color: transparent;
+}
+
+QWidget#NavigationPage QTabWidget,
+QWidget#NavigationPage QTabBar {
+    background: transparent;
+    border: none;
+}
+
+QWidget#NavigationPage QGroupBox {
+    color: ${TEXT_PRIMARY};
+    font-size: 14px;
+    font-weight: 700;
+    border: 1px solid rgba(124, 160, 191, 0.12);
+    border-radius: 14px;
+    margin-top: 14px;
+    padding-top: 12px;
+    background-color: rgba(7, 16, 27, 0.42);
+}
+
+QWidget#NavigationPage QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 8px;
+    color: ${ACCENT_SECONDARY};
+}
+
+QWidget#NavigationPage QTableWidget {
+    background-color: transparent;
+    border: none;
+    gridline-color: rgba(255, 255, 255, 0.06);
+    alternate-background-color: rgba(255, 255, 255, 0.015);
+    color: ${TEXT_PRIMARY};
+    font-size: 14px;
+}
+
+QWidget#NavigationPage QTableWidget::item {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+QWidget#NavigationPage QTableWidget::item:selected {
+    background-color: rgba(91, 182, 255, 0.16);
+}
+
+QWidget#NavigationPage QHeaderView::section {
+    background-color: rgba(9, 19, 31, 0.94);
+    color: ${TEXT_MUTED};
+    padding: 8px 10px;
+    border: none;
+    border-bottom: 1px solid rgba(124, 160, 191, 0.10);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+QWidget#NavigationPage QProgressBar {
+    min-height: 8px;
+    max-height: 8px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: none;
+    border-radius: 4px;
+    color: transparent;
+}
+
+QWidget#NavigationPage QProgressBar::chunk {
+    background-color: ${ACCENT_SECONDARY};
+    border-radius: 4px;
+}
+
+QWidget#NavigationPage QFrame#planningViewFrame,
+QWidget#NavigationPage QFrame#registrationViewFrame,
+QWidget#NavigationPage QFrame#axialViewFrame,
+QWidget#NavigationPage QFrame#sagittalViewFrame,
+QWidget#NavigationPage QFrame#coronalViewFrame,
+QWidget#NavigationPage QFrame#view3DFrame {
+    background-color: rgba(4, 11, 19, 0.84);
+    border: 1px solid rgba(124, 160, 191, 0.12);
+    border-radius: 14px;
+}
+
+QWidget#NavigationPage QLabel#planningViewPlaceholder,
+QWidget#NavigationPage QLabel#registrationViewPlaceholder,
+QWidget#NavigationPage QLabel#axialLabel,
+QWidget#NavigationPage QLabel#sagittalLabel,
+QWidget#NavigationPage QLabel#coronalLabel,
+QWidget#NavigationPage QLabel#view3DLabel {
+    color: ${TEXT_MUTED};
+    font-size: 14px;
     font-weight: 600;
 }
 

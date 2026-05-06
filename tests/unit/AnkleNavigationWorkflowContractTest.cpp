@@ -24,6 +24,8 @@ private slots:
     void navigation_page_exposes_batch_evaluation_summary_export_entry();
     void navigation_page_exports_innovation_summaries_with_data_root_above_cases_directory();
     void navigation_page_uses_data_root_above_cases_directory_for_case_workspace_repository();
+    void navigation_page_uses_three_panel_workspace_shell();
+    void navigation_page_theme_includes_navigation_selectors();
 
 private:
     QString readFile(const QString& relativePath) const;
@@ -430,6 +432,37 @@ void AnkleNavigationWorkflowContractTest::navigation_page_uses_data_root_above_c
         "navigation page must derive case workspace data root above the cases directory");
     QVERIFY2(navigationSource.contains(QStringLiteral("const AnkleCaseWorkspaceRepository repository(dataRoot);")),
         "navigation page must construct AnkleCaseWorkspaceRepository with the data root, not the cases root");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_uses_three_panel_workspace_shell()
+{
+    const QString navigationHeader = readFile(QStringLiteral("UI/NewPages/NavigationPage.h"));
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+
+    QVERIFY2(navigationHeader.contains(QStringLiteral("setupNavigationWorkspaceShell")),
+        "NavigationPage must declare a setup hook for the modern workspace shell");
+    QVERIFY2(navigationHeader.contains(QStringLiteral("syncWorkflowRailState")),
+        "NavigationPage must declare a sync hook for the left workflow rail");
+    QVERIFY2(navigationSource.contains(QStringLiteral("navigationWorkflowRailFrame")),
+        "NavigationPage must create a left workflow rail frame");
+    QVERIFY2(navigationSource.contains(QStringLiteral("navigationWorkspaceFrame")),
+        "NavigationPage must create a central workspace frame");
+    QVERIFY2(navigationSource.contains(QStringLiteral("navigationStatusRailFrame")),
+        "NavigationPage must create a right status rail frame");
+    QVERIFY2(navigationSource.contains(QStringLiteral("ui->tabWidget->tabBar()->hide()")),
+        "NavigationPage must hide the old top tab bar after adding the left workflow rail");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_theme_includes_navigation_selectors()
+{
+    const QString theme = readFile(QStringLiteral("UI/styles/three_pages_theme.qss"));
+
+    QVERIFY2(theme.contains(QStringLiteral("QWidget#NavigationPage")),
+        "three page theme must include NavigationPage in the shared page selectors");
+    QVERIFY2(theme.contains(QStringLiteral("QFrame#navigationWorkflowRailFrame")),
+        "theme must style the navigation workflow rail");
+    QVERIFY2(theme.contains(QStringLiteral("QFrame#navigationStatusRailFrame")),
+        "theme must style the navigation status rail");
 }
 
 QTEST_APPLESS_MAIN(AnkleNavigationWorkflowContractTest)

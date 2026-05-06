@@ -7,6 +7,7 @@
 #include "Plugins/PointRegistration/PointRegistrationDataStructures.h"
 
 #include <QEvent>
+#include <QHash>
 #include <QMatrix4x4>
 #include <QPointer>
 #include <QTimer>
@@ -23,6 +24,10 @@ class EmbeddedVtkViewHost;
 class FourViewDisplayService;
 class InstrumentManagementService;
 class LegacyNavigationPageServiceAdapter;
+class QFrame;
+class QLabel;
+class QPushButton;
+class QVBoxLayout;
 class NavigationEvaluationController;
 class Navigation3DViewWidget;
 class NavigationPageServiceAccess;
@@ -46,6 +51,11 @@ enum class AnkleWorkflowStage
     Navigation,
     Evaluation
 };
+
+inline uint qHash(AnkleWorkflowStage stage, uint seed = 0) noexcept
+{
+    return ::qHash(static_cast<uint>(stage), seed);
+}
 
 class NavigationPageNew : public BasePage
 {
@@ -119,6 +129,14 @@ protected:
 
 private:
     void setWorkflowStage(AnkleWorkflowStage stage);
+    void setupNavigationWorkspaceShell();
+    QFrame* createNavigationStatusCard(const QString& title, QWidget* valueWidget);
+    QLabel* createNavigationStatusValueLabel(const QString& objectName, const QString& initialText);
+    QPushButton* createWorkflowRailButton(const QString& text, AnkleWorkflowStage stage);
+    void syncWorkflowRailState();
+    void syncNavigationStatusSummary();
+    void setStatusTone(QWidget* widget, const QString& tone);
+    void polishNavigationWidget(QWidget* widget);
     QString evaluationCasesRoot() const;
     void refreshEvaluationSummary();
     void loadInstruments();
@@ -169,6 +187,10 @@ private:
     std::unique_ptr<EmbeddedVtkViewHost> m_navigationVtkHost;
     std::unique_ptr<EmbeddedVtkViewHost> m_registrationVtkHost;
     std::unique_ptr<NavigationVtkBridge> m_navigationVtkBridge;
+    QHash<AnkleWorkflowStage, QPointer<QPushButton>> m_workflowRailButtons;
+    QPointer<QLabel> m_navigationPatientSummaryLabel;
+    QPointer<QLabel> m_navigationStageSummaryLabel;
+    QPointer<QLabel> m_navigationCaseStatusLabel;
     bool m_trackerConnected;
     bool m_navigationActive;
     QString m_lastDicomDirPath;
