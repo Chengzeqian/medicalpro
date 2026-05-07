@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Framework/Navigation/ankle_navigation_types.h"
+#include "UI/NewPages/Navigation/navigation_workspace_types.h"
 
 #include <QString>
 
@@ -15,3 +16,4 @@ struct NavigationEvaluationSummary
 };
 
 NavigationEvaluationSummary buildNavigationEvaluationSummary(const AnkleEvaluationSnapshot& snapshot);
+NavigationEvaluationSummary buildNavigationEvaluationSummary(const NavigationWorkspaceSnapshot& snapshot);

@@ -6,6 +6,7 @@
 
 class NavigationEvaluationController;
 class NavigationRuntimeCoordinator;
+class NavigationWorkspaceApplicationService;
 class PreparationPlanningController;
 class RegistrationController;
 
@@ -20,8 +21,10 @@ public:
         RegistrationController* registrationController,
         NavigationEvaluationController* navigationEvaluationController,
         NavigationRuntimeCoordinator* runtimeCoordinator = nullptr,
-        StageApplier stageApplier = {});
+        StageApplier stageApplier = {},
+        NavigationWorkspaceApplicationService* workspaceApplicationService = nullptr);
 
+    bool tryEnterStage(AnkleWorkflowStage stage) const;
     void enterStage(AnkleWorkflowStage stage) const;
     void handleLoadDicom() const;
     void handleComputeRegistration() const;
@@ -34,4 +37,5 @@ private:
     NavigationEvaluationController* m_navigationEvaluationController = nullptr;
     NavigationRuntimeCoordinator* m_runtimeCoordinator = nullptr;
     StageApplier m_stageApplier;
+    NavigationWorkspaceApplicationService* m_workspaceApplicationService = nullptr;
 };
