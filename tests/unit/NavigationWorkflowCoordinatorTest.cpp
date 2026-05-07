@@ -1,9 +1,12 @@
 #include <QtTest/QtTest>
 
+#include <QTemporaryDir>
+
 #include "Framework/Navigation/navigation_confidence_evaluator.h"
 #include "UI/NewPages/Navigation/navigation_workflow_coordinator.h"
 #include "UI/NewPages/Navigation/navigation_runtime_coordinator.h"
 #include "UI/NewPages/Navigation/navigation_runtime_state.h"
+#include "UI/NewPages/Navigation/navigation_workspace_application_service.h"
 #include "UI/NewPages/Navigation/preparation_planning_controller.h"
 #include "UI/NewPages/Navigation/registration_controller.h"
 #include "UI/NewPages/Navigation/navigation_evaluation_controller.h"
@@ -14,6 +17,7 @@ class NavigationWorkflowCoordinatorTest : public QObject
 
 private slots:
     void coordinator_updates_stage_and_routes_registration_start();
+    void coordinator_defers_stage_entry_to_workspace_gate();
     void registration_controller_submits_result_to_runtime_coordinator();
     void navigation_controller_reads_allow_navigation_from_runtime_coordinator();
     void coordinator_routes_navigation_start_without_entering_navigation_stage();
@@ -41,6 +45,46 @@ void NavigationWorkflowCoordinatorTest::coordinator_updates_stage_and_routes_reg
 
     QCOMPARE(context.currentStage(), AnkleWorkflowStage::Registration);
     QCOMPARE(registrationStartCount, 1);
+}
+
+void NavigationWorkflowCoordinatorTest::coordinator_defers_stage_entry_to_workspace_gate()
+{
+    QTemporaryDir tempRoot;
+    QVERIFY(tempRoot.isValid());
+
+    NavigationWorkflowContext context;
+    context.setCaseIdentity(QStringLiteral("ankle-case-401"), 401, QStringLiteral("Patient 401"));
+
+    NavigationRuntimeState runtimeState;
+    NavigationWorkspaceApplicationService workspaceApplicationService(tempRoot.path(), &runtimeState);
+    workspaceApplicationService.loadWorkspace(
+        QStringLiteral("ankle-case-401"),
+        QStringLiteral("patient-401"),
+        QStringLiteral("Patient 401"));
+
+    int registrationStartCount = 0;
+    bool stageApplied = false;
+
+    PreparationPlanningController preparationController;
+    RegistrationController registrationController({
+        .computeRegistration = [&registrationStartCount]() { ++registrationStartCount; }
+    });
+    NavigationEvaluationController navigationController;
+
+    NavigationWorkflowCoordinator coordinator(
+        &context,
+        &preparationController,
+        &registrationController,
+        &navigationController,
+        nullptr,
+        [&stageApplied](AnkleWorkflowStage) { stageApplied = true; },
+        &workspaceApplicationService);
+
+    coordinator.handleComputeRegistration();
+
+    QCOMPARE(context.currentStage(), AnkleWorkflowStage::Preparation);
+    QCOMPARE(registrationStartCount, 0);
+    QVERIFY(!stageApplied);
 }
 
 void NavigationWorkflowCoordinatorTest::registration_controller_submits_result_to_runtime_coordinator()

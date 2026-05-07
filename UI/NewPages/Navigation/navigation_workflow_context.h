@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UI/NewPages/NavigationPage.h"
+#include "UI/NewPages/Navigation/navigation_workflow_stage.h"
 
 #include <QString>
 

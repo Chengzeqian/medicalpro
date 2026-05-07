@@ -34,12 +34,18 @@ set(NEWPAGES_HEADERS
     NavigationPage.h
     Navigation/navigation_evaluation_controller.h
     Navigation/navigation_evaluation_summary_formatter.h
+    Navigation/navigation_registration_snapshot_utils.h
+    Navigation/navigation_workspace_application_service.h
+    Navigation/navigation_workspace_ui_binder.h
     Navigation/navigation_runtime_coordinator.h
     Navigation/navigation_runtime_state.h
     Navigation/navigation_vtk_bridge.h
     Navigation/navigation_workflow_coordinator.h
     Navigation/navigation_service_bundle.h
     Navigation/navigation_workflow_context.h
+    Navigation/navigation_workflow_stage.h
+    Navigation/navigation_workspace_snapshot_store.h
+    Navigation/navigation_workspace_types.h
     Navigation/preparation_planning_controller.h
     Navigation/registration_controller.h
     PlatformDiagnosticsPage.h
@@ -61,12 +67,15 @@ set(NEWPAGES_SOURCES
     NavigationPage.cpp
     Navigation/navigation_evaluation_controller.cpp
     Navigation/navigation_evaluation_summary_formatter.cpp
+    Navigation/navigation_workspace_application_service.cpp
+    Navigation/navigation_workspace_ui_binder.cpp
     Navigation/navigation_runtime_coordinator.cpp
     Navigation/navigation_runtime_state.cpp
     Navigation/navigation_vtk_bridge.cpp
     Navigation/navigation_workflow_coordinator.cpp
     Navigation/navigation_service_bundle.cpp
     Navigation/navigation_workflow_context.cpp
+    Navigation/navigation_workspace_snapshot_store.cpp
     Navigation/preparation_planning_controller.cpp
     Navigation/registration_controller.cpp
     PlatformDiagnosticsPage.cpp

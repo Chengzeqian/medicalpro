@@ -2,6 +2,7 @@
 
 #include "UI/NewPages/Navigation/navigation_evaluation_controller.h"
 #include "UI/NewPages/Navigation/navigation_runtime_coordinator.h"
+#include "UI/NewPages/Navigation/navigation_workspace_application_service.h"
 #include "UI/NewPages/Navigation/preparation_planning_controller.h"
 #include "UI/NewPages/Navigation/registration_controller.h"
 
@@ -11,14 +12,32 @@ NavigationWorkflowCoordinator::NavigationWorkflowCoordinator(
     RegistrationController* registrationController,
     NavigationEvaluationController* navigationEvaluationController,
     NavigationRuntimeCoordinator* runtimeCoordinator,
-    StageApplier stageApplier)
+    StageApplier stageApplier,
+    NavigationWorkspaceApplicationService* workspaceApplicationService)
     : m_context(context)
     , m_preparationPlanningController(preparationPlanningController)
     , m_registrationController(registrationController)
     , m_navigationEvaluationController(navigationEvaluationController)
     , m_runtimeCoordinator(runtimeCoordinator)
     , m_stageApplier(std::move(stageApplier))
+    , m_workspaceApplicationService(workspaceApplicationService)
 {
+}
+
+bool NavigationWorkflowCoordinator::tryEnterStage(AnkleWorkflowStage stage) const
+{
+    if (!m_workspaceApplicationService) {
+        enterStage(stage);
+        return true;
+    }
+
+    const NavigationStageGate gate = m_workspaceApplicationService->evaluateStageGate(stage);
+    if (!gate.allowed) {
+        return false;
+    }
+
+    enterStage(stage);
+    return true;
 }
 
 void NavigationWorkflowCoordinator::enterStage(AnkleWorkflowStage stage) const
@@ -34,7 +53,10 @@ void NavigationWorkflowCoordinator::enterStage(AnkleWorkflowStage stage) const
 
 void NavigationWorkflowCoordinator::handleLoadDicom() const
 {
-    enterStage(AnkleWorkflowStage::Planning);
+    if (!tryEnterStage(AnkleWorkflowStage::Planning)) {
+        return;
+    }
+
     if (m_preparationPlanningController) {
         m_preparationPlanningController->loadDicom();
     }
@@ -42,7 +64,10 @@ void NavigationWorkflowCoordinator::handleLoadDicom() const
 
 void NavigationWorkflowCoordinator::handleComputeRegistration() const
 {
-    enterStage(AnkleWorkflowStage::Registration);
+    if (!tryEnterStage(AnkleWorkflowStage::Registration)) {
+        return;
+    }
+
     if (m_registrationController) {
         m_registrationController->computeRegistration();
     }

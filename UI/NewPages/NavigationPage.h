@@ -5,6 +5,8 @@
 #include "PageIndex.h"
 #include "Framework/Navigation/navigation_confidence_evaluator.h"
 #include "Plugins/PointRegistration/PointRegistrationDataStructures.h"
+#include "UI/NewPages/Navigation/navigation_workflow_stage.h"
+// enum class AnkleWorkflowStage declared in navigation_workflow_stage.h
 
 #include <QEvent>
 #include <QHash>
@@ -35,6 +37,8 @@ class NavigationRuntimeCoordinator;
 class NavigationRuntimeState;
 class NavigationServiceBundle;
 class NavigationVtkBridge;
+class NavigationWorkspaceApplicationService;
+class NavigationWorkspaceUiBinder;
 class NavigationWorkflowCoordinator;
 class NavigationWorkflowContext;
 class OpticalTrackingService;
@@ -42,20 +46,6 @@ class PointRegistrationService;
 class PreparationPlanningController;
 class RegistrationWorkflow;
 class RegistrationController;
-
-enum class AnkleWorkflowStage
-{
-    Preparation,
-    Planning,
-    Registration,
-    Navigation,
-    Evaluation
-};
-
-inline uint qHash(AnkleWorkflowStage stage, uint seed = 0) noexcept
-{
-    return ::qHash(static_cast<uint>(stage), seed);
-}
 
 class NavigationPageNew : public BasePage
 {
@@ -151,6 +141,8 @@ private:
     void embedRegistrationVTKWidget();
     void updateRegistrationPointsList();
     void updateRegistrationResultDisplay(const PointRegistrationResult& result);
+    void restoreRegistrationSnapshotState();
+    void restoreNavigationSnapshotState();
     bool ensurePointRegistrationService(bool tryStartPlugin = true);
     void refreshPatientInfoLabel();
     InstrumentManagementService* instrumentManagementService() const;
@@ -167,6 +159,7 @@ private:
     void cancelProbeCalibration();
     void updateProbeCalibrationUi();
     void refreshNavigationConfidenceState(bool showWarnings = false);
+    void refreshStageGateUi();
     void persistEvaluationReportSnapshot(bool exportMetricsCsv = false);
     void performLoadDicom();
     void performComputeRegistration();
@@ -182,6 +175,8 @@ private:
     std::unique_ptr<NavigationEvaluationController> m_navigationEvaluationController;
     std::unique_ptr<NavigationRuntimeState> m_runtimeState;
     std::unique_ptr<NavigationRuntimeCoordinator> m_runtimeCoordinator;
+    std::unique_ptr<NavigationWorkspaceApplicationService> m_workspaceApplicationService;
+    std::unique_ptr<NavigationWorkspaceUiBinder> m_workspaceUiBinder;
     std::unique_ptr<NavigationWorkflowCoordinator> m_workflowCoordinator;
     std::unique_ptr<EmbeddedVtkViewHost> m_planningVtkHost;
     std::unique_ptr<EmbeddedVtkViewHost> m_navigationVtkHost;
