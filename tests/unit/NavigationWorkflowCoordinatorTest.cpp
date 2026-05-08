@@ -22,6 +22,7 @@ private slots:
     void navigation_controller_reads_allow_navigation_from_runtime_coordinator();
     void coordinator_routes_navigation_start_without_entering_navigation_stage();
     void coordinator_does_not_preemptively_block_navigation_when_runtime_gate_is_stale();
+    void registration_controller_exposes_per_bone_results_and_fused_navigation_space_ready();
 };
 
 void NavigationWorkflowCoordinatorTest::coordinator_updates_stage_and_routes_registration_start()
@@ -186,6 +187,47 @@ void NavigationWorkflowCoordinatorTest::coordinator_does_not_preemptively_block_
 
     QCOMPARE(context.currentStage(), AnkleWorkflowStage::Preparation);
     QCOMPARE(navigationStartCount, 1);
+}
+
+void NavigationWorkflowCoordinatorTest::registration_controller_exposes_per_bone_results_and_fused_navigation_space_ready()
+{
+    int computeCount = 0;
+
+    QList<PointRegistrationResult> perBone;
+
+    PointRegistrationResult tibia;
+    tibia.success = true;
+    tibia.rmsError = 0.61;
+    tibia.pointCount = 6;
+    tibia.metrics.insert(QStringLiteral("bone_asset_id"), QStringLiteral("tibia"));
+    perBone.append(tibia);
+
+    PointRegistrationResult talus;
+    talus.success = true;
+    talus.rmsError = 0.44;
+    talus.pointCount = 5;
+    talus.metrics.insert(QStringLiteral("bone_asset_id"), QStringLiteral("talus"));
+    perBone.append(talus);
+
+    RegistrationController::Actions actions;
+    actions.computeRegistration = [&computeCount]() { ++computeCount; };
+    actions.resolvePerBoneRegistrationResults = [perBone]() { return perBone; };
+    actions.resolveFusedNavigationSpacePath = []() {
+        return QStringLiteral("registration/fused_navigation_space.json");
+    };
+    actions.resolveFusedCoverageScore = []() { return 0.82; };
+
+    RegistrationController controller(actions);
+
+    const NavigationWorkspaceRegistrationState state = controller.computePerBoneRegistration();
+
+    QCOMPARE(computeCount, 1);
+    QCOMPARE(state.perBoneResults.size(), 2);
+    QCOMPARE(state.fusedNavigationSpaceReady, true);
+    QCOMPARE(state.fusedNavigationSpacePath, QStringLiteral("registration/fused_navigation_space.json"));
+    QVERIFY(state.fusionBlockingReasons.isEmpty());
+    QCOMPARE(state.perBoneResults.first().boneAssetId, QStringLiteral("tibia"));
+    QCOMPARE(state.perBoneResults.last().boneAssetId, QStringLiteral("talus"));
 }
 
 QTEST_APPLESS_MAIN(NavigationWorkflowCoordinatorTest)
