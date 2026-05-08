@@ -25,21 +25,34 @@ NavigationWorkspacePlanningState PreparationPlanningController::currentPlanningS
 }
 
 NavigationWorkspacePreparationState PreparationPlanningController::buildPreparationState(
-    const QStringList& activeBones,
+    const QStringList& activeInstrumentIds,
     const QList<NavigationInstrumentCalibrationState>& calibrationStates) const
 {
     NavigationWorkspacePreparationState state;
-    state.instrumentCalibrationStates = calibrationStates;
-    state.allRequiredInstrumentsCalibrated =
-        !calibrationStates.isEmpty()
-        && std::all_of(
+
+    for (const QString& instrumentId : activeInstrumentIds) {
+        const auto it = std::find_if(
             calibrationStates.cbegin(),
             calibrationStates.cend(),
-            [](const NavigationInstrumentCalibrationState& item) { return item.completed; });
-    if (activeBones.isEmpty()) {
-        state.blockingReasons.append(QStringLiteral("未选择活动骨骼"));
+            [&instrumentId](const NavigationInstrumentCalibrationState& item) {
+                return item.instrumentId == instrumentId;
+            });
+        if (it != calibrationStates.cend()) {
+            state.instrumentCalibrationStates.append(*it);
+        }
     }
-    if (calibrationStates.isEmpty()) {
+
+    state.allRequiredInstrumentsCalibrated =
+        !state.instrumentCalibrationStates.isEmpty()
+        && std::all_of(
+            state.instrumentCalibrationStates.cbegin(),
+            state.instrumentCalibrationStates.cend(),
+            [](const NavigationInstrumentCalibrationState& item) { return item.completed; });
+
+    if (activeInstrumentIds.isEmpty()) {
+        state.blockingReasons.append(QStringLiteral("未选择活动器械"));
+    }
+    if (state.instrumentCalibrationStates.isEmpty()) {
         state.blockingReasons.append(QStringLiteral("尚未配置导航器械标定"));
     } else if (!state.allRequiredInstrumentsCalibrated) {
         state.blockingReasons.append(QStringLiteral("存在未完成标定的器械"));

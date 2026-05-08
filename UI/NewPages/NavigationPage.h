@@ -163,6 +163,7 @@ private:
     void updateProbeCalibrationUi();
     void refreshNavigationConfidenceState(bool showWarnings = false);
     void refreshStageGateUi();
+    void refreshPreparationWorkspace();
     void persistEvaluationReportSnapshot(bool exportMetricsCsv = false);
     NavigationWorkspacePreparationState buildCurrentPreparationState() const;
     NavigationWorkspacePlanningState buildCurrentPlanningState() const;

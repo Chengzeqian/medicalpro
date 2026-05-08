@@ -828,6 +828,7 @@ void NavigationPageNew::setWorkflowStage(AnkleWorkflowStage stage)
     switch (stage) {
     case AnkleWorkflowStage::Preparation:
         ui->tabWidget->setCurrentWidget(ui->instrumentTab);
+        refreshPreparationWorkspace();
         break;
     case AnkleWorkflowStage::Planning:
         ui->tabWidget->setCurrentWidget(ui->planningTab);
@@ -2325,6 +2326,17 @@ void NavigationPageNew::refreshStageGateUi()
         m_workspaceUiBinder->refreshFromSnapshot(m_workspaceApplicationService->currentSnapshot());
     }
     refreshEvaluationSummary();
+}
+
+void NavigationPageNew::refreshPreparationWorkspace()
+{
+    if (!m_workspaceApplicationService || !m_workspaceUiBinder) {
+        return;
+    }
+
+    const NavigationWorkspaceSnapshot snapshot = m_workspaceApplicationService->currentSnapshot();
+    m_workspaceUiBinder->applyPreparationSummary(snapshot.preparationState);
+    m_workspaceUiBinder->applyCalibrationSummary(snapshot.calibrationState);
 }
 
 void NavigationPageNew::persistEvaluationReportSnapshot(bool exportMetricsCsv)

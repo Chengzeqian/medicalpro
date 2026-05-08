@@ -1337,9 +1337,13 @@ add_executable(navigation_workspace_application_service_test
     ${CMAKE_SOURCE_DIR}/Framework/Navigation/ankle_case_workspace_repository.cpp
     ${CMAKE_SOURCE_DIR}/Framework/Navigation/ankle_planning_service.cpp
     ${CMAKE_SOURCE_DIR}/Framework/Navigation/navigation_evaluation_service.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Navigation/navigation_pose_frame.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Navigation/navigation_pose_stream.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Navigation/navigation_transform_graph.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_runtime_state.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_workspace_snapshot_store.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_workspace_application_service.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/preparation_planning_controller.cpp
 )
 
 target_include_directories(navigation_workspace_application_service_test PRIVATE
@@ -1384,6 +1388,7 @@ target_link_libraries(navigation_runtime_state_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Gui
     Qt${QT_VERSION_MAJOR}::Test
+    Framework
 )
 
 if(MSVC)
@@ -1393,12 +1398,72 @@ endif()
 add_test(
     NAME navigation_runtime_state_test
     COMMAND ${CMAKE_COMMAND} -E env
-        "PATH=$<TARGET_FILE_DIR:navigation_runtime_state_test>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        "PATH=$<TARGET_FILE_DIR:navigation_runtime_state_test>;$<TARGET_FILE_DIR:Framework>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
         $<TARGET_FILE:navigation_runtime_state_test>
 )
 
 set_tests_properties(navigation_runtime_state_test PROPERTIES
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:navigation_runtime_state_test>"
+)
+
+add_executable(navigation_pose_stream_test
+    NavigationPoseStreamTest.cpp
+)
+
+target_include_directories(navigation_pose_stream_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(navigation_pose_stream_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+if(MSVC)
+    target_compile_options(navigation_pose_stream_test PRIVATE /utf-8)
+endif()
+
+add_test(
+    NAME navigation_pose_stream_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:navigation_pose_stream_test>;$<TARGET_FILE_DIR:Framework>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        $<TARGET_FILE:navigation_pose_stream_test>
+)
+
+set_tests_properties(navigation_pose_stream_test PROPERTIES
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:navigation_pose_stream_test>"
+)
+
+add_executable(navigation_transform_graph_test
+    NavigationTransformGraphTest.cpp
+)
+
+target_include_directories(navigation_transform_graph_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(navigation_transform_graph_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+if(MSVC)
+    target_compile_options(navigation_transform_graph_test PRIVATE /utf-8)
+endif()
+
+add_test(
+    NAME navigation_transform_graph_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:navigation_transform_graph_test>;$<TARGET_FILE_DIR:Framework>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        $<TARGET_FILE:navigation_transform_graph_test>
+)
+
+set_tests_properties(navigation_transform_graph_test PROPERTIES
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:navigation_transform_graph_test>"
 )
 
 add_executable(navigation_runtime_coordinator_contract_test
@@ -1436,6 +1501,9 @@ add_executable(navigation_workflow_coordinator_test
     ${CMAKE_SOURCE_DIR}/Framework/Navigation/ankle_case_workspace_repository.cpp
     ${CMAKE_SOURCE_DIR}/Framework/Navigation/ankle_planning_service.cpp
     ${CMAKE_SOURCE_DIR}/Framework/Navigation/navigation_evaluation_service.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Navigation/navigation_pose_frame.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Navigation/navigation_pose_stream.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Navigation/navigation_transform_graph.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_evaluation_controller.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_workspace_application_service.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_runtime_coordinator.cpp
@@ -1511,6 +1579,7 @@ add_executable(navigation_vtk_bridge_test
     NavigationVtkBridgeTest.cpp
     ${CMAKE_SOURCE_DIR}/Framework/VTK/embedded_vtk_view_host.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_vtk_bridge.cpp
+    ${CMAKE_SOURCE_DIR}/UI/Widgets/Navigation3DViewWidget.cpp
 )
 
 target_include_directories(navigation_vtk_bridge_test PRIVATE
@@ -2494,6 +2563,9 @@ set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS
     real_case_asset_bootstrapper_test
     real_case_workspace_seed_coordinator_test
     case_workspace_package_service_test
+    navigation_pose_stream_test
+    navigation_transform_graph_test
+    navigation_runtime_state_test
 )
 
 foreach(_medicalpro_framework_unit_test IN LISTS MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS)

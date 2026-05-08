@@ -7,6 +7,7 @@
 #include "Framework/Navigation/navigation_evaluation_service.h"
 #include "UI/NewPages/Navigation/navigation_runtime_state.h"
 #include "UI/NewPages/Navigation/navigation_workspace_application_service.h"
+#include "UI/NewPages/Navigation/preparation_planning_controller.h"
 
 class NavigationWorkspaceApplicationServiceTest : public QObject
 {
@@ -19,6 +20,7 @@ private slots:
     void service_records_runtime_workspace_states_into_snapshot_truth_source();
     void service_builds_runtime_status_summaries_for_workspace_states();
     void service_preserves_navigation_run_facts_when_recording_gate_updates();
+    void controller_builds_preparation_summary_from_active_instruments_and_calibration_states();
 };
 
 void NavigationWorkspaceApplicationServiceTest::service_builds_workspace_snapshot_from_runtime_inputs()
@@ -420,6 +422,62 @@ void NavigationWorkspaceApplicationServiceTest::service_preserves_navigation_run
     QCOMPARE(snapshot.allowNavigation, false);
     QCOMPARE(snapshot.confidence, 0.44);
     QCOMPARE(snapshot.summaryText, QStringLiteral("导航运行中"));
+}
+
+void NavigationWorkspaceApplicationServiceTest::controller_builds_preparation_summary_from_active_instruments_and_calibration_states()
+{
+    const QStringList activeInstrumentIds {
+        QStringLiteral("instrument:probe-main"),
+        QStringLiteral("instrument:guide-default")
+    };
+
+    QList<NavigationInstrumentCalibrationState> calibrationStates;
+    NavigationInstrumentCalibrationState probe;
+    probe.instrumentId = QStringLiteral("instrument:probe-main");
+    probe.geometryId = QStringLiteral("geometry:probe-main");
+    probe.started = true;
+    probe.collectedPoints = 32;
+    probe.requiredPoints = 32;
+    probe.completed = true;
+    probe.accuracy = 0.42;
+    calibrationStates.append(probe);
+
+    NavigationInstrumentCalibrationState guide;
+    guide.instrumentId = QStringLiteral("instrument:guide-default");
+    guide.geometryId = QStringLiteral("geometry:guide-default");
+    guide.started = false;
+    guide.collectedPoints = 0;
+    guide.requiredPoints = 32;
+    guide.completed = false;
+    guide.accuracy = 0.0;
+    calibrationStates.append(guide);
+
+    NavigationInstrumentCalibrationState orphan;
+    orphan.instrumentId = QStringLiteral("instrument:unrelated");
+    orphan.geometryId = QStringLiteral("geometry:unrelated");
+    orphan.started = true;
+    orphan.collectedPoints = 10;
+    orphan.requiredPoints = 10;
+    orphan.completed = true;
+    orphan.accuracy = 0.10;
+    calibrationStates.append(orphan);
+
+    PreparationPlanningController controller;
+    const NavigationWorkspacePreparationState state =
+        controller.buildPreparationState(activeInstrumentIds, calibrationStates);
+
+    QCOMPARE(state.instrumentCalibrationStates.size(), 2);
+    QCOMPARE(state.allRequiredInstrumentsCalibrated, false);
+    QVERIFY(state.blockingReasons.contains(QStringLiteral("存在未完成标定的器械")));
+
+    QStringList summaryIds;
+    for (const NavigationInstrumentCalibrationState& item : state.instrumentCalibrationStates) {
+        summaryIds.append(item.instrumentId);
+    }
+    QVERIFY(summaryIds.contains(QStringLiteral("instrument:probe-main")));
+    QVERIFY(summaryIds.contains(QStringLiteral("instrument:guide-default")));
+    QVERIFY2(!summaryIds.contains(QStringLiteral("instrument:unrelated")),
+        "preparation summary must only include instruments bound to the active workspace");
 }
 
 QTEST_APPLESS_MAIN(NavigationWorkspaceApplicationServiceTest)

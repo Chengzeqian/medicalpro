@@ -20,7 +20,7 @@ public:
     NavigationWorkspacePreparationState currentPreparationState() const;
     NavigationWorkspacePlanningState currentPlanningState() const;
     NavigationWorkspacePreparationState buildPreparationState(
-        const QStringList& activeBones,
+        const QStringList& activeInstrumentIds,
         const QList<NavigationInstrumentCalibrationState>& calibrationStates) const;
 
 private:
