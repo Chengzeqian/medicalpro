@@ -27,6 +27,7 @@ private slots:
     void navigation_page_persists_navigation_gate_evidence_into_evaluation_report();
     void navigation_page_recomputes_gate_inside_navigation_start_flow();
     void navigation_page_resets_runtime_snapshots_when_case_context_changes();
+    void navigation_page_clears_tracking_session_and_tool_when_case_context_changes();
     void navigation_page_resets_gate_ui_when_registration_becomes_unavailable();
     void navigation_page_restores_calibration_snapshot_without_overwriting_it_on_case_reentry();
     void navigation_page_restores_registration_snapshot_into_runtime_state_on_case_reentry();
@@ -37,7 +38,12 @@ private slots:
     void navigation_page_uses_data_root_above_cases_directory_for_case_workspace_repository();
     void navigation_page_uses_three_panel_workspace_shell();
     void navigation_page_theme_includes_navigation_selectors();
-    void navigation_workspace_v2_contract_exposes_multi_bone_and_single_virtual_space();
+    void navigation_page_wires_runtime_transform_chain_from_calibration_and_registration();
+    void navigation_page_selects_bone_models_by_case_asset_id_and_resolves_case_paths();
+    void navigation_page_selects_instrument_stl_from_current_selected_instrument();
+    void navigation_page_persists_tracking_latency_in_navigation_run();
+    void navigation_page_routes_single_virtual_space_pose_updates_through_runtime_coordinator_and_vtk_bridge();
+    void navigation_page_removes_legacy_import_and_segmentation_primary_actions();
 
 private:
     QString readFile(const QString& relativePath) const;
@@ -568,6 +574,26 @@ void AnkleNavigationWorkflowContractTest::navigation_page_resets_runtime_snapsho
         "runtime state must reset confidence snapshot presence when case context changes");
 }
 
+void AnkleNavigationWorkflowContractTest::navigation_page_clears_tracking_session_and_tool_when_case_context_changes()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString setCaseContextStart =
+        QStringLiteral("void NavigationPageNew::setCaseContext(const QString& caseId, int patientId, const QString& patientName)");
+    const QString setCaseContextNext = QStringLiteral("void NavigationPageNew::setPatientId(int patientId)");
+    const int setCaseContextStartIndex = navigationSource.indexOf(setCaseContextStart);
+    QVERIFY2(setCaseContextStartIndex >= 0, "navigation page must define setCaseContext()");
+
+    const int setCaseContextEndIndex = navigationSource.indexOf(setCaseContextNext, setCaseContextStartIndex);
+    QVERIFY2(setCaseContextEndIndex > setCaseContextStartIndex, "navigation page must keep setPatientId() after setCaseContext()");
+
+    const QString setCaseContextBody = navigationSource.mid(
+        setCaseContextStartIndex,
+        setCaseContextEndIndex - setCaseContextStartIndex);
+
+    QVERIFY2(setCaseContextBody.contains(QStringLiteral("m_runtimeState->setCaseContext(caseId, QString(), QString());")),
+        "case context switch must not carry old tracking session and tool ids into the new case");
+}
+
 void AnkleNavigationWorkflowContractTest::navigation_page_resets_gate_ui_when_registration_becomes_unavailable()
 {
     const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
@@ -843,31 +869,96 @@ void AnkleNavigationWorkflowContractTest::navigation_page_theme_includes_navigat
         "theme must style the navigation status rail");
 }
 
-void AnkleNavigationWorkflowContractTest::navigation_workspace_v2_contract_exposes_multi_bone_and_single_virtual_space()
+void AnkleNavigationWorkflowContractTest::navigation_page_wires_runtime_transform_chain_from_calibration_and_registration()
 {
-    const QString typesHeader =
-        readFile(QStringLiteral("UI/NewPages/Navigation/navigation_workspace_types.h"));
-    const QString navigationPageSource =
-        readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString navigationHeader = readFile(QStringLiteral("UI/NewPages/NavigationPage.h"));
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString coordinatorHeader =
+        readFile(QStringLiteral("UI/NewPages/Navigation/navigation_runtime_coordinator.h"));
 
-    QVERIFY2(typesHeader.contains(QStringLiteral("NavigationInstrumentCalibrationState")),
-        "workspace types must expose per-instrument calibration state");
-    QVERIFY2(typesHeader.contains(QStringLiteral("NavigationPerBoneRegistrationState")),
-        "workspace types must expose per-bone registration state");
-    QVERIFY2(typesHeader.contains(QStringLiteral("NavigationWorkspacePreparationState")),
-        "workspace types must expose preparation aggregate state");
-    QVERIFY2(typesHeader.contains(QStringLiteral("boundBoneAssets")),
-        "workspace asset state must expose bound bone assets");
-    QVERIFY2(typesHeader.contains(QStringLiteral("activeBoneAssets")),
-        "workspace asset state must expose active bone assets");
-    QVERIFY2(typesHeader.contains(QStringLiteral("perBoneResults")),
-        "workspace registration state must expose per-bone results");
-    QVERIFY2(typesHeader.contains(QStringLiteral("fusedNavigationSpaceReady")),
-        "workspace registration state must expose fused navigation space state");
-    QVERIFY2(navigationPageSource.contains(QStringLiteral("singleVirtualNavigationSpace")),
-        "navigation page must expose single virtual navigation space marker");
-    QVERIFY2(navigationPageSource.contains(QStringLiteral("骨骼 STL")),
-        "navigation page must describe bone stl inside the single virtual navigation space");
+    QVERIFY2(coordinatorHeader.contains(QStringLiteral("void clearPoseTrackingState();")),
+        "runtime coordinator must expose a pose-pipeline reset entry for case/tool switches");
+    QVERIFY2(coordinatorHeader.contains(QStringLiteral("void clearRegistrationTransform();")),
+        "runtime coordinator must expose a registration transform reset entry");
+    QVERIFY2(navigationHeader.contains(QStringLiteral("void pushSimulatedPoseFrameToRuntime(")),
+        "navigation page must accept realtime pose input when pushing runtime pose frames");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_runtimeCoordinator->handleCalibrationTransform(")),
+        "navigation page must forward calibration transform into runtime coordinator");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_runtimeCoordinator->handleRegistrationTransform(")),
+        "navigation page must forward registration transform into runtime coordinator");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_runtimeCoordinator->clearPoseTrackingState();")),
+        "navigation page must clear realtime pose state when tracking runtime is reset");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_runtimeCoordinator->clearRegistrationTransform();")),
+        "navigation page must clear registration transform when registration becomes unavailable or case context changes");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_selects_bone_models_by_case_asset_id_and_resolves_case_paths()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+
+    QVERIFY2(navigationSource.contains(QStringLiteral("const QString caseRoot = repository.caseRoot(caseId);")),
+        "active bone model lookup must resolve paths relative to the case workspace root");
+    QVERIFY2(navigationSource.contains(QStringLiteral("const QString assetBoneId = QStringLiteral(\"bone:%1\").arg(asset.boneName);")),
+        "active bone model lookup must normalize manifest bone names into case asset ids");
+    QVERIFY2(navigationSource.contains(QStringLiteral("QDir(caseRoot).filePath(asset.normalizedPath)")),
+        "active bone model lookup must convert relative case asset paths into real file paths");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_selects_instrument_stl_from_current_selected_instrument()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString vtkBridgeHeader =
+        readFile(QStringLiteral("UI/NewPages/Navigation/navigation_vtk_bridge.h"));
+    const QString vtkBridgeSource =
+        readFile(QStringLiteral("UI/NewPages/Navigation/navigation_vtk_bridge.cpp"));
+
+    QVERIFY2(navigationSource.contains(QStringLiteral("instrument.modelFilePath")),
+        "active navigation instrument model must come from the selected instrument STL/model path");
+    QVERIFY2(!navigationSource.contains(QStringLiteral("return binding.geometryFilePath;")),
+        "active navigation instrument model must not reuse tracking geometry ini path as the display model");
+    QVERIFY2(vtkBridgeHeader.contains(QStringLiteral("void setNavigationViewWidget(")),
+        "navigation vtk bridge must bind to the real single-window navigation render widget");
+    QVERIFY2(vtkBridgeSource.contains(QStringLiteral("m_navigationViewWidget")),
+        "navigation vtk bridge must forward digital twin updates into the real navigation render widget");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_persists_tracking_latency_in_navigation_run()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+
+    QVERIFY2(navigationSource.contains(QStringLiteral("run.metrics.insert(QStringLiteral(\"tracking_latency_ms\")")),
+        "navigation run persistence must record tracking latency into evaluation metrics");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_routes_single_virtual_space_pose_updates_through_runtime_coordinator_and_vtk_bridge()
+{
+    const QString navigationSource = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_runtimeCoordinator->handlePoseFrame(")),
+        "navigation page must send realtime pose frames into NavigationRuntimeCoordinator");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_navigationVtkBridge->loadBoneModels(")),
+        "navigation page must preload active bone STL models into NavigationVtkBridge");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_navigationVtkBridge->loadInstrumentModel(")),
+        "navigation page must preload current instrument STL model into NavigationVtkBridge");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_navigationVtkBridge->updateInstrumentPose(")),
+        "navigation page must update instrument pose through NavigationVtkBridge");
+    QVERIFY2(navigationSource.contains(QStringLiteral("m_navigationVtkBridge->setInstrumentVisible(")),
+        "navigation page must update instrument visibility through NavigationVtkBridge");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_removes_legacy_import_and_segmentation_primary_actions()
+{
+    const QString pageCode = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString pageUi = readFile(QStringLiteral("UI/Forms/NavigationPage.ui"));
+
+    QVERIFY2(!pageCode.contains(QStringLiteral("器械导入功能将通过CTK服务实现")),
+        "NavigationPage must not keep legacy instrument import placeholder in the primary workflow");
+    QVERIFY2(!pageUi.contains(QStringLiteral("自动分割")),
+        "NavigationPage.ui must not keep legacy auto segmentation as a primary planning action");
+    QVERIFY2(!pageUi.contains(QStringLiteral("导出STL")),
+        "NavigationPage.ui must not keep legacy STL export as a primary planning action");
+    QVERIFY2(!pageUi.contains(QStringLiteral("加载2D图像")),
+        "NavigationPage.ui must not keep legacy 2D-3D placeholder entry");
 }
 
 QTEST_APPLESS_MAIN(AnkleNavigationWorkflowContractTest)

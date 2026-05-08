@@ -321,8 +321,11 @@ QWidget#instrumentScrollContent {
         <layout class="QHBoxLayout" name="instrumentToolbarLayout">
          <item>
           <widget class="QPushButton" name="importInstrumentButton">
+           <property name="visible">
+            <bool>false</bool>
+           </property>
            <property name="text">
-            <string>导入模型</string>
+            <string>已下线</string>
            </property>
           </widget>
          </item>
@@ -478,8 +481,11 @@ QWidget#instrumentScrollContent {
              </item>
              <item>
               <widget class="QPushButton" name="autoSegmentButton">
+               <property name="visible">
+                <bool>false</bool>
+               </property>
                <property name="text">
-                <string>自动分割</string>
+                <string>已下线</string>
                </property>
               </widget>
              </item>
@@ -492,8 +498,11 @@ QWidget#instrumentScrollContent {
              </item>
              <item>
               <widget class="QPushButton" name="exportSTLButton">
+               <property name="visible">
+                <bool>false</bool>
+               </property>
                <property name="text">
-                <string>导出STL</string>
+                <string>已下线</string>
                </property>
               </widget>
              </item>
@@ -508,29 +517,41 @@ QWidget#instrumentScrollContent {
             <layout class="QVBoxLayout" name="prosthesisLayout">
              <item>
               <widget class="QPushButton" name="selectProsthesisButton">
+               <property name="visible">
+                <bool>false</bool>
+               </property>
                <property name="text">
-                <string>选择模型</string>
+                <string>已下线</string>
                </property>
               </widget>
              </item>
              <item>
               <widget class="QPushButton" name="adjustProsthesisButton">
+               <property name="visible">
+                <bool>false</bool>
+               </property>
                <property name="text">
-                <string>调整位置</string>
+                <string>已下线</string>
                </property>
               </widget>
              </item>
              <item>
               <widget class="QPushButton" name="loadModelButton">
+               <property name="visible">
+                <bool>false</bool>
+               </property>
                <property name="text">
-                <string>加载模型</string>
+                <string>已下线</string>
                </property>
               </widget>
              </item>
              <item>
               <widget class="QPushButton" name="toggleModelButton">
+               <property name="visible">
+                <bool>false</bool>
+               </property>
                <property name="text">
-                <string>显示模型</string>
+                <string>已下线</string>
                </property>
               </widget>
              </item>
@@ -638,15 +659,21 @@ QWidget#instrumentScrollContent {
             <layout class="QVBoxLayout" name="registration2D3DLayout">
              <item>
               <widget class="QPushButton" name="load2DImageButton">
+               <property name="visible">
+                <bool>false</bool>
+               </property>
                <property name="text">
-                <string>加载2D图像</string>
+                <string>已下线</string>
                </property>
               </widget>
              </item>
              <item>
               <widget class="QPushButton" name="start2D3DRegButton">
+               <property name="visible">
+                <bool>false</bool>
+               </property>
                <property name="text">
-                <string>开始配准</string>
+                <string>已下线</string>
                </property>
               </widget>
              </item>

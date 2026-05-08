@@ -11,6 +11,7 @@
 
 #include <QEvent>
 #include <QHash>
+#include <QList>
 #include <QMatrix4x4>
 #include <QPointer>
 #include <QTimer>
@@ -121,6 +122,7 @@ protected:
 private:
     void setWorkflowStage(AnkleWorkflowStage stage);
     void setupNavigationWorkspaceShell();
+    void hideLegacyPlanningActions();
     QFrame* createNavigationStatusCard(const QString& title, QWidget* valueWidget);
     QLabel* createNavigationStatusValueLabel(const QString& objectName, const QString& initialText);
     QPushButton* createWorkflowRailButton(const QString& text, AnkleWorkflowStage stage);
@@ -168,6 +170,10 @@ private:
     void performLoadDicom();
     void performComputeRegistration();
     void performStartNavigation();
+    void pushSimulatedPoseFrameToRuntime(const QList<double>& trackingPose);
+    void refreshRealtimeDigitalTwin();
+    QStringList activeBoneModelPaths() const;
+    QString activeInstrumentModelPath() const;
 
     Ui::NavigationPage* ui;
     NavigationPageServiceAccess* m_serviceAccess;
