@@ -8,6 +8,9 @@
 #include "UI/NewPages/Navigation/navigation_runtime_state.h"
 #include "UI/NewPages/Navigation/navigation_workspace_application_service.h"
 #include "UI/NewPages/Navigation/preparation_planning_controller.h"
+#include "UI/NewPages/Navigation/navigation_workspace_ui_binder.h"
+
+#include <QLabel>
 
 class NavigationWorkspaceApplicationServiceTest : public QObject
 {
@@ -21,6 +24,7 @@ private slots:
     void service_builds_runtime_status_summaries_for_workspace_states();
     void service_preserves_navigation_run_facts_when_recording_gate_updates();
     void controller_builds_preparation_summary_from_active_instruments_and_calibration_states();
+    void binder_exposes_read_only_planning_summary_with_case_assets();
 };
 
 void NavigationWorkspaceApplicationServiceTest::service_builds_workspace_snapshot_from_runtime_inputs()
@@ -480,5 +484,46 @@ void NavigationWorkspaceApplicationServiceTest::controller_builds_preparation_su
         "preparation summary must only include instruments bound to the active workspace");
 }
 
-QTEST_APPLESS_MAIN(NavigationWorkspaceApplicationServiceTest)
+void NavigationWorkspaceApplicationServiceTest::binder_exposes_read_only_planning_summary_with_case_assets()
+{
+    QLabel planningSummaryLabel;
+    planningSummaryLabel.setObjectName(QStringLiteral("planningSummaryLabel"));
+
+    NavigationWorkspaceUiBinder::Bindings bindings;
+    bindings.planningSummaryLabel = &planningSummaryLabel;
+    NavigationWorkspaceUiBinder binder(bindings);
+
+    NavigationWorkspacePlanningState planningState;
+    planningState.hasPlanning = true;
+    planningState.targetBone = QStringLiteral("talus");
+    planningState.targetRegion = QStringLiteral("talus_dome");
+    planningState.constraintRegions = QStringList {
+        QStringLiteral("tibia_distal_region"),
+        QStringLiteral("talus_dome_region")
+    };
+    planningState.recommendedPointOrder = QStringList {
+        QStringLiteral("medial"),
+        QStringLiteral("lateral"),
+        QStringLiteral("anterior")
+    };
+
+    NavigationWorkspaceAssetState assetState;
+    assetState.dicomReady = true;
+    assetState.boundBoneAssets = QStringList {
+        QStringLiteral("tibia"),
+        QStringLiteral("talus")
+    };
+
+    binder.applyPlanningSummary(planningState, assetState);
+
+    const QString summary = planningSummaryLabel.text();
+    QVERIFY(summary.contains(QStringLiteral("talus")));
+    QVERIFY(summary.contains(QStringLiteral("talus_dome")));
+    QVERIFY(summary.contains(QStringLiteral("tibia_distal_region")));
+    QVERIFY(summary.contains(QStringLiteral("medial")));
+    QVERIFY(summary.contains(QStringLiteral("tibia")));
+    QVERIFY(summary.contains(QStringLiteral("DICOM")));
+}
+
+QTEST_MAIN(NavigationWorkspaceApplicationServiceTest)
 #include "NavigationWorkspaceApplicationServiceTest.moc"

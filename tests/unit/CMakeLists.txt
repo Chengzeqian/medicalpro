@@ -1344,6 +1344,7 @@ add_executable(navigation_workspace_application_service_test
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_workspace_snapshot_store.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_workspace_application_service.cpp
     ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/preparation_planning_controller.cpp
+    ${CMAKE_SOURCE_DIR}/UI/NewPages/Navigation/navigation_workspace_ui_binder.cpp
 )
 
 target_include_directories(navigation_workspace_application_service_test PRIVATE
@@ -1357,6 +1358,7 @@ target_compile_definitions(navigation_workspace_application_service_test PRIVATE
 target_link_libraries(navigation_workspace_application_service_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Test
 )
 

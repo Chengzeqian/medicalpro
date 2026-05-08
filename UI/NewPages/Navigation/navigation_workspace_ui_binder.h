@@ -22,6 +22,9 @@ public:
         QLabel* navigationReadinessLabel = nullptr;
         QLabel* navigationConfidenceLabel = nullptr;
         QLabel* calibrationStatusLabel = nullptr;
+        QLabel* planningSummaryLabel = nullptr;
+        QLabel* registrationSummaryLabel = nullptr;
+        QLabel* evaluationSummaryLabel = nullptr;
         QPushButton* startNavigationButton = nullptr;
         QHash<AnkleWorkflowStage, QPointer<QPushButton>> workflowRailButtons;
         std::function<void(QWidget*, const QString&)> toneApplier;
@@ -35,6 +38,11 @@ public:
     void applyStageGate(const NavigationStageGate& gate) const;
     void applyCalibrationSummary(const NavigationWorkspaceCalibrationState& calibrationState) const;
     void applyPreparationSummary(const NavigationWorkspacePreparationState& state) const;
+    void applyPlanningSummary(
+        const NavigationWorkspacePlanningState& planningState,
+        const NavigationWorkspaceAssetState& assetState) const;
+    void applyRegistrationSummary(const NavigationWorkspaceRegistrationState& registrationState) const;
+    void applyEvaluationSummary(const NavigationWorkspaceEvaluationState& evaluationState) const;
     void applyNavigationConfidence(
         const NavigationWorkspaceNavigationState& navigationState,
         const NavigationStageGate& gate,

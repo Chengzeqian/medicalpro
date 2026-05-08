@@ -164,6 +164,13 @@ private:
     void refreshNavigationConfidenceState(bool showWarnings = false);
     void refreshStageGateUi();
     void refreshPreparationWorkspace();
+    void refreshPlanningWorkspace();
+    void refreshRegistrationWorkspace();
+    void refreshNavigationWorkspace();
+    void setupPlanningReadOnlyPanels();
+    void setupEvaluationWorkspace();
+    void setupSingleNavigationWorkspace();
+    void setupRegistrationActionVisibility();
     void persistEvaluationReportSnapshot(bool exportMetricsCsv = false);
     NavigationWorkspacePreparationState buildCurrentPreparationState() const;
     NavigationWorkspacePlanningState buildCurrentPlanningState() const;

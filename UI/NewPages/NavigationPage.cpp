@@ -191,6 +191,9 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
     setObjectName("NavigationPage");
     setupNavigationWorkspaceShell();
     hideLegacyPlanningActions();
+    setupPlanningReadOnlyPanels();
+    setupRegistrationActionVisibility();
+    setupEvaluationWorkspace();
 
     if (!m_serviceAccess) {
         m_ownedServiceAdapter = new LegacyNavigationPageServiceAdapter();
@@ -252,6 +255,9 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
             .navigationReadinessLabel = findChild<QLabel*>(QStringLiteral("navigationReadinessLabel")),
             .navigationConfidenceLabel = findChild<QLabel*>(QStringLiteral("navigationConfidenceLabel")),
             .calibrationStatusLabel = findChild<QLabel*>(QStringLiteral("calibrationStatusLabel")),
+            .planningSummaryLabel = findChild<QLabel*>(QStringLiteral("planningSummaryLabel")),
+            .registrationSummaryLabel = findChild<QLabel*>(QStringLiteral("registrationSummaryLabel")),
+            .evaluationSummaryLabel = findChild<QLabel*>(QStringLiteral("evaluationSummaryLabel")),
             .startNavigationButton = ui->startNavigationButton,
             .workflowRailButtons = m_workflowRailButtons,
             .toneApplier = [this](QWidget* widget, const QString& tone) { setStatusTone(widget, tone); },
@@ -453,6 +459,101 @@ void NavigationPageNew::hideLegacyPlanningActions()
             widget->setEnabled(false);
         }
     }
+}
+
+void NavigationPageNew::setupPlanningReadOnlyPanels()
+{
+    if (!ui || !ui->planningControlLayout || findChild<QLabel*>(QStringLiteral("planningSummaryLabel"))) {
+        return;
+    }
+
+    auto* group = new QGroupBox(QStringLiteral("规划摘要"), ui->planningControlPanel);
+    group->setObjectName(QStringLiteral("planningSummaryGroup"));
+    auto* layout = new QVBoxLayout(group);
+    layout->setContentsMargins(12, 12, 12, 12);
+
+    auto* label = new QLabel(group);
+    label->setObjectName(QStringLiteral("planningSummaryLabel"));
+    label->setWordWrap(true);
+    label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    label->setText(QStringLiteral("规划摘要：等待加载病例规划"));
+    layout->addWidget(label);
+
+    ui->planningControlLayout->insertWidget(0, group);
+}
+
+void NavigationPageNew::setupRegistrationActionVisibility()
+{
+    if (!ui) {
+        return;
+    }
+
+    const QList<QWidget*> obsolete = {
+        ui->load2DImageButton,
+        ui->start2D3DRegButton
+    };
+    for (QWidget* widget : obsolete) {
+        if (widget) {
+            widget->hide();
+            widget->setEnabled(false);
+        }
+    }
+
+    if (!ui->registrationControlLayout || findChild<QLabel*>(QStringLiteral("registrationSummaryLabel"))) {
+        return;
+    }
+
+    auto* group = new QGroupBox(QStringLiteral("配准摘要"), ui->registrationControlPanel);
+    group->setObjectName(QStringLiteral("registrationSummaryGroup"));
+    auto* layout = new QVBoxLayout(group);
+    layout->setContentsMargins(12, 12, 12, 12);
+
+    auto* label = new QLabel(group);
+    label->setObjectName(QStringLiteral("registrationSummaryLabel"));
+    label->setWordWrap(true);
+    label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    label->setText(QStringLiteral("配准摘要：等待加载分骨结果"));
+    layout->addWidget(label);
+
+    ui->registrationControlLayout->insertWidget(0, group);
+}
+
+void NavigationPageNew::setupEvaluationWorkspace()
+{
+    if (!ui || !ui->evaluationTabLayout) {
+        return;
+    }
+
+    if (ui->evaluationPlaceholderLabel) {
+        ui->evaluationPlaceholderLabel->hide();
+    }
+
+    if (findChild<QLabel*>(QStringLiteral("evaluationSummaryLabel"))) {
+        return;
+    }
+
+    auto* group = new QGroupBox(QStringLiteral("病例级评估摘要"), ui->evaluationTab);
+    group->setObjectName(QStringLiteral("evaluationSummaryGroup"));
+    auto* layout = new QVBoxLayout(group);
+    layout->setContentsMargins(12, 12, 12, 12);
+
+    auto* label = new QLabel(group);
+    label->setObjectName(QStringLiteral("evaluationSummaryLabel"));
+    label->setWordWrap(true);
+    label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    label->setText(QStringLiteral("评估摘要：尚未生成"));
+    layout->addWidget(label);
+
+    ui->evaluationTabLayout->insertWidget(0, group);
+}
+
+void NavigationPageNew::setupSingleNavigationWorkspace()
+{
+    if (!m_navigationVtkBridge || !m_navigation3DView) {
+        return;
+    }
+
+    m_navigationVtkBridge->setNavigationViewWidget(m_navigation3DView);
 }
 
 void NavigationPageNew::setupNavigationWorkspaceShell()
@@ -832,12 +933,15 @@ void NavigationPageNew::setWorkflowStage(AnkleWorkflowStage stage)
         break;
     case AnkleWorkflowStage::Planning:
         ui->tabWidget->setCurrentWidget(ui->planningTab);
+        refreshPlanningWorkspace();
         break;
     case AnkleWorkflowStage::Registration:
         ui->tabWidget->setCurrentWidget(ui->registrationTab);
+        refreshRegistrationWorkspace();
         break;
     case AnkleWorkflowStage::Navigation:
         ui->tabWidget->setCurrentWidget(ui->navigationTab);
+        refreshNavigationWorkspace();
         break;
     case AnkleWorkflowStage::Evaluation:
         ui->tabWidget->setCurrentWidget(ui->evaluationTab);
@@ -2337,6 +2441,32 @@ void NavigationPageNew::refreshPreparationWorkspace()
     const NavigationWorkspaceSnapshot snapshot = m_workspaceApplicationService->currentSnapshot();
     m_workspaceUiBinder->applyPreparationSummary(snapshot.preparationState);
     m_workspaceUiBinder->applyCalibrationSummary(snapshot.calibrationState);
+}
+
+void NavigationPageNew::refreshPlanningWorkspace()
+{
+    if (!m_workspaceApplicationService || !m_workspaceUiBinder) {
+        return;
+    }
+
+    const NavigationWorkspaceSnapshot snapshot = m_workspaceApplicationService->currentSnapshot();
+    m_workspaceUiBinder->applyPlanningSummary(snapshot.planningState, snapshot.assetState);
+}
+
+void NavigationPageNew::refreshRegistrationWorkspace()
+{
+    if (!m_workspaceApplicationService || !m_workspaceUiBinder) {
+        return;
+    }
+
+    const NavigationWorkspaceSnapshot snapshot = m_workspaceApplicationService->currentSnapshot();
+    m_workspaceUiBinder->applyRegistrationSummary(snapshot.registrationState);
+}
+
+void NavigationPageNew::refreshNavigationWorkspace()
+{
+    refreshRealtimeDigitalTwin();
+    syncNavigationStatusSummary();
 }
 
 void NavigationPageNew::persistEvaluationReportSnapshot(bool exportMetricsCsv)

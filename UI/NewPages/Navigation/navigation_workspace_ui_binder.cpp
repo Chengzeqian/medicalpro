@@ -136,6 +136,117 @@ void NavigationWorkspaceUiBinder::applyPreparationSummary(
     applyTone(m_bindings.calibrationStatusLabel, QStringLiteral("warning"));
 }
 
+void NavigationWorkspaceUiBinder::applyPlanningSummary(
+    const NavigationWorkspacePlanningState& planningState,
+    const NavigationWorkspaceAssetState& assetState) const
+{
+    if (!m_bindings.planningSummaryLabel) {
+        return;
+    }
+
+    if (!planningState.hasPlanning) {
+        m_bindings.planningSummaryLabel->setText(
+            QStringLiteral("规划摘要：尚未生成手术规划，请在病例工作包中完成规划"));
+        applyTone(m_bindings.planningSummaryLabel, QStringLiteral("warning"));
+        return;
+    }
+
+    QStringList lines;
+    lines.append(QStringLiteral("目标骨：%1")
+                     .arg(planningState.targetBone.isEmpty() ? QStringLiteral("未指定") : planningState.targetBone));
+    lines.append(QStringLiteral("目标区域：%1")
+                     .arg(planningState.targetRegion.isEmpty() ? QStringLiteral("未指定") : planningState.targetRegion));
+    lines.append(QStringLiteral("解剖约束区：%1")
+                     .arg(planningState.constraintRegions.isEmpty()
+                              ? QStringLiteral("无")
+                              : planningState.constraintRegions.join(QStringLiteral("、"))));
+    lines.append(QStringLiteral("推荐配准点顺序：%1")
+                     .arg(planningState.recommendedPointOrder.isEmpty()
+                              ? QStringLiteral("未指定")
+                              : planningState.recommendedPointOrder.join(QStringLiteral(" → "))));
+    lines.append(QStringLiteral("已绑定骨模型：%1")
+                     .arg(assetState.boundBoneAssets.isEmpty()
+                              ? QStringLiteral("无")
+                              : assetState.boundBoneAssets.join(QStringLiteral("、"))));
+    lines.append(QStringLiteral("DICOM 影像：%1")
+                     .arg(assetState.dicomReady ? QStringLiteral("已绑定") : QStringLiteral("未绑定")));
+
+    m_bindings.planningSummaryLabel->setText(lines.join(QStringLiteral("\n")));
+    applyTone(m_bindings.planningSummaryLabel, planningState.targetRegionReady ? QStringLiteral("ok") : QStringLiteral("warning"));
+}
+
+void NavigationWorkspaceUiBinder::applyRegistrationSummary(
+    const NavigationWorkspaceRegistrationState& registrationState) const
+{
+    if (!m_bindings.registrationSummaryLabel) {
+        return;
+    }
+
+    QStringList lines;
+    lines.append(QStringLiteral("分骨结果：%1 个骨位")
+                     .arg(registrationState.perBoneResults.size()));
+    if (!registrationState.perBoneResults.isEmpty()) {
+        QStringList details;
+        for (const auto& bone : registrationState.perBoneResults) {
+            details.append(QStringLiteral("%1(fre=%2mm)")
+                               .arg(bone.boneAssetId.isEmpty() ? QStringLiteral("未命名") : bone.boneAssetId)
+                               .arg(bone.fre, 0, 'f', 2));
+        }
+        lines.append(QStringLiteral("  · %1").arg(details.join(QStringLiteral("，"))));
+    }
+    lines.append(QStringLiteral("融合导航空间：%1")
+                     .arg(registrationState.fusedNavigationSpaceReady
+                              ? (registrationState.fusedNavigationSpacePath.isEmpty()
+                                     ? QStringLiteral("已就绪")
+                                     : QStringLiteral("已就绪（%1）").arg(registrationState.fusedNavigationSpacePath))
+                              : QStringLiteral("未就绪")));
+    lines.append(QStringLiteral("覆盖评分：%1").arg(registrationState.fusedCoverageScore, 0, 'f', 2));
+    if (!registrationState.fusionBlockingReasons.isEmpty()) {
+        lines.append(QStringLiteral("阻塞原因：%1").arg(registrationState.fusionBlockingReasons.join(QStringLiteral("；"))));
+    }
+
+    m_bindings.registrationSummaryLabel->setText(lines.join(QStringLiteral("\n")));
+    applyTone(m_bindings.registrationSummaryLabel,
+              registrationState.fusedNavigationSpaceReady ? QStringLiteral("ok") : QStringLiteral("warning"));
+}
+
+void NavigationWorkspaceUiBinder::applyEvaluationSummary(
+    const NavigationWorkspaceEvaluationState& evaluationState) const
+{
+    if (!m_bindings.evaluationSummaryLabel) {
+        return;
+    }
+
+    if (!evaluationState.hasSummary) {
+        m_bindings.evaluationSummaryLabel->setText(QStringLiteral("评估摘要：尚未生成"));
+        applyTone(m_bindings.evaluationSummaryLabel, QStringLiteral("warning"));
+        return;
+    }
+
+    QStringList lines;
+    if (!evaluationState.summaryText.isEmpty()) {
+        lines.append(evaluationState.summaryText);
+    }
+    if (!evaluationState.navigationProcessSummary.isEmpty()) {
+        lines.append(QStringLiteral("导航过程：%1").arg(evaluationState.navigationProcessSummary));
+    }
+    if (!evaluationState.perBoneQualitySummary.isEmpty()) {
+        lines.append(QStringLiteral("分骨质量：%1").arg(evaluationState.perBoneQualitySummary.join(QStringLiteral("；"))));
+    }
+    if (!evaluationState.errorMetrics.isEmpty()) {
+        QStringList metricItems;
+        for (auto it = evaluationState.errorMetrics.cbegin(); it != evaluationState.errorMetrics.cend(); ++it) {
+            metricItems.append(QStringLiteral("%1=%2").arg(it.key(), it.value().toString()));
+        }
+        lines.append(QStringLiteral("指标：%1").arg(metricItems.join(QStringLiteral("，"))));
+    }
+    lines.append(QStringLiteral("报告导出：%1").arg(evaluationState.reportReady ? QStringLiteral("已就绪") : QStringLiteral("未就绪")));
+
+    m_bindings.evaluationSummaryLabel->setText(lines.join(QStringLiteral("\n")));
+    applyTone(m_bindings.evaluationSummaryLabel,
+              evaluationState.reportReady ? QStringLiteral("ok") : QStringLiteral("warning"));
+}
+
 void NavigationWorkspaceUiBinder::applyNavigationConfidence(
     const NavigationWorkspaceNavigationState& navigationState,
     const NavigationStageGate& gate,
