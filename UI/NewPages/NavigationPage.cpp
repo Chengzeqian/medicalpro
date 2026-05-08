@@ -450,7 +450,11 @@ void NavigationPageNew::hideLegacyPlanningActions()
         ui->adjustProsthesisButton,
         ui->load2DImageButton,
         ui->start2D3DRegButton,
-        ui->importInstrumentButton
+        ui->importInstrumentButton,
+        ui->axialLabel,
+        ui->sagittalLabel,
+        ui->coronalLabel,
+        ui->view3DLabel
     };
 
     for (QWidget* widget : legacyWidgets) {
