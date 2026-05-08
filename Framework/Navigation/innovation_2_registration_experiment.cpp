@@ -270,34 +270,44 @@ QString resolveModelAssetPath(
 
 vtkSmartPointer<vtkPolyData> loadPolyDataFromPath(const QString& modelPath)
 {
+    const auto clonePolyData = [](vtkPolyData* source) {
+        if (!source) {
+            return vtkSmartPointer<vtkPolyData> {};
+        }
+
+        vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+        polyData->DeepCopy(source);
+        return polyData;
+    };
+
     const QString suffix = QFileInfo(modelPath).suffix().toLower();
 
     if (suffix == QStringLiteral("stl")) {
         auto reader = vtkSmartPointer<vtkSTLReader>::New();
         reader->SetFileName(modelPath.toUtf8().constData());
         reader->Update();
-        return reader->GetOutput();
+        return clonePolyData(reader->GetOutput());
     }
 
     if (suffix == QStringLiteral("obj")) {
         auto reader = vtkSmartPointer<vtkOBJReader>::New();
         reader->SetFileName(modelPath.toUtf8().constData());
         reader->Update();
-        return reader->GetOutput();
+        return clonePolyData(reader->GetOutput());
     }
 
     if (suffix == QStringLiteral("ply")) {
         auto reader = vtkSmartPointer<vtkPLYReader>::New();
         reader->SetFileName(modelPath.toUtf8().constData());
         reader->Update();
-        return reader->GetOutput();
+        return clonePolyData(reader->GetOutput());
     }
 
     if (suffix == QStringLiteral("vtp")) {
         auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
         reader->SetFileName(modelPath.toUtf8().constData());
         reader->Update();
-        return reader->GetOutput();
+        return clonePolyData(reader->GetOutput());
     }
 
     return {};
