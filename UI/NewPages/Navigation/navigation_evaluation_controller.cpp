@@ -35,3 +35,8 @@ NavigationConfidenceResult NavigationEvaluationController::confidenceResult() co
 
     return runtimeState->confidenceResult();
 }
+
+NavigationWorkspaceEvaluationState NavigationEvaluationController::currentEvaluationState() const
+{
+    return m_actions.resolveEvaluationState ? m_actions.resolveEvaluationState() : NavigationWorkspaceEvaluationState();
+}

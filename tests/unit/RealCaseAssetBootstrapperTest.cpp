@@ -88,6 +88,22 @@ void RealCaseAssetBootstrapperTest::bootstrap_copies_external_tibia_talus_models
     request.surgeryId = QStringLiteral("ankle-navigation-real-import-001");
     request.tibiaModelPath = externalTibiaPath;
     request.talusModelPath = externalTalusPath;
+    request.defaultInstrumentAssetIds = QStringList {
+        QStringLiteral("instrument:probe-main"),
+        QStringLiteral("instrument:guide-default")
+    };
+    request.defaultInstrumentGeometryBindings = {
+        AnkleInstrumentGeometryBinding {
+            QStringLiteral("instrument:probe-main"),
+            QStringLiteral("geometry:probe-main"),
+            QStringLiteral("geometry/probe-main.ini")
+        },
+        AnkleInstrumentGeometryBinding {
+            QStringLiteral("instrument:guide-default"),
+            QStringLiteral("geometry:guide-default"),
+            QStringLiteral("geometry/guide-default.ini")
+        }
+    };
     request.targetRegionCenter = QVector3D(35.0f, 5.0f, 5.0f);
     request.targetRegionRadiusMm = 15.0;
 
@@ -102,6 +118,15 @@ void RealCaseAssetBootstrapperTest::bootstrap_copies_external_tibia_talus_models
     QCOMPARE(manifest.modelAssets.at(0).normalizedPath, QStringLiteral("models/tibia.stl"));
     QCOMPARE(manifest.modelAssets.at(1).boneName, QStringLiteral("talus"));
     QCOMPARE(manifest.modelAssets.at(1).normalizedPath, QStringLiteral("models/talus.stl"));
+
+    const AnkleCaseAssetBindings bindings = repository.loadCaseAssetBindings(request.caseId);
+    QCOMPARE(bindings.boundBoneAssetIds, QStringList({ QStringLiteral("bone:tibia"), QStringLiteral("bone:talus") }));
+    QCOMPARE(bindings.activeBoneAssetIds, bindings.boundBoneAssetIds);
+    QCOMPARE(bindings.boundInstrumentAssetIds, request.defaultInstrumentAssetIds);
+    QCOMPARE(bindings.activeInstrumentAssetIds, request.defaultInstrumentAssetIds);
+    QCOMPARE(bindings.instrumentGeometryBindings.size(), 2);
+    QCOMPARE(bindings.instrumentGeometryBindings.at(0).geometryFilePath, QStringLiteral("geometry/probe-main.ini"));
+    QCOMPARE(bindings.instrumentGeometryBindings.at(1).geometryAssetId, QStringLiteral("geometry:guide-default"));
 
     const QString tibiaWorkspacePath = repository.stagePath(request.caseId, QStringLiteral("models")) + QStringLiteral("/tibia.stl");
     const QString talusWorkspacePath = repository.stagePath(request.caseId, QStringLiteral("models")) + QStringLiteral("/talus.stl");

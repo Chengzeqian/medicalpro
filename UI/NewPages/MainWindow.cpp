@@ -11,6 +11,7 @@
 #include "WelcomePage.h"
 
 #include <QCloseEvent>
+#include <QCoreApplication>
 #include <QDebug>
 #include <QMessageBox>
 
@@ -68,6 +69,7 @@ void MainWindowNew::createPages()
     m_systemSettingsPage = new SystemSettingsPageNew(this);
     m_managementPage = new ManagementPageNew(this, m_identityAppService);
     m_dashboardPage = new DashboardPageNew(this, m_identityAppService);
+    m_dashboardPage->setCaseWorkspaceDataRoot(QCoreApplication::applicationDirPath());
     m_navigationPage = new NavigationPageNew(this);
 
     m_pageStack->addWidget(m_welcomePage);
@@ -93,6 +95,14 @@ void MainWindowNew::setupConnections()
     connect(m_systemSettingsPage, &SystemSettingsPageNew::navigateTo, this, &MainWindowNew::onNavigateTo);
 
     connect(m_managementPage, &ManagementPageNew::navigateTo, this, &MainWindowNew::onNavigateTo);
+    connect(m_managementPage, &ManagementPageNew::enterCaseWorkspaceRequested,
+            this, [this](const QString& caseId, int patientId) {
+                m_currentPatientId = patientId;
+                if (m_dashboardPage) {
+                    m_dashboardPage->setCurrentPatientId(patientId);
+                    m_dashboardPage->setCurrentCaseId(caseId);
+                }
+            });
 
     connect(m_dashboardPage, &DashboardPageNew::navigateTo, this, &MainWindowNew::onNavigateTo);
     connect(m_dashboardPage, &DashboardPageNew::logoutRequested, this, &MainWindowNew::onLogoutRequested);

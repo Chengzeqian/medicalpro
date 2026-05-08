@@ -1,5 +1,6 @@
 ﻿#include "MainInterfaceWidget.h"
 
+#include "Framework/Navigation/case_workspace_package_service.h"
 #include "Framework/Platform/Facades/IdentityAppService.h"
 #include "Framework/Platform/Facades/ImagingAppService.h"
 #include "Framework/Platform/Facades/NavigationAppService.h"
@@ -282,6 +283,7 @@ void MainInterfaceWidget::setupUI()
         m_identityAppService,
         m_imagingAppService,
         m_navigationAppService);
+    m_dashboardPage->setCaseWorkspaceDataRoot(QFileInfo(runtimeCasesRoot()).dir().absolutePath());
     m_surgicalNavigationPage = new NavigationPageNew(this);
     m_platformDiagnosticsPage = new PlatformDiagnosticsPage(this, [this]() {
         return m_platformDiagnosticsService.buildSnapshot(m_runtimeCollector.collect());
@@ -337,6 +339,19 @@ void MainInterfaceWidget::enterSurgicalNavigationSystem(int patientId)
         if (patient.isValid() && !m_realCaseWorkspaceSeed.enabled) {
             patientName = patient.name;
         }
+    }
+
+    if (m_currentCaseId.isEmpty()) {
+        QMessageBox::warning(this, QStringLiteral("进入导航"), QStringLiteral("当前病例未绑定病例工作包。"));
+        return;
+    }
+
+    const QString dataRoot = QFileInfo(runtimeCasesRoot()).dir().absolutePath();
+    const CaseWorkspacePackageService packageService(dataRoot);
+    const CaseWorkspacePackageSummary summary = packageService.loadSummary(m_currentCaseId);
+    if (!summary.readyForNavigation) {
+        QMessageBox::warning(this, QStringLiteral("进入导航"), QStringLiteral("病例工作包未就绪，请先补齐骨模型、器械和几何绑定。"));
+        return;
     }
 
     m_surgicalNavigationPage->resetPage();
@@ -396,6 +411,7 @@ void MainInterfaceWidget::setupConnections()
                 if (m_dashboardPage) {
                     m_dashboardPage->setCurrentPatientId(patientId);
                     m_dashboardPage->setCurrentCaseId(m_currentCaseId);
+                    m_dashboardPage->setCaseWorkspaceDataRoot(QFileInfo(runtimeCasesRoot()).dir().absolutePath());
                 }
             });
     connect(m_managementPage, &ManagementPageNew::enterMainSystemRequested,

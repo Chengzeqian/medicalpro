@@ -12,6 +12,7 @@ class NavigationWorkspaceSnapshotStoreTest : public QObject
 private slots:
     void store_persists_latest_workspace_snapshot_for_stage_gate();
     void store_restores_workspace_snapshot_as_single_truth_source();
+    void store_round_trips_multi_bone_multi_instrument_workspace_snapshot();
 };
 
 void NavigationWorkspaceSnapshotStoreTest::store_persists_latest_workspace_snapshot_for_stage_gate()
@@ -89,6 +90,96 @@ void NavigationWorkspaceSnapshotStoreTest::store_restores_workspace_snapshot_as_
     QCOMPARE(restored.navigationState.running, true);
     QCOMPARE(restored.navigationState.confidence, 0.82);
     QCOMPARE(restored.navigationState.summaryText, QStringLiteral("active"));
+}
+
+void NavigationWorkspaceSnapshotStoreTest::store_round_trips_multi_bone_multi_instrument_workspace_snapshot()
+{
+    QTemporaryDir tempDir;
+    QVERIFY(tempDir.isValid());
+
+    NavigationWorkspaceSnapshotStore store(tempDir.path());
+    NavigationWorkspaceSnapshot snapshot;
+    snapshot.caseId = QStringLiteral("ankle-case-v2-001");
+    snapshot.assetState.boundBoneAssets = QStringList {
+        QStringLiteral("bone:tibia"),
+        QStringLiteral("bone:talus")
+    };
+    snapshot.assetState.activeBoneAssets = snapshot.assetState.boundBoneAssets;
+    snapshot.assetState.boundInstrumentIds = QStringList {
+        QStringLiteral("instrument:probe-main"),
+        QStringLiteral("instrument:guide-default")
+    };
+    snapshot.assetState.instrumentGeometryBindings = QList<NavigationInstrumentGeometryState> {
+        NavigationInstrumentGeometryState {
+            QStringLiteral("instrument:probe-main"),
+            QStringLiteral("geometry:probe-main"),
+            QStringLiteral("probe-main.rom"),
+            true
+        },
+        NavigationInstrumentGeometryState {
+            QStringLiteral("instrument:guide-default"),
+            QStringLiteral("geometry:guide-default"),
+            QStringLiteral("guide-default.rom"),
+            true
+        }
+    };
+    snapshot.preparationState.instrumentCalibrationStates = QList<NavigationInstrumentCalibrationState> {
+        NavigationInstrumentCalibrationState {
+            QStringLiteral("instrument:probe-main"),
+            QStringLiteral("geometry:probe-main"),
+            true,
+            12,
+            12,
+            true,
+            0.41
+        },
+        NavigationInstrumentCalibrationState {
+            QStringLiteral("instrument:guide-default"),
+            QStringLiteral("geometry:guide-default"),
+            true,
+            10,
+            10,
+            true,
+            0.52
+        }
+    };
+    snapshot.preparationState.allRequiredInstrumentsCalibrated = true;
+    snapshot.registrationState.perBoneResults = QList<NavigationPerBoneRegistrationState> {
+        NavigationPerBoneRegistrationState {
+            QStringLiteral("bone:tibia"),
+            QStringLiteral("distal"),
+            6,
+            true,
+            0.71,
+            1.03,
+            0.92
+        },
+        NavigationPerBoneRegistrationState {
+            QStringLiteral("bone:talus"),
+            QStringLiteral("dome"),
+            6,
+            true,
+            0.68,
+            0.97,
+            0.95
+        }
+    };
+    snapshot.registrationState.fusedNavigationSpaceReady = true;
+    snapshot.registrationState.fusedNavigationSpacePath =
+        QStringLiteral("registration/fused_navigation_space.json");
+
+    QVERIFY(store.persistSnapshot(snapshot));
+
+    const NavigationWorkspaceSnapshot restored = store.loadSnapshot();
+    QCOMPARE(restored.assetState.boundBoneAssets.size(), 2);
+    QCOMPARE(restored.assetState.instrumentGeometryBindings.size(), 2);
+    QCOMPARE(restored.preparationState.instrumentCalibrationStates.size(), 2);
+    QCOMPARE(restored.preparationState.allRequiredInstrumentsCalibrated, true);
+    QCOMPARE(restored.registrationState.perBoneResults.size(), 2);
+    QCOMPARE(restored.registrationState.fusedNavigationSpaceReady, true);
+    QCOMPARE(
+        restored.registrationState.fusedNavigationSpacePath,
+        QStringLiteral("registration/fused_navigation_space.json"));
 }
 
 QTEST_APPLESS_MAIN(NavigationWorkspaceSnapshotStoreTest)

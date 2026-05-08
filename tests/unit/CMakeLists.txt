@@ -7,6 +7,89 @@ function(medicalpro_sync_framework_runtime target_name)
     )
 endfunction()
 
+set(MEDICALPRO_FRAMEWORK_TEST_RUNTIME_DIRS
+    "$<TARGET_FILE_DIR:Framework>"
+    "$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+    "$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>"
+    "$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>"
+    "$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Sql>"
+    "$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Network>"
+    "$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::OpenGL>"
+)
+
+if(TARGET VTK::CommonCore)
+    list(APPEND MEDICALPRO_FRAMEWORK_TEST_RUNTIME_DIRS "$<TARGET_FILE_DIR:VTK::CommonCore>")
+endif()
+
+if(EXISTS "${MEDICALPRO_ATRACSYS_SDK_DIR}/bin/fusionTrack64.dll")
+    list(APPEND MEDICALPRO_FRAMEWORK_TEST_RUNTIME_DIRS "${MEDICALPRO_ATRACSYS_SDK_DIR}/bin")
+endif()
+
+set(_medicalpro_itk_test_runtime_candidates)
+if(DEFINED ITK_DIR)
+    get_filename_component(_medicalpro_itk_prefix "${ITK_DIR}/../../.." ABSOLUTE)
+    list(APPEND _medicalpro_itk_test_runtime_candidates
+        "${_medicalpro_itk_prefix}/bin"
+        "${ITK_DIR}/../bin"
+        "${ITK_DIR}/../../bin"
+        "${ITK_DIR}/../../../bin"
+    )
+endif()
+
+foreach(_medicalpro_itk_candidate ${_medicalpro_itk_test_runtime_candidates})
+    if(EXISTS "${_medicalpro_itk_candidate}")
+        file(GLOB _medicalpro_itk_probe "${_medicalpro_itk_candidate}/*.dll")
+        if(_medicalpro_itk_probe)
+            list(APPEND MEDICALPRO_FRAMEWORK_TEST_RUNTIME_DIRS "${_medicalpro_itk_candidate}")
+            break()
+        endif()
+    endif()
+endforeach()
+
+set(_medicalpro_crt_test_runtime_candidates)
+if(DEFINED ENV{VCToolsRedistDir})
+    list(APPEND _medicalpro_crt_test_runtime_candidates
+        "$ENV{VCToolsRedistDir}/x64/Microsoft.VC142.CRT"
+        "$ENV{VCToolsRedistDir}/onecore/x64/Microsoft.VC142.CRT"
+        "$ENV{VCToolsRedistDir}/x64/Microsoft.VC143.CRT"
+        "$ENV{VCToolsRedistDir}/onecore/x64/Microsoft.VC143.CRT"
+    )
+endif()
+
+foreach(_medicalpro_crt_candidate ${_medicalpro_crt_test_runtime_candidates})
+    if(EXISTS "${_medicalpro_crt_candidate}")
+        file(GLOB _medicalpro_crt_probe "${_medicalpro_crt_candidate}/*.dll")
+        if(_medicalpro_crt_probe)
+            list(APPEND MEDICALPRO_FRAMEWORK_TEST_RUNTIME_DIRS "${_medicalpro_crt_candidate}")
+            break()
+        endif()
+    endif()
+endforeach()
+
+function(medicalpro_set_framework_test_environment test_name)
+    set(_medicalpro_test_env "PATH=$<TARGET_FILE_DIR:${test_name}>")
+    foreach(_medicalpro_runtime_dir IN LISTS MEDICALPRO_FRAMEWORK_TEST_RUNTIME_DIRS)
+        string(APPEND _medicalpro_test_env ";${_medicalpro_runtime_dir}")
+    endforeach()
+    string(APPEND _medicalpro_test_env ";$ENV{PATH}")
+    string(REPLACE ";" "\\;" _medicalpro_test_env_escaped "${_medicalpro_test_env}")
+    set_tests_properties(${test_name} PROPERTIES ENVIRONMENT "${_medicalpro_test_env_escaped}")
+endfunction()
+
+function(medicalpro_add_framework_runtime_test test_name)
+    set(_medicalpro_test_env "PATH=$<TARGET_FILE_DIR:${test_name}>")
+    foreach(_medicalpro_runtime_dir IN LISTS MEDICALPRO_FRAMEWORK_TEST_RUNTIME_DIRS)
+        string(APPEND _medicalpro_test_env ";${_medicalpro_runtime_dir}")
+    endforeach()
+    string(APPEND _medicalpro_test_env ";$ENV{PATH}")
+    add_test(
+        NAME ${test_name}
+        COMMAND ${CMAKE_COMMAND} -E env
+            "${_medicalpro_test_env}"
+            $<TARGET_FILE:${test_name}>
+    )
+endfunction()
+
 function(medicalpro_sync_probe_calibration_runtime target_name)
     if(TARGET ProbeCalibrationDLL)
         add_dependencies(${target_name} ProbeCalibrationDLL)
@@ -996,14 +1079,7 @@ target_link_libraries(core_pages_platform_providers_test PRIVATE
     Framework
 )
 
-add_test(
-    NAME core_pages_platform_providers_test
-    COMMAND core_pages_platform_providers_test
-)
-
-set_tests_properties(core_pages_platform_providers_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:core_pages_platform_providers_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
-)
+medicalpro_add_framework_runtime_test(core_pages_platform_providers_test)
 
 add_executable(login_page_platform_providers_test
     LoginPagePlatformProvidersTest.cpp
@@ -1220,11 +1296,13 @@ endif()
 
 add_test(
     NAME navigation_workspace_snapshot_store_test
-    COMMAND navigation_workspace_snapshot_store_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:navigation_workspace_snapshot_store_test>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        $<TARGET_FILE:navigation_workspace_snapshot_store_test>
 )
 
 set_tests_properties(navigation_workspace_snapshot_store_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_workspace_snapshot_store_test>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$ENV{PATH}"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:navigation_workspace_snapshot_store_test>"
 )
 
 add_executable(navigation_registration_snapshot_utils_test
@@ -1284,11 +1362,13 @@ endif()
 
 add_test(
     NAME navigation_workspace_application_service_test
-    COMMAND navigation_workspace_application_service_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:navigation_workspace_application_service_test>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$ENV{PATH}"
+        $<TARGET_FILE:navigation_workspace_application_service_test>
 )
 
 set_tests_properties(navigation_workspace_application_service_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_workspace_application_service_test>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$ENV{PATH}"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:navigation_workspace_application_service_test>"
 )
 
 add_executable(navigation_runtime_state_test
@@ -1312,11 +1392,13 @@ endif()
 
 add_test(
     NAME navigation_runtime_state_test
-    COMMAND navigation_runtime_state_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:navigation_runtime_state_test>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        $<TARGET_FILE:navigation_runtime_state_test>
 )
 
 set_tests_properties(navigation_runtime_state_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_runtime_state_test>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$ENV{PATH}"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:navigation_runtime_state_test>"
 )
 
 add_executable(navigation_runtime_coordinator_contract_test
@@ -1480,14 +1562,7 @@ target_link_libraries(ankle_case_workspace_repository_test PRIVATE
     Framework
 )
 
-add_test(
-    NAME ankle_case_workspace_repository_test
-    COMMAND ankle_case_workspace_repository_test
-)
-
-set_tests_properties(ankle_case_workspace_repository_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:ankle_case_workspace_repository_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
-)
+medicalpro_add_framework_runtime_test(ankle_case_workspace_repository_test)
 
 add_executable(innovation_experiment_repository_test
     InnovationExperimentRepositoryTest.cpp
@@ -1575,14 +1650,7 @@ target_link_libraries(real_case_asset_bootstrapper_test PRIVATE
     Framework
 )
 
-add_test(
-    NAME real_case_asset_bootstrapper_test
-    COMMAND real_case_asset_bootstrapper_test
-)
-
-set_tests_properties(real_case_asset_bootstrapper_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:real_case_asset_bootstrapper_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
-)
+medicalpro_add_framework_runtime_test(real_case_asset_bootstrapper_test)
 
 add_executable(real_case_workspace_seed_coordinator_test
     RealCaseWorkspaceSeedCoordinatorTest.cpp
@@ -1599,14 +1667,23 @@ target_link_libraries(real_case_workspace_seed_coordinator_test PRIVATE
     Framework
 )
 
-add_test(
-    NAME real_case_workspace_seed_coordinator_test
-    COMMAND real_case_workspace_seed_coordinator_test
+medicalpro_add_framework_runtime_test(real_case_workspace_seed_coordinator_test)
+
+add_executable(case_workspace_package_service_test
+    CaseWorkspacePackageServiceTest.cpp
 )
 
-set_tests_properties(real_case_workspace_seed_coordinator_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:real_case_workspace_seed_coordinator_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+target_include_directories(case_workspace_package_service_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
 )
+
+target_link_libraries(case_workspace_package_service_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+)
+
+medicalpro_add_framework_runtime_test(case_workspace_package_service_test)
 
 add_executable(ankle_navigation_workflow_contract_test
     AnkleNavigationWorkflowContractTest.cpp
@@ -1627,7 +1704,9 @@ target_link_libraries(ankle_navigation_workflow_contract_test PRIVATE
 
 add_test(
     NAME ankle_navigation_workflow_contract_test
-    COMMAND ankle_navigation_workflow_contract_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:ankle_navigation_workflow_contract_test>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        $<TARGET_FILE:ankle_navigation_workflow_contract_test>
 )
 
 add_executable(algorithm_subsystems_repository_contract_test
@@ -2329,25 +2408,32 @@ set_tests_properties(navigation_confidence_evaluator_test PROPERTIES
 
 add_executable(navigation_evaluation_service_test
     NavigationEvaluationServiceTest.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Navigation/navigation_evaluation_service.cpp
 )
 
 target_include_directories(navigation_evaluation_service_test PRIVATE
     ${CMAKE_SOURCE_DIR}
 )
 
+target_compile_definitions(navigation_evaluation_service_test PRIVATE
+    FRAMEWORK_LIBRARY
+)
+
 target_link_libraries(navigation_evaluation_service_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
     Qt${QT_VERSION_MAJOR}::Test
-    Framework
 )
 
 add_test(
     NAME navigation_evaluation_service_test
-    COMMAND navigation_evaluation_service_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:navigation_evaluation_service_test>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        $<TARGET_FILE:navigation_evaluation_service_test>
 )
 
 set_tests_properties(navigation_evaluation_service_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_evaluation_service_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$ENV{PATH}"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:navigation_evaluation_service_test>"
 )
 
 add_executable(navigation_evaluation_summary_formatter_test
@@ -2407,6 +2493,7 @@ set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS
     registration_core_meshgpu_smoke_test
     real_case_asset_bootstrapper_test
     real_case_workspace_seed_coordinator_test
+    case_workspace_package_service_test
 )
 
 foreach(_medicalpro_framework_unit_test IN LISTS MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS)

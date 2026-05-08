@@ -11,6 +11,7 @@ private slots:
     void state_stores_tracking_quality_snapshot();
     void state_stores_registration_result_snapshot();
     void state_stores_confidence_result_snapshot();
+    void state_tracks_active_instrument_visibility_and_pose_summary();
     void state_clears_runtime_snapshots_when_case_context_changes();
 };
 
@@ -72,6 +73,21 @@ void NavigationRuntimeStateTest::state_stores_confidence_result_snapshot()
     QVERIFY(state.hasConfidenceResult());
     QCOMPARE(state.confidenceResult().allowNavigation, true);
     QCOMPARE(state.confidenceResult().score, 0.88);
+}
+
+void NavigationRuntimeStateTest::state_tracks_active_instrument_visibility_and_pose_summary()
+{
+    NavigationRuntimeState state;
+
+    state.setTrackedInstrumentVisible(QStringLiteral("instrument:probe-main"), true);
+    state.setActiveInstrumentPoseSummary(
+        QStringLiteral("instrument:probe-main"),
+        QStringLiteral("tx=1.0,ty=2.0,tz=3.0"));
+
+    QCOMPARE(state.isTrackedInstrumentVisible(QStringLiteral("instrument:probe-main")), true);
+    QCOMPARE(
+        state.activeInstrumentPoseSummary(QStringLiteral("instrument:probe-main")),
+        QStringLiteral("tx=1.0,ty=2.0,tz=3.0"));
 }
 
 void NavigationRuntimeStateTest::state_clears_runtime_snapshots_when_case_context_changes()

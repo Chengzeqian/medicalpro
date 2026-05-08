@@ -1,4 +1,4 @@
-#include <QtTest/QtTest>
+﻿#include <QtTest/QtTest>
 
 #include <QTemporaryDir>
 
@@ -14,6 +14,7 @@ class NavigationWorkspaceApplicationServiceTest : public QObject
 
 private slots:
     void service_builds_workspace_snapshot_from_runtime_inputs();
+    void service_builds_v2_snapshot_from_case_package_and_per_bone_results();
     void service_evaluates_stage_gate_from_workspace_snapshot();
     void service_records_runtime_workspace_states_into_snapshot_truth_source();
     void service_builds_runtime_status_summaries_for_workspace_states();
@@ -108,6 +109,117 @@ void NavigationWorkspaceApplicationServiceTest::service_builds_workspace_snapsho
     QCOMPARE(snapshot.calibrationState.accuracy, 0.42);
 }
 
+void NavigationWorkspaceApplicationServiceTest::service_builds_v2_snapshot_from_case_package_and_per_bone_results()
+{
+    QTemporaryDir tempRoot;
+    QVERIFY(tempRoot.isValid());
+
+    AnkleCaseWorkspaceRepository repository(tempRoot.path());
+    AnkleCaseManifest manifest;
+    manifest.caseId = QStringLiteral("ankle-case-v2-002");
+    manifest.patientId = QStringLiteral("patient-002");
+    manifest.patientName = QStringLiteral("Patient 002");
+    manifest.surgeryId = QStringLiteral("surgery-002");
+    manifest.workflowStage = QStringLiteral("registration");
+    manifest.dicomDir = QStringLiteral("dicom/series-002");
+    manifest.modelAssets = {
+        AnkleModelAsset {
+            QStringLiteral("tibia"),
+            QStringLiteral("models/tibia.stl"),
+            QStringLiteral("models/tibia.stl"),
+            QStringLiteral("stl")
+        },
+        AnkleModelAsset {
+            QStringLiteral("talus"),
+            QStringLiteral("models/talus.stl"),
+            QStringLiteral("models/talus.stl"),
+            QStringLiteral("stl")
+        }
+    };
+    QVERIFY(repository.createCaseWorkspace(manifest));
+    QVERIFY(repository.saveManifest(manifest));
+
+    AnkleCaseAssetBindings bindings;
+    bindings.boundBoneAssetIds = QStringList {
+        QStringLiteral("bone:tibia"),
+        QStringLiteral("bone:talus")
+    };
+    bindings.instrumentGeometryBindings = QList<AnkleInstrumentGeometryBinding> {
+        AnkleInstrumentGeometryBinding {
+            QStringLiteral("instrument:probe-main"),
+            QStringLiteral("geometry:probe-main"),
+            QStringLiteral("geometry/probe-main.ini")
+        },
+        AnkleInstrumentGeometryBinding {
+            QStringLiteral("instrument:guide-default"),
+            QStringLiteral("geometry:guide-default"),
+            QStringLiteral("geometry/guide-default.ini")
+        }
+    };
+    bindings.caseId = manifest.caseId;
+    QVERIFY(repository.saveCaseAssetBindings(bindings));
+
+    AnklePlanningService planningService(repository);
+    AnklePlanningData planning = planningService.createDefaultPlanning(manifest.caseId);
+    planning.primaryBones = QStringList {
+        QStringLiteral("bone:tibia"),
+        QStringLiteral("bone:talus")
+    };
+    planning.targetRegionRadiusMm = 18.0;
+    planning.recommendedPointOrder = QStringList {
+        QStringLiteral("tibia-distal-1"),
+        QStringLiteral("talus-dome-1")
+    };
+    QVERIFY(planningService.savePlanning(manifest.caseId, planning));
+
+    NavigationEvaluationService evaluationService(tempRoot.path() + QStringLiteral("/cases"));
+    AnkleRegistrationRecord registration;
+    registration.caseId = manifest.caseId;
+    registration.registrationMode = QStringLiteral("service_point_registration");
+    registration.fre = 0.71;
+    registration.targetTre = 1.03;
+    registration.coverageScore = 0.92;
+    registration.metrics.insert(QStringLiteral("point_count"), 12);
+    registration.metrics.insert(QStringLiteral("fused_navigation_space_ready"), true);
+    registration.metrics.insert(
+        QStringLiteral("fused_navigation_space_path"),
+        QStringLiteral("registration/fused_navigation_space.json"));
+    registration.metrics.insert(QStringLiteral("fused_coverage_score"), 0.94);
+    registration.metrics.insert(
+        QStringLiteral("per_bone_results_json"),
+        QStringLiteral(
+            "[{\"bone_asset_id\":\"bone:tibia\",\"bone_region_id\":\"distal\",\"point_count\":6,"
+            "\"success\":true,\"fre\":0.71,\"target_tre\":1.03,\"coverage_score\":0.92},"
+            "{\"bone_asset_id\":\"bone:talus\",\"bone_region_id\":\"dome\",\"point_count\":6,"
+            "\"success\":true,\"fre\":0.68,\"target_tre\":0.97,\"coverage_score\":0.95}]"));
+    QVERIFY(evaluationService.saveRegistrationRecord(registration));
+
+    AnkleEvaluationReport report;
+    report.caseId = manifest.caseId;
+    report.allowNavigation = true;
+    report.confidenceScore = 0.88;
+    report.gateReasons = QStringList { QStringLiteral("ready") };
+    report.calibrated = true;
+    report.calibrationAccuracyMm = 0.42;
+    QVERIFY(evaluationService.saveEvaluationReport(report));
+
+    NavigationRuntimeState runtimeState;
+    runtimeState.setCaseContext(
+        manifest.caseId,
+        QStringLiteral("tracking-002"),
+        QStringLiteral("instrument:probe-main"));
+    runtimeState.setTrackedInstrumentVisible(QStringLiteral("instrument:probe-main"), true);
+
+    NavigationWorkspaceApplicationService service(tempRoot.path(), &runtimeState);
+    const NavigationWorkspaceSnapshot snapshot =
+        service.loadWorkspace(manifest.caseId, manifest.patientId, manifest.patientName);
+
+    QCOMPARE(snapshot.assetState.boundBoneAssets.size(), 2);
+    QCOMPARE(snapshot.preparationState.allRequiredInstrumentsCalibrated, true);
+    QCOMPARE(snapshot.registrationState.perBoneResults.size(), 2);
+    QCOMPARE(snapshot.registrationState.fusedNavigationSpaceReady, true);
+}
+
 void NavigationWorkspaceApplicationServiceTest::service_evaluates_stage_gate_from_workspace_snapshot()
 {
     QTemporaryDir tempRoot;
@@ -134,7 +246,7 @@ void NavigationWorkspaceApplicationServiceTest::service_evaluates_stage_gate_fro
     const NavigationStageGate gate = service.evaluateStageGate(AnkleWorkflowStage::Navigation);
     QCOMPARE(gate.requestedStage, AnkleWorkflowStage::Navigation);
     QCOMPARE(gate.allowed, false);
-    QCOMPARE(gate.reasonCode, QStringLiteral("registration_or_navigation_gate_missing"));
+    QCOMPARE(gate.reasonCode, QStringLiteral("fused_space_or_tracking_missing"));
 }
 
 void NavigationWorkspaceApplicationServiceTest::service_records_runtime_workspace_states_into_snapshot_truth_source()
@@ -174,6 +286,8 @@ void NavigationWorkspaceApplicationServiceTest::service_records_runtime_workspac
     registrationState.fre = 0.73;
     registrationState.targetTre = 1.11;
     registrationState.coverageScore = 0.93;
+    registrationState.fusedNavigationSpaceReady = true;
+    registrationState.fusedNavigationSpacePath = QStringLiteral("registration/fused_navigation_space.json");
     registrationState.translationX = 10.0;
     registrationState.translationY = 20.0;
     registrationState.translationZ = 30.0;
@@ -185,6 +299,7 @@ void NavigationWorkspaceApplicationServiceTest::service_records_runtime_workspac
 
     NavigationWorkspaceNavigationState navigationState;
     navigationState.trackerConnected = true;
+    navigationState.activeToolId = QStringLiteral("tool-303");
     navigationState.toolVisible = true;
     navigationState.running = true;
     navigationState.confidence = 0.87;

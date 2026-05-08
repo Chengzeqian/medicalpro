@@ -37,6 +37,7 @@ private slots:
     void navigation_page_uses_data_root_above_cases_directory_for_case_workspace_repository();
     void navigation_page_uses_three_panel_workspace_shell();
     void navigation_page_theme_includes_navigation_selectors();
+    void navigation_workspace_v2_contract_exposes_multi_bone_and_single_virtual_space();
 
 private:
     QString readFile(const QString& relativePath) const;
@@ -840,6 +841,33 @@ void AnkleNavigationWorkflowContractTest::navigation_page_theme_includes_navigat
         "theme must style the navigation workflow rail");
     QVERIFY2(theme.contains(QStringLiteral("QFrame#navigationStatusRailFrame")),
         "theme must style the navigation status rail");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_workspace_v2_contract_exposes_multi_bone_and_single_virtual_space()
+{
+    const QString typesHeader =
+        readFile(QStringLiteral("UI/NewPages/Navigation/navigation_workspace_types.h"));
+    const QString navigationPageSource =
+        readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+
+    QVERIFY2(typesHeader.contains(QStringLiteral("NavigationInstrumentCalibrationState")),
+        "workspace types must expose per-instrument calibration state");
+    QVERIFY2(typesHeader.contains(QStringLiteral("NavigationPerBoneRegistrationState")),
+        "workspace types must expose per-bone registration state");
+    QVERIFY2(typesHeader.contains(QStringLiteral("NavigationWorkspacePreparationState")),
+        "workspace types must expose preparation aggregate state");
+    QVERIFY2(typesHeader.contains(QStringLiteral("boundBoneAssets")),
+        "workspace asset state must expose bound bone assets");
+    QVERIFY2(typesHeader.contains(QStringLiteral("activeBoneAssets")),
+        "workspace asset state must expose active bone assets");
+    QVERIFY2(typesHeader.contains(QStringLiteral("perBoneResults")),
+        "workspace registration state must expose per-bone results");
+    QVERIFY2(typesHeader.contains(QStringLiteral("fusedNavigationSpaceReady")),
+        "workspace registration state must expose fused navigation space state");
+    QVERIFY2(navigationPageSource.contains(QStringLiteral("singleVirtualNavigationSpace")),
+        "navigation page must expose single virtual navigation space marker");
+    QVERIFY2(navigationPageSource.contains(QStringLiteral("骨骼 STL")),
+        "navigation page must describe bone stl inside the single virtual navigation space");
 }
 
 QTEST_APPLESS_MAIN(AnkleNavigationWorkflowContractTest)

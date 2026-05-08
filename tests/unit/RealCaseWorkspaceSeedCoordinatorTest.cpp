@@ -101,6 +101,17 @@ void RealCaseWorkspaceSeedCoordinatorTest::ensureWorkspace_bootstraps_real_case_
     QVERIFY(QFileInfo::exists(repository.stagePath(seed.caseId, QStringLiteral("models")) + QStringLiteral("/tibia.stl")));
     QVERIFY(QFileInfo::exists(repository.stagePath(seed.caseId, QStringLiteral("models")) + QStringLiteral("/talus.stl")));
 
+    const AnkleCaseAssetBindings bindings = repository.loadCaseAssetBindings(seed.caseId);
+    QCOMPARE(bindings.boundBoneAssetIds, QStringList({ QStringLiteral("bone:tibia"), QStringLiteral("bone:talus") }));
+    QCOMPARE(bindings.boundInstrumentAssetIds, QStringList({
+        QStringLiteral("instrument:probe-main"),
+        QStringLiteral("instrument:guide-default")
+    }));
+    QCOMPARE(bindings.activeInstrumentAssetIds, bindings.boundInstrumentAssetIds);
+    QCOMPARE(bindings.instrumentGeometryBindings.size(), 2);
+    QCOMPARE(bindings.instrumentGeometryBindings.at(0).geometryAssetId, QStringLiteral("geometry:probe-main"));
+    QCOMPARE(bindings.instrumentGeometryBindings.at(1).geometryFilePath, QStringLiteral("geometry/guide-default.ini"));
+
     AnklePlanningService planningService(repository);
     const AnklePlanningData planning = planningService.loadPlanning(seed.caseId);
     QCOMPARE(planning.primaryBones, QStringList({ QStringLiteral("tibia"), QStringLiteral("talus") }));

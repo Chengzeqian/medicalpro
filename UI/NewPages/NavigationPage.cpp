@@ -49,6 +49,7 @@
 #include <QFileInfo>
 #include <QTabWidget>
 #include <cmath>
+#include <algorithm>
 
 // 瀵艰埅3D瑙嗗浘鍜屾ā鎷熷櫒
 #include "UI/Widgets/Navigation3DViewWidget.h"
@@ -175,16 +176,54 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
         [this]() { return pointRegistrationService(); });
     m_preparationPlanningController = std::make_unique<PreparationPlanningController>(
         PreparationPlanningController::Actions {
-            .loadDicom = [this]() { performLoadDicom(); }
+            .loadDicom = [this]() { performLoadDicom(); },
+            .resolvePreparationState = [this]() { return buildCurrentPreparationState(); },
+            .resolvePlanningState = [this]() { return buildCurrentPlanningState(); }
         });
     m_registrationController = std::make_unique<RegistrationController>(
         RegistrationController::Actions {
-            .computeRegistration = [this]() { performComputeRegistration(); }
+            .computeRegistration = [this]() { performComputeRegistration(); },
+            .resolvePerBoneRegistrationResults = [this]() {
+                QList<PointRegistrationResult> results;
+                if (m_runtimeState && m_runtimeState->hasRegistrationResult()) {
+                    PointRegistrationResult result = m_runtimeState->registrationResult();
+                    if (result.metrics.value(QStringLiteral("bone_asset_id")).toString().isEmpty()) {
+                        const NavigationWorkspaceSnapshot snapshot =
+                            m_workspaceApplicationService
+                            ? m_workspaceApplicationService->currentSnapshot()
+                            : NavigationWorkspaceSnapshot();
+                        result.metrics.insert(
+                            QStringLiteral("bone_asset_id"),
+                            snapshot.planningState.targetBone.isEmpty()
+                                ? QStringLiteral("bone:unknown")
+                                : snapshot.planningState.targetBone);
+                        result.metrics.insert(
+                            QStringLiteral("bone_region_id"),
+                            snapshot.planningState.targetRegion.isEmpty()
+                                ? QStringLiteral("default")
+                                : snapshot.planningState.targetRegion);
+                    }
+                    results.append(result);
+                }
+                return results;
+            },
+            .resolveFusedNavigationSpacePath = [this]() {
+                const QString caseId = m_workflowContext ? m_workflowContext->caseId() : QString();
+                return caseId.isEmpty()
+                    ? QString()
+                    : QStringLiteral("cases/%1/registration/fused_navigation_space.json").arg(caseId);
+            },
+            .resolveFusedCoverageScore = [this]() {
+                return m_runtimeState && m_runtimeState->hasRegistrationResult()
+                    ? m_runtimeState->registrationResult().coverageScore
+                    : 0.0;
+            }
         },
         m_runtimeCoordinator.get());
     m_navigationEvaluationController = std::make_unique<NavigationEvaluationController>(
         NavigationEvaluationController::Actions {
-            .startNavigation = [this]() { performStartNavigation(); }
+            .startNavigation = [this]() { performStartNavigation(); },
+            .resolveEvaluationState = [this]() { return buildCurrentEvaluationState(); }
         },
         m_runtimeCoordinator.get());
     m_workspaceUiBinder = std::make_unique<NavigationWorkspaceUiBinder>(
@@ -845,6 +884,87 @@ void NavigationPageNew::refreshEvaluationSummary()
     constraintLabel->setText(summary.constraintText);
     trackingLabel->setText(summary.trackingText);
     gateLabel->setText(summary.gateText);
+}
+
+NavigationWorkspacePreparationState NavigationPageNew::buildCurrentPreparationState() const
+{
+    NavigationWorkspacePreparationState state;
+    if (!m_workspaceApplicationService) {
+        return state;
+    }
+
+    const NavigationWorkspaceSnapshot snapshot = m_workspaceApplicationService->currentSnapshot();
+    for (const NavigationInstrumentGeometryState& binding : snapshot.assetState.instrumentGeometryBindings) {
+        NavigationInstrumentCalibrationState item;
+        item.instrumentId = binding.instrumentId;
+        item.geometryId = binding.geometryId;
+        item.started = !m_activeCalibrationId.isEmpty();
+        item.collectedPoints = m_activeCalibrationCollectedPoints;
+        item.requiredPoints = m_activeCalibrationRequiredPoints;
+        item.completed = snapshot.calibrationState.completed;
+        item.accuracy = snapshot.calibrationState.accuracy;
+        item.completedAt = snapshot.calibrationState.completedAt;
+        state.instrumentCalibrationStates.append(item);
+    }
+
+    state.allRequiredInstrumentsCalibrated =
+        !state.instrumentCalibrationStates.isEmpty()
+        && std::all_of(
+            state.instrumentCalibrationStates.cbegin(),
+            state.instrumentCalibrationStates.cend(),
+            [](const NavigationInstrumentCalibrationState& item) { return item.completed; });
+
+    if (snapshot.assetState.activeBoneAssets.isEmpty()) {
+        state.blockingReasons.append(QStringLiteral("未选择活动骨骼"));
+    }
+    if (!snapshot.assetState.geometryReady) {
+        state.blockingReasons.append(QStringLiteral("器械几何文件未绑定"));
+    }
+    if (!state.allRequiredInstrumentsCalibrated) {
+        state.blockingReasons.append(QStringLiteral("存在未完成标定的器械"));
+    }
+    return state;
+}
+
+NavigationWorkspacePlanningState NavigationPageNew::buildCurrentPlanningState() const
+{
+    if (!m_workspaceApplicationService) {
+        return {};
+    }
+
+    NavigationWorkspacePlanningState state =
+        m_workspaceApplicationService->currentSnapshot().planningState;
+    if (state.targetBone.isEmpty()) {
+        const NavigationWorkspaceSnapshot snapshot = m_workspaceApplicationService->currentSnapshot();
+        state.targetBone = !snapshot.assetState.activeBoneAssets.isEmpty()
+            ? snapshot.assetState.activeBoneAssets.first()
+            : snapshot.assetState.selectedBoneAsset;
+    }
+    state.completed = state.targetRegionReady
+        && !state.targetBone.isEmpty()
+        && !state.recommendedPointOrder.isEmpty();
+    return state;
+}
+
+NavigationWorkspaceEvaluationState NavigationPageNew::buildCurrentEvaluationState() const
+{
+    NavigationWorkspaceEvaluationState state;
+    if (!m_workspaceApplicationService) {
+        return state;
+    }
+
+    const NavigationWorkspaceSnapshot snapshot = m_workspaceApplicationService->currentSnapshot();
+    state.hasSummary = snapshot.navigationState.hasRunRecord || snapshot.navigationState.hasEvaluationReport;
+    state.errorMetrics = snapshot.evaluationState.errorMetrics;
+    state.perBoneQualitySummary = buildNavigationEvaluationSummary(snapshot).registrationText.split(QStringLiteral("\n"));
+    state.navigationProcessSummary = snapshot.navigationState.summaryText.isEmpty()
+        ? snapshot.evaluationState.navigationProcessSummary
+        : snapshot.navigationState.summaryText;
+    state.summaryText = snapshot.caseId;
+    state.reportReady = snapshot.navigationState.hasEvaluationReport;
+    state.exportableArtifacts = snapshot.evaluationState.exportableArtifacts;
+    state.lastUpdatedAt = QDateTime::currentDateTimeUtc();
+    return state;
 }
 
 void NavigationPageNew::refreshPatientInfoLabel()
@@ -1608,6 +1728,7 @@ void NavigationPageNew::finishProbeCalibration()
         calibrationState.completed = true;
         calibrationState.accuracy = calibrationAccuracy;
         m_workspaceApplicationService->recordCalibrationState(calibrationState);
+        m_workspaceApplicationService->recordPreparationState(buildCurrentPreparationState());
         m_workspaceApplicationService->persistSnapshot();
     }
     refreshNavigationConfidenceState();
@@ -1635,6 +1756,7 @@ void NavigationPageNew::cancelProbeCalibration()
         NavigationWorkspaceCalibrationState calibrationState;
         calibrationState.trackingReady = !m_trackingSessionId.isEmpty() && !m_navigationToolId.isEmpty();
         m_workspaceApplicationService->recordCalibrationState(calibrationState);
+        m_workspaceApplicationService->recordPreparationState(buildCurrentPreparationState());
         m_workspaceApplicationService->persistSnapshot();
     }
     showInfo("校准", "当前探针标定已取消。");
@@ -1740,6 +1862,8 @@ void NavigationPageNew::on_connectTrackerButton_clicked()
             m_workflowContext ? m_workflowContext->caseId() : QString(),
             m_trackingSessionId,
             m_navigationToolId);
+        m_runtimeState->setTrackedInstrumentVisible(m_navigationToolId, false);
+        m_runtimeState->setActiveInstrumentPoseSummary(m_navigationToolId, QStringLiteral("pose=waiting"));
     }
     updateTrackerStatus(true);
     showInfo("追踪器", QStringLiteral("追踪器已连接，当前器械已接入导航会话。"));
@@ -1806,14 +1930,25 @@ void NavigationPageNew::performStartNavigation()
     }
 
     m_navigationActive = true;
+    if (m_runtimeState) {
+        m_runtimeState->setTrackedInstrumentVisible(m_navigationToolId, true);
+        m_runtimeState->setActiveInstrumentPoseSummary(
+            m_navigationToolId,
+            QStringLiteral("singleVirtualNavigationSpace | 骨骼 STL + 当前探针/器械 STL + 实时位姿"));
+    }
     if (m_workspaceApplicationService) {
         NavigationWorkspaceNavigationState navigationState = m_workspaceApplicationService->currentSnapshot().navigationState;
         navigationState.trackerConnected = m_trackerConnected;
+        navigationState.activeToolId = m_navigationToolId;
+        navigationState.toolVisible = true;
         navigationState.running = true;
         navigationState.confidence = m_lastConfidence.score;
         navigationState.allowNavigation = m_lastConfidence.allowNavigation;
         navigationState.blockReasons = m_lastConfidence.recommendations;
+        navigationState.latestPoseSummary =
+            QStringLiteral("singleVirtualNavigationSpace | 骨骼 STL + 当前探针/器械 STL + 实时位姿");
         m_workspaceApplicationService->recordNavigationState(navigationState);
+        m_workspaceApplicationService->recordEvaluationState(buildCurrentEvaluationState());
         m_workspaceApplicationService->persistSnapshot();
     }
     updateFourViewWidgetPlacement();
@@ -1856,6 +1991,12 @@ void NavigationPageNew::on_pauseNavigationButton_clicked()
     if (m_navigation3DView) {
         m_navigation3DView->setProbeVisible(false);
     }
+    if (m_runtimeState) {
+        m_runtimeState->setTrackedInstrumentVisible(m_navigationToolId, false);
+        m_runtimeState->setActiveInstrumentPoseSummary(
+            m_navigationToolId,
+            QStringLiteral("singleVirtualNavigationSpace | paused"));
+    }
 
     updateFourViewWidgetPlacement();
     ui->startNavigationButton->setEnabled(true);
@@ -1891,12 +2032,16 @@ void NavigationPageNew::on_pauseNavigationButton_clicked()
         if (m_workspaceApplicationService) {
             NavigationWorkspaceNavigationState navigationState = m_workspaceApplicationService->currentSnapshot().navigationState;
             navigationState.trackerConnected = m_trackerConnected;
+            navigationState.activeToolId = m_navigationToolId;
+            navigationState.toolVisible = false;
             navigationState.running = false;
             navigationState.confidence = m_lastConfidence.score;
             navigationState.allowNavigation = m_lastConfidence.allowNavigation;
             navigationState.blockReasons = m_lastConfidence.recommendations;
             navigationState.hasRunRecord = true;
+            navigationState.latestPoseSummary = QStringLiteral("singleVirtualNavigationSpace | paused");
             m_workspaceApplicationService->recordNavigationState(navigationState);
+            m_workspaceApplicationService->recordEvaluationState(buildCurrentEvaluationState());
             m_workspaceApplicationService->persistSnapshot();
         }
 
@@ -1996,8 +2141,14 @@ void NavigationPageNew::updateFourViewWidgetPlacement()
     } else if (currentTab == ui->navigationTab) {
         if (m_navigationActive && m_navigation3DView) {
             m_navigationVtkBridge->pauseFourView();
-            m_navigationVtkBridge->showNavigationContent(m_navigation3DView);
-            qDebug() << "[NavigationPage] Navigation 3D view embedded in navigation view";
+            QWidget* singleVirtualNavigationSpace =
+                m_navigationVtkBridge->showNavigationContent(m_navigation3DView);
+            Q_UNUSED(singleVirtualNavigationSpace);
+            if (ui->view3DLabel) {
+                ui->view3DLabel->setText(
+                    QStringLiteral("singleVirtualNavigationSpace | 骨骼 STL + 当前探针/器械 STL + 实时位姿"));
+            }
+            qDebug() << "[NavigationPage] Navigation 3D view embedded as singleVirtualNavigationSpace";
         } else {
             m_fourViewWidget = m_navigationVtkBridge->showFourViewInNavigation(this);
             m_navigationVtkBridge->resumeFourView();
@@ -2188,6 +2339,13 @@ void NavigationPageNew::refreshNavigationConfidenceState(bool showWarnings)
         navigationState.allowNavigation = m_lastConfidence.allowNavigation;
         navigationState.blockReasons = m_lastConfidence.recommendations;
         navigationState.trackerConnected = m_trackerConnected;
+        navigationState.activeToolId = m_navigationToolId;
+        navigationState.toolVisible =
+            m_runtimeState && !m_navigationToolId.isEmpty()
+            ? m_runtimeState->isTrackedInstrumentVisible(m_navigationToolId)
+            : false;
+        navigationState.latestPoseSummary =
+            m_runtimeState ? m_runtimeState->activeInstrumentPoseSummary(m_navigationToolId) : QString();
         if (m_workspaceApplicationService) {
             m_workspaceApplicationService->recordNavigationState(navigationState);
             m_workspaceApplicationService->persistSnapshot();
@@ -2807,8 +2965,8 @@ void NavigationPageNew::restoreNavigationSnapshotState()
         return;
     }
 
-    const NavigationWorkspaceNavigationState navigationState =
-        m_workspaceApplicationService->currentSnapshot().navigationState;
+    const NavigationWorkspaceSnapshot snapshot = m_workspaceApplicationService->currentSnapshot();
+    const NavigationWorkspaceNavigationState navigationState = snapshot.navigationState;
     m_navigationActive = navigationState.running;
 
     if (m_navigationTimer) {
@@ -2819,6 +2977,9 @@ void NavigationPageNew::restoreNavigationSnapshotState()
     }
     if (m_navigation3DView) {
         m_navigation3DView->setProbeVisible(navigationState.toolVisible || navigationState.running);
+        if (!snapshot.assetState.boneModelPath.isEmpty()) {
+            m_navigation3DView->loadBoneModel(snapshot.assetState.boneModelPath);
+        }
     }
 
     if (ui->startNavigationButton) {
@@ -2826,6 +2987,10 @@ void NavigationPageNew::restoreNavigationSnapshotState()
     }
     if (ui->pauseNavigationButton) {
         ui->pauseNavigationButton->setEnabled(navigationState.running);
+    }
+
+    if (m_workspaceUiBinder) {
+        m_workspaceUiBinder->applyNavigationConfidence(navigationState, snapshot.stageGate);
     }
 
     updateFourViewWidgetPlacement();
@@ -2922,7 +3087,29 @@ void NavigationPageNew::onRegistrationCompleted(const PointRegistrationResult& r
             registrationState.rotationY = result.rotationY;
             registrationState.rotationZ = result.rotationZ;
             registrationState.transformMatrix = summarizeRegistrationTransform(result);
+            NavigationPerBoneRegistrationState perBoneState;
+            perBoneState.boneAssetId = result.metrics.value(QStringLiteral("bone_asset_id")).toString();
+            if (perBoneState.boneAssetId.isEmpty()) {
+                perBoneState.boneAssetId = m_workspaceApplicationService->currentSnapshot().planningState.targetBone;
+            }
+            perBoneState.boneRegionId = result.metrics.value(QStringLiteral("bone_region_id")).toString();
+            if (perBoneState.boneRegionId.isEmpty()) {
+                perBoneState.boneRegionId = m_workspaceApplicationService->currentSnapshot().planningState.targetRegion;
+            }
+            perBoneState.pointCount = result.pointCount;
+            perBoneState.success = result.success;
+            perBoneState.fre = result.rmsError;
+            perBoneState.targetTre = result.targetRegionTre;
+            perBoneState.coverageScore = result.coverageScore;
+            perBoneState.transformMatrix = summarizeRegistrationTransform(result);
+            perBoneState.completedAt = QDateTime::currentDateTimeUtc();
+            registrationState.perBoneResults = { perBoneState };
+            registrationState.fusedNavigationSpaceReady = true;
+            registrationState.fusedNavigationSpacePath =
+                QStringLiteral("cases/%1/registration/fused_navigation_space.json").arg(caseId);
+            registrationState.fusedCoverageScore = result.coverageScore;
             m_workspaceApplicationService->recordRegistrationState(registrationState);
+            m_workspaceApplicationService->recordEvaluationState(buildCurrentEvaluationState());
             m_workspaceApplicationService->persistSnapshot();
         }
         NavigationEvaluationService evaluationService(evaluationCasesRoot());

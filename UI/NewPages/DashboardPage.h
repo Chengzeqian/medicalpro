@@ -28,6 +28,7 @@ public:
     void onActivated() override;
     void setCurrentPatientId(int patientId);
     void setCurrentCaseId(const QString& caseId);
+    void setCaseWorkspaceDataRoot(const QString& dataRoot);
     int getCurrentPatientId() const { return m_currentPatientId; }
 
 signals:
@@ -58,6 +59,7 @@ private:
 
     Ui::DashboardPage* ui;
     QString m_currentCaseId;
+    QString m_caseWorkspaceDataRoot;
     int m_currentPatientId;
     int m_currentDicomStudyCount;
     QList<int> m_patientIds;

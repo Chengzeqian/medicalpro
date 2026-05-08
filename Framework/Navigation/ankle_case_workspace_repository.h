@@ -14,9 +14,12 @@ public:
     bool createCaseWorkspace(AnkleCaseManifest& manifest) const;
     bool saveManifest(const AnkleCaseManifest& manifest) const;
     AnkleCaseManifest loadManifest(const QString& caseId) const;
+    bool saveCaseAssetBindings(const AnkleCaseAssetBindings& bindings) const;
+    AnkleCaseAssetBindings loadCaseAssetBindings(const QString& caseId) const;
 
     QString caseRoot(const QString& caseId) const;
     QString manifestPath(const QString& caseId) const;
+    QString caseAssetBindingsPath(const QString& caseId) const;
     QString stagePath(const QString& caseId, const QString& stageName) const;
 
 private:

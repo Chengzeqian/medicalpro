@@ -40,6 +40,22 @@ bool RealCaseWorkspaceSeedCoordinator::ensureWorkspace(
     request.surgeryId = seed.surgeryId;
     request.tibiaModelPath = seed.tibiaModelPath;
     request.talusModelPath = seed.talusModelPath;
+    request.defaultInstrumentAssetIds = QStringList {
+        QStringLiteral("instrument:probe-main"),
+        QStringLiteral("instrument:guide-default")
+    };
+    request.defaultInstrumentGeometryBindings = {
+        AnkleInstrumentGeometryBinding {
+            QStringLiteral("instrument:probe-main"),
+            QStringLiteral("geometry:probe-main"),
+            QStringLiteral("geometry/probe-main.ini")
+        },
+        AnkleInstrumentGeometryBinding {
+            QStringLiteral("instrument:guide-default"),
+            QStringLiteral("geometry:guide-default"),
+            QStringLiteral("geometry/guide-default.ini")
+        }
+    };
     request.targetRegionCenter = seed.targetRegionCenter;
     request.targetRegionRadiusMm = seed.targetRegionRadiusMm;
 

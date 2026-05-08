@@ -1,6 +1,7 @@
 ﻿#include "DashboardPage.h"
 #include "ui_DashboardPage.h"
 
+#include "Framework/Navigation/case_workspace_package_service.h"
 #include "Framework/Platform/Facades/IdentityAppService.h"
 #include "Framework/Platform/Facades/ImagingAppService.h"
 #include "Framework/Platform/Facades/NavigationAppService.h"
@@ -84,6 +85,13 @@ void DashboardPageNew::setCurrentPatientId(int patientId)
 void DashboardPageNew::setCurrentCaseId(const QString& caseId)
 {
     m_currentCaseId = caseId;
+    updateNavigationCta(m_currentPatientId >= 0);
+}
+
+void DashboardPageNew::setCaseWorkspaceDataRoot(const QString& dataRoot)
+{
+    m_caseWorkspaceDataRoot = dataRoot;
+    updateNavigationCta(m_currentPatientId >= 0);
 }
 
 void DashboardPageNew::on_backButton_clicked()
@@ -107,6 +115,11 @@ void DashboardPageNew::on_refreshButton_clicked()
 
 void DashboardPageNew::on_enterNavigationButton_clicked()
 {
+    if (!ui->enterNavigationButton->isEnabled()) {
+        showWarning(QStringLiteral("进入导航"), QStringLiteral("请先补齐病例工作包。"));
+        return;
+    }
+
     if (m_currentPatientId < 0) {
         showWarning(QStringLiteral("进入导航"), QStringLiteral("请先选择一位患者。"));
         return;
@@ -339,22 +352,37 @@ void DashboardPageNew::setOverviewDicomSummary(int studyCount)
 
 void DashboardPageNew::updateNavigationCta(bool patientSelected)
 {
-    const QString tone = ThreePagePresentationUtils::buildDashboardNavigationTone(patientSelected, m_currentDicomStudyCount);
+    CaseWorkspacePackageSummary summary;
+    if (!m_caseWorkspaceDataRoot.isEmpty() && !m_currentCaseId.isEmpty()) {
+        const CaseWorkspacePackageService service(m_caseWorkspaceDataRoot);
+        summary = service.loadSummary(m_currentCaseId);
+    }
+
+    const bool readyForNavigation = patientSelected && summary.readyForNavigation;
+    const QString tone = !patientSelected
+        ? QStringLiteral("danger")
+        : (readyForNavigation ? QStringLiteral("ok") : QStringLiteral("warning"));
     const QString title = !patientSelected
         ? QStringLiteral("先选择病例")
-        : (m_currentDicomStudyCount > 0 ? QStringLiteral("病例与影像已就绪") : QStringLiteral("病例已就绪，可继续"));
+        : (readyForNavigation ? QStringLiteral("病例工作包已就绪") : QStringLiteral("先补齐病例工作包"));
     const QString caseHint = m_currentCaseId.isEmpty()
-        ? QString()
+        ? QStringLiteral("当前未绑定病例。")
         : QStringLiteral("当前病例：%1。").arg(m_currentCaseId);
+    const QString packageHint = summary.caseId.isEmpty()
+        ? QStringLiteral("未找到病例工作包。")
+        : QStringLiteral("骨模型 %1，激活骨 %2，器械 %3，几何绑定 %4。")
+            .arg(summary.boundBoneCount)
+            .arg(summary.activeBoneCount)
+            .arg(summary.boundInstrumentCount)
+            .arg(summary.geometryBindingCount);
 
     ui->navigationCtaTitleLabel->setText(title);
-    ui->navigationCtaHintLabel->setText(
-        caseHint + ThreePagePresentationUtils::buildDashboardNavigationHint(patientSelected, m_currentDicomStudyCount));
+    ui->navigationCtaHintLabel->setText(caseHint + packageHint);
     ui->navigationCtaFrame->setProperty("statusTone", tone);
     ui->navigationCtaTitleLabel->setProperty("statusTone", tone);
     polishWidget(ui->navigationCtaFrame);
     polishWidget(ui->navigationCtaTitleLabel);
-    ui->enterNavigationButton->setEnabled(patientSelected);
+    ui->enterNavigationButton->setEnabled(readyForNavigation);
 }
 
 void DashboardPageNew::polishWidget(QWidget* widget)

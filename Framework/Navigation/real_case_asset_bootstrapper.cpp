@@ -3,6 +3,7 @@
 #include "Framework/Navigation/ankle_case_workspace_repository.h"
 #include "Framework/Navigation/ankle_planning_service.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -220,6 +221,20 @@ bool RealCaseAssetBootstrapper::bootstrap(const RealCaseAssetBootstrapRequest& r
     };
 
     if (!repository.saveManifest(manifest)) {
+        return false;
+    }
+
+    AnkleCaseAssetBindings bindings;
+    bindings.caseId = request.caseId;
+    bindings.boundBoneAssetIds = QStringList { QStringLiteral("bone:tibia"), QStringLiteral("bone:talus") };
+    bindings.activeBoneAssetIds = bindings.boundBoneAssetIds;
+    bindings.boundInstrumentAssetIds = request.defaultInstrumentAssetIds;
+    bindings.activeInstrumentAssetIds = request.defaultInstrumentAssetIds;
+    bindings.instrumentGeometryBindings = request.defaultInstrumentGeometryBindings;
+    bindings.createdAtIso = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+    bindings.updatedAtIso = bindings.createdAtIso;
+
+    if (!repository.saveCaseAssetBindings(bindings)) {
         return false;
     }
 

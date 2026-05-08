@@ -34,6 +34,7 @@ public:
     void applyWorkspaceSummary(const NavigationWorkspaceSnapshot& snapshot) const;
     void applyStageGate(const NavigationStageGate& gate) const;
     void applyCalibrationSummary(const NavigationWorkspaceCalibrationState& calibrationState) const;
+    void applyPreparationSummary(const NavigationWorkspacePreparationState& state) const;
     void applyNavigationConfidence(
         const NavigationWorkspaceNavigationState& navigationState,
         const NavigationStageGate& gate,

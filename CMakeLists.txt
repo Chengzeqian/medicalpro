@@ -201,6 +201,8 @@ set(FRAMEWORK_SOURCES
     Framework/Navigation/real_case_asset_bootstrapper.cpp
     Framework/Navigation/real_case_workspace_seed_coordinator.h
     Framework/Navigation/real_case_workspace_seed_coordinator.cpp
+    Framework/Navigation/case_workspace_package_service.h
+    Framework/Navigation/case_workspace_package_service.cpp
     Framework/Navigation/innovation_experiment_repository.h
     Framework/Navigation/innovation_experiment_repository.cpp
     Framework/Navigation/innovation_summary_csv_exporter.h

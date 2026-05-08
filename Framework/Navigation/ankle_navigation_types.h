@@ -31,6 +31,25 @@ struct AnkleCaseManifest
     QList<AnkleModelAsset> modelAssets;
 };
 
+struct AnkleInstrumentGeometryBinding
+{
+    QString instrumentAssetId;
+    QString geometryAssetId;
+    QString geometryFilePath;
+};
+
+struct AnkleCaseAssetBindings
+{
+    QString caseId;
+    QStringList boundBoneAssetIds;
+    QStringList activeBoneAssetIds;
+    QStringList boundInstrumentAssetIds;
+    QStringList activeInstrumentAssetIds;
+    QList<AnkleInstrumentGeometryBinding> instrumentGeometryBindings;
+    QString createdAtIso;
+    QString updatedAtIso;
+};
+
 struct AnkleConstraintRegionMetadata
 {
     QString boneName;

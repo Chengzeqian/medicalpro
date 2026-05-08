@@ -59,6 +59,13 @@ void NavigationWorkflowCoordinator::handleLoadDicom() const
 
     if (m_preparationPlanningController) {
         m_preparationPlanningController->loadDicom();
+        if (m_workspaceApplicationService) {
+            m_workspaceApplicationService->recordPreparationState(
+                m_preparationPlanningController->currentPreparationState());
+            m_workspaceApplicationService->recordPlanningState(
+                m_preparationPlanningController->currentPlanningState());
+            m_workspaceApplicationService->persistSnapshot();
+        }
     }
 }
 
@@ -69,7 +76,12 @@ void NavigationWorkflowCoordinator::handleComputeRegistration() const
     }
 
     if (m_registrationController) {
-        m_registrationController->computeRegistration();
+        const NavigationWorkspaceRegistrationState registrationState =
+            m_registrationController->computePerBoneRegistration();
+        if (m_workspaceApplicationService) {
+            m_workspaceApplicationService->recordRegistrationState(registrationState);
+            m_workspaceApplicationService->persistSnapshot();
+        }
     }
 }
 
@@ -80,4 +92,9 @@ void NavigationWorkflowCoordinator::handleStartNavigation() const
     }
 
     m_navigationEvaluationController->startNavigation();
+    if (m_workspaceApplicationService) {
+        m_workspaceApplicationService->recordEvaluationState(
+            m_navigationEvaluationController->currentEvaluationState());
+        m_workspaceApplicationService->persistSnapshot();
+    }
 }

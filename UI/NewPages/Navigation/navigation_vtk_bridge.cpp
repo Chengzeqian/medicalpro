@@ -61,6 +61,11 @@ QWidget* NavigationVtkBridge::showFourViewInNavigation(QWidget* parent)
     return showNavigationContent(widget);
 }
 
+QWidget* NavigationVtkBridge::showSingleNavigationSpace(QWidget* widget)
+{
+    return showNavigationContent(widget);
+}
+
 QWidget* NavigationVtkBridge::showNavigationContent(QWidget* widget)
 {
     if (!widget) {

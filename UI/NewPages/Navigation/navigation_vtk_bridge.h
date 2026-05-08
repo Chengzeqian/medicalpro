@@ -22,6 +22,7 @@ public:
     QWidget* ensureFourViewWidget(QWidget* parent);
     QWidget* showFourViewInPlanning(QWidget* parent);
     QWidget* showFourViewInNavigation(QWidget* parent);
+    QWidget* showSingleNavigationSpace(QWidget* widget);
     QWidget* showNavigationContent(QWidget* widget);
     QWidget* ensureRegistrationWidget(QWidget* parent);
     void detachFourView();

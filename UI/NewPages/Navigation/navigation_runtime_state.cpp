@@ -21,6 +21,8 @@ void NavigationRuntimeState::setCaseContext(
     m_trackingQuality.clear();
     m_registrationResult = PointRegistrationResult();
     m_confidenceResult = NavigationConfidenceResult();
+    m_trackedInstrumentVisibility.clear();
+    m_activeInstrumentPoseSummaries.clear();
     m_hasTrackingQuality = false;
     m_hasRegistrationResult = false;
     m_hasConfidenceResult = false;
@@ -42,6 +44,26 @@ void NavigationRuntimeState::setConfidenceResult(const NavigationConfidenceResul
 {
     m_confidenceResult = confidenceResult;
     m_hasConfidenceResult = true;
+}
+
+void NavigationRuntimeState::setTrackedInstrumentVisible(const QString& instrumentId, bool visible)
+{
+    m_trackedInstrumentVisibility.insert(instrumentId, visible);
+}
+
+bool NavigationRuntimeState::isTrackedInstrumentVisible(const QString& instrumentId) const
+{
+    return m_trackedInstrumentVisibility.value(instrumentId, false);
+}
+
+void NavigationRuntimeState::setActiveInstrumentPoseSummary(const QString& instrumentId, const QString& summary)
+{
+    m_activeInstrumentPoseSummaries.insert(instrumentId, summary);
+}
+
+QString NavigationRuntimeState::activeInstrumentPoseSummary(const QString& instrumentId) const
+{
+    return m_activeInstrumentPoseSummaries.value(instrumentId);
 }
 
 void NavigationRuntimeState::clearTrackingQuality()

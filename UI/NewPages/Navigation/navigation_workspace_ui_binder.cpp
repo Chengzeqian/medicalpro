@@ -31,7 +31,13 @@ void NavigationWorkspaceUiBinder::refreshFromSnapshot(const NavigationWorkspaceS
 
     applyStageGate(snapshot.stageGate);
     applyNavigationConfidence(snapshot.navigationState, snapshot.stageGate);
-    applyCalibrationSummary(snapshot.calibrationState);
+    if (!snapshot.preparationState.instrumentCalibrationStates.isEmpty()
+        || !snapshot.preparationState.blockingReasons.isEmpty()
+        || snapshot.preparationState.allRequiredInstrumentsCalibrated) {
+        applyPreparationSummary(snapshot.preparationState);
+    } else {
+        applyCalibrationSummary(snapshot.calibrationState);
+    }
 }
 
 void NavigationWorkspaceUiBinder::applyWorkspaceSummary(const NavigationWorkspaceSnapshot& snapshot) const
@@ -108,6 +114,26 @@ void NavigationWorkspaceUiBinder::applyCalibrationSummary(
         calibrationState.requiredPoints > 0 && calibrationState.collectedPoints >= calibrationState.requiredPoints
             ? QStringLiteral("ok")
             : QStringLiteral("warning"));
+}
+
+void NavigationWorkspaceUiBinder::applyPreparationSummary(
+    const NavigationWorkspacePreparationState& state) const
+{
+    if (!m_bindings.calibrationStatusLabel) {
+        return;
+    }
+
+    if (state.allRequiredInstrumentsCalibrated) {
+        m_bindings.calibrationStatusLabel->setText(QStringLiteral("标定状态：所有导航器械均已标定完成"));
+        applyTone(m_bindings.calibrationStatusLabel, QStringLiteral("ok"));
+        return;
+    }
+
+    const QString message = state.blockingReasons.isEmpty()
+        ? QStringLiteral("标定状态：仍有器械未完成标定")
+        : QStringLiteral("标定状态：%1").arg(state.blockingReasons.join(QStringLiteral("；")));
+    m_bindings.calibrationStatusLabel->setText(message);
+    applyTone(m_bindings.calibrationStatusLabel, QStringLiteral("warning"));
 }
 
 void NavigationWorkspaceUiBinder::applyNavigationConfidence(

@@ -63,6 +63,90 @@ QStringList stringListFromJson(const QJsonArray& array)
     return values;
 }
 
+QJsonObject toJson(const NavigationInstrumentGeometryState& state)
+{
+    QJsonObject object;
+    object.insert(QStringLiteral("instrument_id"), state.instrumentId);
+    object.insert(QStringLiteral("geometry_id"), state.geometryId);
+    object.insert(QStringLiteral("geometry_file_path"), state.geometryFilePath);
+    object.insert(QStringLiteral("geometry_ready"), state.geometryReady);
+    return object;
+}
+
+NavigationInstrumentGeometryState geometryStateFromJson(const QJsonObject& object)
+{
+    NavigationInstrumentGeometryState state;
+    state.instrumentId = object.value(QStringLiteral("instrument_id")).toString();
+    state.geometryId = object.value(QStringLiteral("geometry_id")).toString();
+    state.geometryFilePath = object.value(QStringLiteral("geometry_file_path")).toString();
+    state.geometryReady = object.value(QStringLiteral("geometry_ready")).toBool();
+    return state;
+}
+
+QJsonArray toJson(const QList<NavigationInstrumentGeometryState>& states)
+{
+    QJsonArray array;
+    for (const NavigationInstrumentGeometryState& state : states) {
+        array.append(toJson(state));
+    }
+    return array;
+}
+
+QList<NavigationInstrumentGeometryState> geometryStatesFromJson(const QJsonArray& array)
+{
+    QList<NavigationInstrumentGeometryState> states;
+    states.reserve(array.size());
+    for (const QJsonValue& value : array) {
+        states.append(geometryStateFromJson(value.toObject()));
+    }
+    return states;
+}
+
+QJsonObject toJson(const NavigationWorkspaceAssetState& assetState)
+{
+    QJsonObject object;
+    object.insert(QStringLiteral("dicom_ready"), assetState.dicomReady);
+    object.insert(QStringLiteral("bone_model_ready"), assetState.boneModelReady);
+    object.insert(QStringLiteral("bone_model_path"), assetState.boneModelPath);
+    object.insert(QStringLiteral("bound_bone_assets"), toJson(assetState.boundBoneAssets));
+    object.insert(QStringLiteral("active_bone_assets"), toJson(assetState.activeBoneAssets));
+    object.insert(QStringLiteral("bound_instrument_ids"), toJson(assetState.boundInstrumentIds));
+    object.insert(QStringLiteral("active_instrument_ids"), toJson(assetState.activeInstrumentIds));
+    object.insert(QStringLiteral("instrument_geometry_bindings"), toJson(assetState.instrumentGeometryBindings));
+    object.insert(QStringLiteral("geometry_ready"), assetState.geometryReady);
+    object.insert(QStringLiteral("selected_bone_assets"), toJson(assetState.selectedBoneAssets));
+    object.insert(QStringLiteral("selected_bone_asset"), assetState.selectedBoneAsset);
+    object.insert(QStringLiteral("selected_instrument_id"), assetState.selectedInstrumentId);
+    object.insert(QStringLiteral("geometry_file_path"), assetState.geometryFilePath);
+    object.insert(QStringLiteral("geometry_id"), assetState.geometryId);
+    object.insert(QStringLiteral("instrument_service_available"), assetState.instrumentServiceAvailable);
+    object.insert(QStringLiteral("tool_visible"), assetState.toolVisible);
+    return object;
+}
+
+NavigationWorkspaceAssetState assetStateFromJson(const QJsonObject& object)
+{
+    NavigationWorkspaceAssetState assetState;
+    assetState.dicomReady = object.value(QStringLiteral("dicom_ready")).toBool();
+    assetState.boneModelReady = object.value(QStringLiteral("bone_model_ready")).toBool();
+    assetState.boneModelPath = object.value(QStringLiteral("bone_model_path")).toString();
+    assetState.boundBoneAssets = stringListFromJson(object.value(QStringLiteral("bound_bone_assets")).toArray());
+    assetState.activeBoneAssets = stringListFromJson(object.value(QStringLiteral("active_bone_assets")).toArray());
+    assetState.boundInstrumentIds = stringListFromJson(object.value(QStringLiteral("bound_instrument_ids")).toArray());
+    assetState.activeInstrumentIds = stringListFromJson(object.value(QStringLiteral("active_instrument_ids")).toArray());
+    assetState.instrumentGeometryBindings =
+        geometryStatesFromJson(object.value(QStringLiteral("instrument_geometry_bindings")).toArray());
+    assetState.geometryReady = object.value(QStringLiteral("geometry_ready")).toBool();
+    assetState.selectedBoneAssets = stringListFromJson(object.value(QStringLiteral("selected_bone_assets")).toArray());
+    assetState.selectedBoneAsset = object.value(QStringLiteral("selected_bone_asset")).toString();
+    assetState.selectedInstrumentId = object.value(QStringLiteral("selected_instrument_id")).toString();
+    assetState.geometryFilePath = object.value(QStringLiteral("geometry_file_path")).toString();
+    assetState.geometryId = object.value(QStringLiteral("geometry_id")).toString();
+    assetState.instrumentServiceAvailable = object.value(QStringLiteral("instrument_service_available")).toBool();
+    assetState.toolVisible = object.value(QStringLiteral("tool_visible")).toBool();
+    return assetState;
+}
+
 QJsonObject toJson(const NavigationStageGate& gate)
 {
     QJsonObject object;
@@ -85,6 +169,55 @@ NavigationStageGate gateFromJson(const QJsonObject& object)
     gate.severity = object.value(QStringLiteral("severity")).toString();
     gate.lastComputedAt = QDateTime::fromString(object.value(QStringLiteral("last_computed_at")).toString(), Qt::ISODateWithMs);
     return gate;
+}
+
+QJsonObject toJson(const NavigationInstrumentCalibrationState& state)
+{
+    QJsonObject object;
+    object.insert(QStringLiteral("instrument_id"), state.instrumentId);
+    object.insert(QStringLiteral("geometry_id"), state.geometryId);
+    object.insert(QStringLiteral("started"), state.started);
+    object.insert(QStringLiteral("collected_points"), state.collectedPoints);
+    object.insert(QStringLiteral("required_points"), state.requiredPoints);
+    object.insert(QStringLiteral("completed"), state.completed);
+    object.insert(QStringLiteral("accuracy"), state.accuracy);
+    object.insert(QStringLiteral("completed_at"), state.completedAt.toString(Qt::ISODateWithMs));
+    return object;
+}
+
+NavigationInstrumentCalibrationState instrumentCalibrationStateFromJson(const QJsonObject& object)
+{
+    NavigationInstrumentCalibrationState state;
+    state.instrumentId = object.value(QStringLiteral("instrument_id")).toString();
+    state.geometryId = object.value(QStringLiteral("geometry_id")).toString();
+    state.started = object.value(QStringLiteral("started")).toBool();
+    state.collectedPoints = object.value(QStringLiteral("collected_points")).toInt();
+    state.requiredPoints = object.value(QStringLiteral("required_points")).toInt();
+    state.completed = object.value(QStringLiteral("completed")).toBool();
+    state.accuracy = object.value(QStringLiteral("accuracy")).toDouble();
+    state.completedAt = QDateTime::fromString(
+        object.value(QStringLiteral("completed_at")).toString(),
+        Qt::ISODateWithMs);
+    return state;
+}
+
+QJsonArray toJson(const QList<NavigationInstrumentCalibrationState>& states)
+{
+    QJsonArray array;
+    for (const NavigationInstrumentCalibrationState& state : states) {
+        array.append(toJson(state));
+    }
+    return array;
+}
+
+QList<NavigationInstrumentCalibrationState> instrumentCalibrationStatesFromJson(const QJsonArray& array)
+{
+    QList<NavigationInstrumentCalibrationState> states;
+    states.reserve(array.size());
+    for (const QJsonValue& value : array) {
+        states.append(instrumentCalibrationStateFromJson(value.toObject()));
+    }
+    return states;
 }
 
 QJsonObject toJson(const NavigationWorkspaceCalibrationState& calibrationState)
@@ -121,6 +254,116 @@ NavigationWorkspaceCalibrationState calibrationStateFromJson(const QJsonObject& 
     return calibrationState;
 }
 
+QJsonObject toJson(const NavigationWorkspacePreparationState& preparationState)
+{
+    QJsonObject object;
+    object.insert(
+        QStringLiteral("instrument_calibration_states"),
+        toJson(preparationState.instrumentCalibrationStates));
+    object.insert(
+        QStringLiteral("all_required_instruments_calibrated"),
+        preparationState.allRequiredInstrumentsCalibrated);
+    object.insert(QStringLiteral("blocking_reasons"), toJson(preparationState.blockingReasons));
+    return object;
+}
+
+NavigationWorkspacePreparationState preparationStateFromJson(const QJsonObject& object)
+{
+    NavigationWorkspacePreparationState preparationState;
+    preparationState.instrumentCalibrationStates =
+        instrumentCalibrationStatesFromJson(
+            object.value(QStringLiteral("instrument_calibration_states")).toArray());
+    preparationState.allRequiredInstrumentsCalibrated =
+        object.value(QStringLiteral("all_required_instruments_calibrated")).toBool();
+    preparationState.blockingReasons =
+        stringListFromJson(object.value(QStringLiteral("blocking_reasons")).toArray());
+    return preparationState;
+}
+
+QJsonObject toJson(const NavigationWorkspacePlanningState& planningState)
+{
+    QJsonObject object;
+    object.insert(QStringLiteral("has_planning"), planningState.hasPlanning);
+    object.insert(QStringLiteral("target_region_ready"), planningState.targetRegionReady);
+    object.insert(QStringLiteral("target_bone"), planningState.targetBone);
+    object.insert(QStringLiteral("target_region"), planningState.targetRegion);
+    object.insert(QStringLiteral("reference_bones"), toJson(planningState.referenceBones));
+    object.insert(QStringLiteral("constraint_regions"), toJson(planningState.constraintRegions));
+    object.insert(QStringLiteral("recommended_point_order"), toJson(planningState.recommendedPointOrder));
+    object.insert(QStringLiteral("completed"), planningState.completed);
+    object.insert(QStringLiteral("saved_at"), planningState.savedAt.toString(Qt::ISODateWithMs));
+    return object;
+}
+
+NavigationWorkspacePlanningState planningStateFromJson(const QJsonObject& object)
+{
+    NavigationWorkspacePlanningState planningState;
+    planningState.hasPlanning = object.value(QStringLiteral("has_planning")).toBool();
+    planningState.targetRegionReady = object.value(QStringLiteral("target_region_ready")).toBool();
+    planningState.targetBone = object.value(QStringLiteral("target_bone")).toString();
+    planningState.targetRegion = object.value(QStringLiteral("target_region")).toString();
+    planningState.referenceBones = stringListFromJson(object.value(QStringLiteral("reference_bones")).toArray());
+    planningState.constraintRegions = stringListFromJson(object.value(QStringLiteral("constraint_regions")).toArray());
+    planningState.recommendedPointOrder =
+        stringListFromJson(object.value(QStringLiteral("recommended_point_order")).toArray());
+    planningState.completed = object.value(QStringLiteral("completed")).toBool();
+    planningState.savedAt = QDateTime::fromString(
+        object.value(QStringLiteral("saved_at")).toString(),
+        Qt::ISODateWithMs);
+    return planningState;
+}
+
+QJsonObject toJson(const NavigationPerBoneRegistrationState& state)
+{
+    QJsonObject object;
+    object.insert(QStringLiteral("bone_asset_id"), state.boneAssetId);
+    object.insert(QStringLiteral("bone_region_id"), state.boneRegionId);
+    object.insert(QStringLiteral("point_count"), state.pointCount);
+    object.insert(QStringLiteral("success"), state.success);
+    object.insert(QStringLiteral("fre"), state.fre);
+    object.insert(QStringLiteral("target_tre"), state.targetTre);
+    object.insert(QStringLiteral("coverage_score"), state.coverageScore);
+    object.insert(QStringLiteral("transform_matrix"), state.transformMatrix);
+    object.insert(QStringLiteral("completed_at"), state.completedAt.toString(Qt::ISODateWithMs));
+    return object;
+}
+
+NavigationPerBoneRegistrationState perBoneRegistrationStateFromJson(const QJsonObject& object)
+{
+    NavigationPerBoneRegistrationState state;
+    state.boneAssetId = object.value(QStringLiteral("bone_asset_id")).toString();
+    state.boneRegionId = object.value(QStringLiteral("bone_region_id")).toString();
+    state.pointCount = object.value(QStringLiteral("point_count")).toInt();
+    state.success = object.value(QStringLiteral("success")).toBool();
+    state.fre = object.value(QStringLiteral("fre")).toDouble();
+    state.targetTre = object.value(QStringLiteral("target_tre")).toDouble();
+    state.coverageScore = object.value(QStringLiteral("coverage_score")).toDouble();
+    state.transformMatrix = object.value(QStringLiteral("transform_matrix")).toString();
+    state.completedAt = QDateTime::fromString(
+        object.value(QStringLiteral("completed_at")).toString(),
+        Qt::ISODateWithMs);
+    return state;
+}
+
+QJsonArray toJson(const QList<NavigationPerBoneRegistrationState>& states)
+{
+    QJsonArray array;
+    for (const NavigationPerBoneRegistrationState& state : states) {
+        array.append(toJson(state));
+    }
+    return array;
+}
+
+QList<NavigationPerBoneRegistrationState> perBoneRegistrationStatesFromJson(const QJsonArray& array)
+{
+    QList<NavigationPerBoneRegistrationState> states;
+    states.reserve(array.size());
+    for (const QJsonValue& value : array) {
+        states.append(perBoneRegistrationStateFromJson(value.toObject()));
+    }
+    return states;
+}
+
 QJsonObject toJson(const NavigationWorkspaceRegistrationState& registrationState)
 {
     QJsonObject object;
@@ -136,6 +379,19 @@ QJsonObject toJson(const NavigationWorkspaceRegistrationState& registrationState
     object.insert(QStringLiteral("rotation_y"), registrationState.rotationY);
     object.insert(QStringLiteral("rotation_z"), registrationState.rotationZ);
     object.insert(QStringLiteral("transform_matrix"), registrationState.transformMatrix);
+    object.insert(QStringLiteral("per_bone_results"), toJson(registrationState.perBoneResults));
+    object.insert(
+        QStringLiteral("fused_navigation_space_ready"),
+        registrationState.fusedNavigationSpaceReady);
+    object.insert(
+        QStringLiteral("fused_navigation_space_path"),
+        registrationState.fusedNavigationSpacePath);
+    object.insert(
+        QStringLiteral("fused_coverage_score"),
+        registrationState.fusedCoverageScore);
+    object.insert(
+        QStringLiteral("fusion_blocking_reasons"),
+        toJson(registrationState.fusionBlockingReasons));
     object.insert(QStringLiteral("completed_at"), registrationState.completedAt.toString(Qt::ISODateWithMs));
     return object;
 }
@@ -155,6 +411,16 @@ NavigationWorkspaceRegistrationState registrationStateFromJson(const QJsonObject
     registrationState.rotationY = object.value(QStringLiteral("rotation_y")).toDouble();
     registrationState.rotationZ = object.value(QStringLiteral("rotation_z")).toDouble();
     registrationState.transformMatrix = object.value(QStringLiteral("transform_matrix")).toString();
+    registrationState.perBoneResults =
+        perBoneRegistrationStatesFromJson(object.value(QStringLiteral("per_bone_results")).toArray());
+    registrationState.fusedNavigationSpaceReady =
+        object.value(QStringLiteral("fused_navigation_space_ready")).toBool();
+    registrationState.fusedNavigationSpacePath =
+        object.value(QStringLiteral("fused_navigation_space_path")).toString();
+    registrationState.fusedCoverageScore =
+        object.value(QStringLiteral("fused_coverage_score")).toDouble();
+    registrationState.fusionBlockingReasons =
+        stringListFromJson(object.value(QStringLiteral("fusion_blocking_reasons")).toArray());
     registrationState.completedAt = QDateTime::fromString(
         object.value(QStringLiteral("completed_at")).toString(),
         Qt::ISODateWithMs);
@@ -165,11 +431,13 @@ QJsonObject toJson(const NavigationWorkspaceNavigationState& navigationState)
 {
     QJsonObject object;
     object.insert(QStringLiteral("tracker_connected"), navigationState.trackerConnected);
+    object.insert(QStringLiteral("active_tool_id"), navigationState.activeToolId);
     object.insert(QStringLiteral("tool_visible"), navigationState.toolVisible);
     object.insert(QStringLiteral("running"), navigationState.running);
     object.insert(QStringLiteral("confidence"), navigationState.confidence);
     object.insert(QStringLiteral("allow_navigation"), navigationState.allowNavigation);
     object.insert(QStringLiteral("block_reasons"), toJson(navigationState.blockReasons));
+    object.insert(QStringLiteral("latest_pose_summary"), navigationState.latestPoseSummary);
     object.insert(QStringLiteral("has_run_record"), navigationState.hasRunRecord);
     object.insert(QStringLiteral("has_evaluation_report"), navigationState.hasEvaluationReport);
     object.insert(QStringLiteral("summary_text"), navigationState.summaryText);
@@ -181,11 +449,13 @@ NavigationWorkspaceNavigationState navigationStateFromJson(const QJsonObject& ob
 {
     NavigationWorkspaceNavigationState navigationState;
     navigationState.trackerConnected = object.value(QStringLiteral("tracker_connected")).toBool();
+    navigationState.activeToolId = object.value(QStringLiteral("active_tool_id")).toString();
     navigationState.toolVisible = object.value(QStringLiteral("tool_visible")).toBool();
     navigationState.running = object.value(QStringLiteral("running")).toBool();
     navigationState.confidence = object.value(QStringLiteral("confidence")).toDouble();
     navigationState.allowNavigation = object.value(QStringLiteral("allow_navigation")).toBool();
     navigationState.blockReasons = stringListFromJson(object.value(QStringLiteral("block_reasons")).toArray());
+    navigationState.latestPoseSummary = object.value(QStringLiteral("latest_pose_summary")).toString();
     navigationState.hasRunRecord = object.value(QStringLiteral("has_run_record")).toBool();
     navigationState.hasEvaluationReport = object.value(QStringLiteral("has_evaluation_report")).toBool();
     navigationState.summaryText = object.value(QStringLiteral("summary_text")).toString();
@@ -193,15 +463,52 @@ NavigationWorkspaceNavigationState navigationStateFromJson(const QJsonObject& ob
     return navigationState;
 }
 
+QJsonObject toJson(const NavigationWorkspaceEvaluationState& evaluationState)
+{
+    QJsonObject object;
+    object.insert(QStringLiteral("has_summary"), evaluationState.hasSummary);
+    object.insert(QStringLiteral("error_metrics"), QJsonObject::fromVariantMap(evaluationState.errorMetrics));
+    object.insert(QStringLiteral("per_bone_quality_summary"), toJson(evaluationState.perBoneQualitySummary));
+    object.insert(QStringLiteral("navigation_process_summary"), evaluationState.navigationProcessSummary);
+    object.insert(QStringLiteral("summary_text"), evaluationState.summaryText);
+    object.insert(QStringLiteral("report_ready"), evaluationState.reportReady);
+    object.insert(QStringLiteral("exportable_artifacts"), toJson(evaluationState.exportableArtifacts));
+    object.insert(QStringLiteral("last_updated_at"), evaluationState.lastUpdatedAt.toString(Qt::ISODateWithMs));
+    return object;
+}
+
+NavigationWorkspaceEvaluationState evaluationStateFromJson(const QJsonObject& object)
+{
+    NavigationWorkspaceEvaluationState evaluationState;
+    evaluationState.hasSummary = object.value(QStringLiteral("has_summary")).toBool();
+    evaluationState.errorMetrics = object.value(QStringLiteral("error_metrics")).toObject().toVariantMap();
+    evaluationState.perBoneQualitySummary =
+        stringListFromJson(object.value(QStringLiteral("per_bone_quality_summary")).toArray());
+    evaluationState.navigationProcessSummary =
+        object.value(QStringLiteral("navigation_process_summary")).toString();
+    evaluationState.summaryText = object.value(QStringLiteral("summary_text")).toString();
+    evaluationState.reportReady = object.value(QStringLiteral("report_ready")).toBool();
+    evaluationState.exportableArtifacts =
+        stringListFromJson(object.value(QStringLiteral("exportable_artifacts")).toArray());
+    evaluationState.lastUpdatedAt = QDateTime::fromString(
+        object.value(QStringLiteral("last_updated_at")).toString(),
+        Qt::ISODateWithMs);
+    return evaluationState;
+}
+
 QJsonObject toJson(const NavigationWorkspaceSnapshot& snapshot)
 {
     QJsonObject object;
     object.insert(QStringLiteral("case_id"), snapshot.caseId);
     object.insert(QStringLiteral("current_stage"), stageToString(snapshot.caseContext.currentStage));
+    object.insert(QStringLiteral("asset_state"), toJson(snapshot.assetState));
     object.insert(QStringLiteral("stage_gate"), toJson(snapshot.stageGate));
     object.insert(QStringLiteral("calibration_state"), toJson(snapshot.calibrationState));
+    object.insert(QStringLiteral("preparation_state"), toJson(snapshot.preparationState));
+    object.insert(QStringLiteral("planning_state"), toJson(snapshot.planningState));
     object.insert(QStringLiteral("registration_state"), toJson(snapshot.registrationState));
     object.insert(QStringLiteral("navigation_state"), toJson(snapshot.navigationState));
+    object.insert(QStringLiteral("evaluation_state"), toJson(snapshot.evaluationState));
     object.insert(QStringLiteral("last_refreshed_at"), snapshot.lastRefreshedAt.toString(Qt::ISODateWithMs));
     return object;
 }
@@ -211,10 +518,14 @@ NavigationWorkspaceSnapshot snapshotFromJson(const QJsonObject& object)
     NavigationWorkspaceSnapshot snapshot;
     snapshot.caseId = object.value(QStringLiteral("case_id")).toString();
     snapshot.caseContext.currentStage = stringToStage(object.value(QStringLiteral("current_stage")).toString());
+    snapshot.assetState = assetStateFromJson(object.value(QStringLiteral("asset_state")).toObject());
     snapshot.stageGate = gateFromJson(object.value(QStringLiteral("stage_gate")).toObject());
     snapshot.calibrationState = calibrationStateFromJson(object.value(QStringLiteral("calibration_state")).toObject());
+    snapshot.preparationState = preparationStateFromJson(object.value(QStringLiteral("preparation_state")).toObject());
+    snapshot.planningState = planningStateFromJson(object.value(QStringLiteral("planning_state")).toObject());
     snapshot.registrationState = registrationStateFromJson(object.value(QStringLiteral("registration_state")).toObject());
     snapshot.navigationState = navigationStateFromJson(object.value(QStringLiteral("navigation_state")).toObject());
+    snapshot.evaluationState = evaluationStateFromJson(object.value(QStringLiteral("evaluation_state")).toObject());
     snapshot.lastRefreshedAt = QDateTime::fromString(object.value(QStringLiteral("last_refreshed_at")).toString(), Qt::ISODateWithMs);
     return snapshot;
 }

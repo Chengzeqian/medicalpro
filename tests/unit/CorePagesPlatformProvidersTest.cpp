@@ -5,7 +5,9 @@
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QTableWidget>
+#include <QTemporaryDir>
 
+#include "Framework/Navigation/ankle_case_workspace_repository.h"
 #include "Framework/Platform/Facades/IdentityAppService.h"
 #include "Framework/Platform/Facades/ImagingAppService.h"
 #include "Framework/Platform/Facades/NavigationAppService.h"
@@ -181,6 +183,9 @@ void CorePagesPlatformProvidersTest::managementPage_uses_identity_service_for_ta
 
 void CorePagesPlatformProvidersTest::dashboardPage_uses_facade_services_for_patient_and_imaging_views()
 {
+    QTemporaryDir tempRoot;
+    QVERIFY(tempRoot.isValid());
+
     FakeIdentityProviderPort identityPort;
     PatientItem patient;
     patient.id = 21;
@@ -206,6 +211,28 @@ void CorePagesPlatformProvidersTest::dashboardPage_uses_facade_services_for_pati
     NavigationAppService navigationAppService(&navigationPort);
     DashboardPageNew page(nullptr, &identityAppService, &imagingAppService, &navigationAppService);
     QSignalSpy enterNavigationSpy(&page, &DashboardPageNew::enterNavigationRequested);
+
+    AnkleCaseWorkspaceRepository repository(tempRoot.path());
+    AnkleCaseManifest manifest;
+    manifest.caseId = QStringLiteral("ankle-case-021");
+    QVERIFY(repository.createCaseWorkspace(manifest));
+
+    AnkleCaseAssetBindings bindings;
+    bindings.caseId = manifest.caseId;
+    bindings.boundBoneAssetIds = QStringList { QStringLiteral("bone:tibia"), QStringLiteral("bone:talus") };
+    bindings.activeBoneAssetIds = bindings.boundBoneAssetIds;
+    bindings.boundInstrumentAssetIds = QStringList { QStringLiteral("instrument:probe-main") };
+    bindings.activeInstrumentAssetIds = bindings.boundInstrumentAssetIds;
+    bindings.instrumentGeometryBindings = {
+        AnkleInstrumentGeometryBinding {
+            QStringLiteral("instrument:probe-main"),
+            QStringLiteral("geometry:probe-main"),
+            QStringLiteral("geometry/probe-main.ini")
+        }
+    };
+    QVERIFY(repository.saveCaseAssetBindings(bindings));
+    page.setCurrentCaseId(manifest.caseId);
+    page.setCaseWorkspaceDataRoot(tempRoot.path());
 
     page.onActivated();
     QCoreApplication::processEvents();

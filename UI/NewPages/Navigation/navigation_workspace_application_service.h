@@ -21,18 +21,26 @@ public:
     NavigationWorkspaceSnapshot currentSnapshot() const;
     NavigationStageGate evaluateStageGate(AnkleWorkflowStage stage);
     void recordCalibrationState(const NavigationWorkspaceCalibrationState& calibrationState);
+    void recordPreparationState(const NavigationWorkspacePreparationState& preparationState);
+    void recordPlanningState(const NavigationWorkspacePlanningState& planningState);
     void recordRegistrationState(const NavigationWorkspaceRegistrationState& registrationState);
     void recordNavigationState(const NavigationWorkspaceNavigationState& navigationState);
+    void recordEvaluationState(const NavigationWorkspaceEvaluationState& evaluationState);
     bool persistSnapshot() const;
     NavigationWorkspaceSnapshot restoreSnapshot(const QString& caseId) const;
 
 private:
+    void mergeUiRestoreFacts(const NavigationWorkspaceSnapshot& restoredSnapshot);
     NavigationWorkspaceNavigationState mergeNavigationState(
         const NavigationWorkspaceNavigationState& navigationState) const;
     NavigationWorkspaceCalibrationState buildCalibrationSummary(
         const NavigationWorkspaceCalibrationState& calibrationState) const;
     NavigationWorkspaceNavigationState buildNavigationSummary(
         const NavigationWorkspaceNavigationState& navigationState) const;
+    NavigationWorkspacePreparationState buildPreparationState(
+        const QString& caseId,
+        const NavigationWorkspaceAssetState& assetState,
+        const NavigationWorkspaceCalibrationState& calibrationState) const;
     NavigationWorkspaceSnapshot buildSnapshot(
         const QString& caseId,
         const QString& patientId,

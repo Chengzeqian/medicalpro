@@ -6,6 +6,7 @@
 #include "Framework/Navigation/navigation_confidence_evaluator.h"
 #include "Plugins/PointRegistration/PointRegistrationDataStructures.h"
 #include "UI/NewPages/Navigation/navigation_workflow_stage.h"
+#include "UI/NewPages/Navigation/navigation_workspace_types.h"
 // enum class AnkleWorkflowStage declared in navigation_workflow_stage.h
 
 #include <QEvent>
@@ -161,6 +162,9 @@ private:
     void refreshNavigationConfidenceState(bool showWarnings = false);
     void refreshStageGateUi();
     void persistEvaluationReportSnapshot(bool exportMetricsCsv = false);
+    NavigationWorkspacePreparationState buildCurrentPreparationState() const;
+    NavigationWorkspacePlanningState buildCurrentPlanningState() const;
+    NavigationWorkspaceEvaluationState buildCurrentEvaluationState() const;
     void performLoadDicom();
     void performComputeRegistration();
     void performStartNavigation();
