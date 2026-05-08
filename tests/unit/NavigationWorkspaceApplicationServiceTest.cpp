@@ -25,6 +25,7 @@ private slots:
     void service_preserves_navigation_run_facts_when_recording_gate_updates();
     void controller_builds_preparation_summary_from_active_instruments_and_calibration_states();
     void binder_exposes_read_only_planning_summary_with_case_assets();
+    void binder_exposes_case_level_evaluation_summary();
 };
 
 void NavigationWorkspaceApplicationServiceTest::service_builds_workspace_snapshot_from_runtime_inputs()
@@ -523,6 +524,41 @@ void NavigationWorkspaceApplicationServiceTest::binder_exposes_read_only_plannin
     QVERIFY(summary.contains(QStringLiteral("medial")));
     QVERIFY(summary.contains(QStringLiteral("tibia")));
     QVERIFY(summary.contains(QStringLiteral("DICOM")));
+}
+
+void NavigationWorkspaceApplicationServiceTest::binder_exposes_case_level_evaluation_summary()
+{
+    QLabel evaluationSummaryLabel;
+    evaluationSummaryLabel.setObjectName(QStringLiteral("evaluationSummaryLabel"));
+
+    NavigationWorkspaceUiBinder::Bindings bindings;
+    bindings.evaluationSummaryLabel = &evaluationSummaryLabel;
+    NavigationWorkspaceUiBinder binder(bindings);
+
+    NavigationWorkspaceEvaluationState evaluationState;
+    evaluationState.hasSummary = true;
+    evaluationState.reportReady = true;
+    evaluationState.summaryText = QStringLiteral("病例 ankle-case-real-45971129749");
+    evaluationState.navigationProcessSummary = QStringLiteral("导航过程稳定");
+    evaluationState.perBoneQualitySummary = QStringList {
+        QStringLiteral("tibia:0.42mm"),
+        QStringLiteral("talus:0.38mm")
+    };
+    evaluationState.errorMetrics.insert(QStringLiteral("registrationErrorMm"), 0.42);
+    evaluationState.errorMetrics.insert(QStringLiteral("visibleFrameRatio"), 0.95);
+    evaluationState.errorMetrics.insert(QStringLiteral("trackingLatencyMs"), 31.0);
+    evaluationState.errorMetrics.insert(QStringLiteral("trackingJitterMm"), 0.28);
+
+    binder.applyEvaluationSummary(evaluationState);
+
+    const QString text = evaluationSummaryLabel.text();
+    QVERIFY(text.contains(QStringLiteral("ankle-case-real-45971129749")));
+    QVERIFY(text.contains(QStringLiteral("导航过程稳定")));
+    QVERIFY(text.contains(QStringLiteral("tibia:0.42mm")));
+    QVERIFY(text.contains(QStringLiteral("registrationErrorMm=0.42")));
+    QVERIFY(text.contains(QStringLiteral("visibleFrameRatio=0.95")));
+    QVERIFY(text.contains(QStringLiteral("trackingLatencyMs=31")));
+    QVERIFY(text.contains(QStringLiteral("trackingJitterMm=0.28")));
 }
 
 QTEST_MAIN(NavigationWorkspaceApplicationServiceTest)

@@ -949,6 +949,7 @@ void NavigationPageNew::setWorkflowStage(AnkleWorkflowStage stage)
         break;
     case AnkleWorkflowStage::Evaluation:
         ui->tabWidget->setCurrentWidget(ui->evaluationTab);
+        refreshEvaluationSummary();
         break;
     }
     refreshStageGateUi();
@@ -964,6 +965,11 @@ void NavigationPageNew::refreshEvaluationSummary()
 {
     if (!ui || !ui->evaluationTabLayout) {
         return;
+    }
+
+    if (m_workspaceApplicationService && m_workspaceUiBinder) {
+        const NavigationWorkspaceSnapshot snapshot = m_workspaceApplicationService->currentSnapshot();
+        m_workspaceUiBinder->applyEvaluationSummary(snapshot.evaluationState);
     }
 
     auto ensureSectionLabel = [this](const QString& groupName, const QString& labelName, const QString& title) {
