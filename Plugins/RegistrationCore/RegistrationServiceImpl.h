@@ -2,6 +2,7 @@
 #define REGISTRATION_SERVICE_IMPL_H
 
 #include "RegistrationService.h"
+#include "ankle_registration_parallel_search.h"
 
 #include <QObject>
 #include <QHash>
@@ -152,6 +153,20 @@ private:
 
     // Convert a MeshGPU transform array into vtkMatrix4x4.
     static vtkSmartPointer<vtkMatrix4x4> meshGPUTransformToVTK(const float* data16);
+    QList<CandidateEvaluationResult> evaluateCandidateTransformsGpu(
+        const QList<CandidateInitialTransform>& candidates,
+        const QVariantMap& parameters);
+    QVariantMap buildParallelSearchReport(
+        const QList<CandidateInitialTransform>& candidateTransforms,
+        const QList<CandidateEvaluationResult>& topKCandidateScores,
+        const QVariantMap& parameters,
+        qint64 coarseSearchMs,
+        bool constraintParallelFilterEnabled,
+        qint64 roiFilterMs,
+        int multiResolutionLevelCount) const;
+    static QMatrix4x4 vtkMatrix4x4ToQMatrix(vtkMatrix4x4* matrix);
+    static vtkSmartPointer<vtkMatrix4x4> qMatrix4x4ToVtkMatrix(const QMatrix4x4& matrix);
+    static mesh_gpu::Transform4x4 qMatrixToMeshGpuTransform(const QMatrix4x4& matrix);
 
     // MeshGPU DLL function pointer types
     using CreateMeshGPUFn = mesh_gpu::MeshGPURuntimeApi* (*)();

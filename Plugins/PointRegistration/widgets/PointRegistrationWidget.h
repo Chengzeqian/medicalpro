@@ -34,6 +34,8 @@ class QGroupBox;
 class QFrame;
 class QComboBox;
 class QDoubleSpinBox;
+class QSpinBox;
+class QCheckBox;
 class QRadioButton;
 class PointRegistrationService;
 
@@ -107,6 +109,9 @@ private:
     void connectSignals();
     void updatePointTable();
     void updateResultDisplay(const PointRegistrationResult& result);
+    void loadExecutionOptionsFromService();
+    PointRegistrationExecutionOptions buildExecutionOptionsFromControls() const;
+    void updateParallelMetricsDisplay(const QVariantMap& metrics);
     void appendLog(const QString& message);
     QString formatTime() const;
 
@@ -142,6 +147,11 @@ private:
 
     // ========== 左侧：变换模式 ==========
     QComboBox* m_transformModeCombo;
+    QCheckBox* m_parallelInitialSearchCheck;
+    QCheckBox* m_constraintParallelFilterCheck;
+    QSpinBox* m_candidateCountSpin;
+    QSpinBox* m_topKCandidateCountSpin;
+    QComboBox* m_multiResolutionProfileCombo;
 
     // ========== 左侧：选点模式 ==========
     QRadioButton* m_pickSourceRadio;
@@ -176,6 +186,7 @@ private:
     QTableWidget* m_resultTable;             // 变换参数表格
     QLabel* m_rmsErrorLabel;
     QLabel* m_maxErrorLabel;
+    QLabel* m_parallelMetricsLabel;
     QFrame* m_accuracyFrame;                 // 精度指标框
 };
 

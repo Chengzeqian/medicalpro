@@ -15,6 +15,7 @@ class Innovation2RegistrationExperimentTest : public QObject
 private slots:
     void experiment_runs_four_registration_methods_and_exports_core_metrics();
     void experiment_produces_method_distinct_non_placeholder_metrics();
+    void experiment_exports_parallel_search_metrics_for_constrained_method();
     void experiment_uses_case_planning_target_region_when_workspace_is_provided();
     void experiment_uses_case_model_assets_when_tibia_and_talus_models_are_available();
     void experiment_reports_tibia_and_talus_anatomical_regions_when_case_models_are_available();
@@ -103,6 +104,24 @@ void Innovation2RegistrationExperimentTest::experiment_produces_method_distinct_
         recordByMethod.value(QStringLiteral("ankle_two_stage_constrained")).metrics.value(QStringLiteral("overall_tre_mm")).toDouble();
 
     QVERIFY(constrainedOverallTre < singleStageOverallTre);
+}
+
+void Innovation2RegistrationExperimentTest::experiment_exports_parallel_search_metrics_for_constrained_method()
+{
+    Innovation2RegistrationExperiment experiment;
+
+    Innovation2RegistrationInput input;
+    input.caseId = QStringLiteral("ankle-case-203");
+    input.registrationMethodIds = QStringList({ QStringLiteral("ankle_two_stage_constrained") });
+
+    const auto records = experiment.run(input);
+
+    QCOMPARE(records.size(), 1);
+    QVERIFY(records.first().metrics.contains(QStringLiteral("candidate_count")));
+    QVERIFY(records.first().metrics.contains(QStringLiteral("top_k_count")));
+    QVERIFY(records.first().metrics.contains(QStringLiteral("coarse_search_ms")));
+    QVERIFY(records.first().metrics.contains(QStringLiteral("best_candidate_rank")));
+    QVERIFY(records.first().metrics.contains(QStringLiteral("multi_resolution_profile")));
 }
 
 void Innovation2RegistrationExperimentTest::experiment_uses_case_planning_target_region_when_workspace_is_provided()

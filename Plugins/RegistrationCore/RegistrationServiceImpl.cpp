@@ -410,6 +410,112 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::meshGPUTransformToVTK(con
     return matrix;
 }
 
+QMatrix4x4 RegistrationServiceImpl::vtkMatrix4x4ToQMatrix(vtkMatrix4x4* matrix)
+{
+    QMatrix4x4 result;
+    if (!matrix) {
+        return result;
+    }
+
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            result(row, col) = static_cast<float>(matrix->GetElement(row, col));
+        }
+    }
+    return result;
+}
+
+vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::qMatrix4x4ToVtkMatrix(const QMatrix4x4& matrix)
+{
+    vtkSmartPointer<vtkMatrix4x4> result = vtkSmartPointer<vtkMatrix4x4>::New();
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            result->SetElement(row, col, static_cast<double>(matrix(row, col)));
+        }
+    }
+    return result;
+}
+
+mesh_gpu::Transform4x4 RegistrationServiceImpl::qMatrixToMeshGpuTransform(const QMatrix4x4& matrix)
+{
+    mesh_gpu::Transform4x4 result;
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            result(row, col) = matrix(row, col);
+        }
+    }
+    return result;
+}
+
+QList<CandidateEvaluationResult> RegistrationServiceImpl::evaluateCandidateTransformsGpu(
+    const QList<CandidateInitialTransform>& candidates,
+    const QVariantMap& parameters)
+{
+    if (!m_meshGPU || candidates.isEmpty()) {
+        return {};
+    }
+
+    std::vector<mesh_gpu::Transform4x4> transforms;
+    transforms.reserve(static_cast<size_t>(candidates.size()));
+    for (const CandidateInitialTransform& candidate : candidates) {
+        transforms.push_back(qMatrixToMeshGpuTransform(candidate.transformMatrix));
+    }
+
+    const float cutoffMm = parameters.value(QStringLiteral("candidateScoreCutoffMm"), 12.0f).toFloat();
+    const std::vector<mesh_gpu::RuntimeTransformCandidateScore> runtimeScores =
+        m_meshGPU->scoreTransformCandidates(transforms, cutoffMm);
+
+    QList<CandidateEvaluationResult> results;
+    results.reserve(static_cast<int>(runtimeScores.size()));
+    for (const mesh_gpu::RuntimeTransformCandidateScore& runtimeScore : runtimeScores) {
+        if (runtimeScore.candidateIndex < 0 || runtimeScore.candidateIndex >= candidates.size()) {
+            continue;
+        }
+
+        CandidateEvaluationResult result;
+        result.candidateId = candidates.at(runtimeScore.candidateIndex).candidateId;
+        result.coarseScore = runtimeScore.meanDistanceMm;
+        result.converged = runtimeScore.success;
+        results.append(result);
+    }
+    return results;
+}
+
+QVariantMap RegistrationServiceImpl::buildParallelSearchReport(
+    const QList<CandidateInitialTransform>& candidateTransforms,
+    const QList<CandidateEvaluationResult>& topKCandidateScores,
+    const QVariantMap& parameters,
+    qint64 coarseSearchMs,
+    bool constraintParallelFilterEnabled,
+    qint64 roiFilterMs,
+    int multiResolutionLevelCount) const
+{
+    const bool parallelSearchEnabled = !candidateTransforms.isEmpty() && !topKCandidateScores.isEmpty();
+
+    QVariantMap report;
+    report.insert(QStringLiteral("parallelSearchEnabled"), parallelSearchEnabled);
+    report.insert(QStringLiteral("candidateCount"), candidateTransforms.size());
+    report.insert(QStringLiteral("topKCount"), topKCandidateScores.size());
+    report.insert(QStringLiteral("coarseSearchMs"), coarseSearchMs);
+    report.insert(
+        QStringLiteral("multiResolutionProfile"),
+        parameters.value(
+            QStringLiteral("multiResolutionProfileId"),
+            QStringLiteral("ankle_roi_three_level")).toString());
+    report.insert(QStringLiteral("constraintParallelFilterEnabled"), constraintParallelFilterEnabled);
+    report.insert(QStringLiteral("roiFilterMs"), roiFilterMs);
+    report.insert(QStringLiteral("multiResolutionLevelCount"), multiResolutionLevelCount);
+
+    if (!topKCandidateScores.isEmpty()) {
+        const CandidateEvaluationResult& bestCandidate = topKCandidateScores.first();
+        report.insert(QStringLiteral("bestCandidateId"), bestCandidate.candidateId);
+        report.insert(QStringLiteral("bestCandidateRank"), 0);
+        report.insert(QStringLiteral("coarseScore"), bestCandidate.coarseScore);
+    }
+
+    return report;
+}
+
 vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performGICPRegistration(
     vtkPolyData* source,
     vtkPolyData* target,
@@ -678,6 +784,7 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performGICPRegistration(
             activeTarget != target ? coreConstraintTargetPointCount : static_cast<int>(target->GetNumberOfPoints());
         metadata["coreConstraintTargetTriangleCount"] =
             activeTarget != target ? coreConstraintTargetTriangleCount : static_cast<int>(target->GetNumberOfCells());
+        metadata.unite(parameters.value(QStringLiteral("parallelSearchReport")).toMap());
         record.metadata = metadata;
 
         saveRecord(registrationId, record);
@@ -982,6 +1089,235 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performICPRegistrationAdv
                 }
             }
 
+            const bool enableParallelInitialSearch =
+                parameters.value(QStringLiteral("enableParallelInitialSearch"), false).toBool()
+                && parameters.value(QStringLiteral("registrationMethodId")).toString()
+                    == QStringLiteral("ankle_two_stage_constrained");
+            QList<CandidateInitialTransform> candidateTransforms;
+            QList<CandidateEvaluationResult> candidateScores;
+            QList<CandidateEvaluationResult> topKCandidateScores;
+            QElapsedTimer coarseSearchTimer;
+            qint64 roiFilterMs = 0;
+            QVariantMap gpuParameters = parameters;
+
+            if (enableParallelInitialSearch && initialMatrix) {
+                ParallelSearchPlan plan;
+                plan.candidateCount = parameters.value(QStringLiteral("candidateCount"), 64).toInt();
+                plan.topKCount = parameters.value(QStringLiteral("topKCandidateCount"), 4).toInt();
+                plan.multiResolutionProfileId = parameters.value(
+                    QStringLiteral("multiResolutionProfileId"),
+                    QStringLiteral("ankle_roi_three_level")).toString();
+                const QList<double> multiResolutionCellSizes =
+                    resolveMultiResolutionCellSizes(plan.multiResolutionProfileId);
+                const bool constraintParallelFilterEnabled =
+                    parameters.value(QStringLiteral("enableConstraintParallelFilter"), false).toBool();
+
+                const QVector3D targetRegionCenter(
+                    parameters.value(QStringLiteral("targetRegionCenterX"), 0.0).toFloat(),
+                    parameters.value(QStringLiteral("targetRegionCenterY"), 0.0).toFloat(),
+                    parameters.value(QStringLiteral("targetRegionCenterZ"), 0.0).toFloat());
+                const float cellSize = parameters.value(QStringLiteral("cellSize"), 1.0).toFloat();
+                const QString targetMeshPath = parameters.value(QStringLiteral("targetMeshPath")).toString();
+                const QMap<QString, QList<QVector3D>> constraintRegions =
+                    constraintRegionsFromVariant(parameters.value(QStringLiteral("constraintRegions")).toMap());
+                const QList<QVector3D> flattenedConstraintPoints = flattenConstraintRegions(constraintRegions);
+                const double targetRegionRadiusMm =
+                    parameters.value(QStringLiteral("targetRegionRadiusMm"), 0.0).toDouble();
+                QElapsedTimer roiFilterTimer;
+                roiFilterTimer.start();
+                int coarseConstraintTargetPointCount = 0;
+                int coarseConstraintTargetTriangleCount = 0;
+                vtkSmartPointer<vtkPolyData> constrainedTarget;
+                if (!flattenedConstraintPoints.isEmpty() || targetRegionRadiusMm > 0.0) {
+                    constrainedTarget = buildConstrainedTargetPolyData(
+                        target,
+                        flattenedConstraintPoints,
+                        targetRegionCenter,
+                        targetRegionRadiusMm,
+                        &coarseConstraintTargetPointCount,
+                        &coarseConstraintTargetTriangleCount);
+                }
+
+                vtkPolyData* activeTarget =
+                    constrainedTarget
+                        && coarseConstraintTargetPointCount >= 3
+                        && coarseConstraintTargetTriangleCount > 0
+                    ? constrainedTarget
+                    : target;
+
+                const QList<mesh_gpu::Point3D> constrainedSourcePoints =
+                    (!flattenedConstraintPoints.isEmpty() || targetRegionRadiusMm > 0.0)
+                    ? buildConstrainedSourcePointCloud(
+                        source,
+                        flattenedConstraintPoints,
+                        targetRegionCenter,
+                        targetRegionRadiusMm,
+                        initialMatrix,
+                        3)
+                    : QList<mesh_gpu::Point3D> {};
+                roiFilterMs = roiFilterTimer.elapsed();
+
+                coarseSearchTimer.start();
+                std::vector<mesh_gpu::Point3D> targetVertices(activeTarget->GetNumberOfPoints());
+                std::vector<mesh_gpu::Normal3D> targetNormals(activeTarget->GetNumberOfPoints());
+                std::vector<std::array<int, 3>> targetTriangles;
+                targetTriangles.reserve(static_cast<size_t>(activeTarget->GetNumberOfCells()));
+
+                for (vtkIdType i = 0; i < activeTarget->GetNumberOfPoints(); ++i) {
+                    double point[3];
+                    activeTarget->GetPoint(i, point);
+                    targetVertices[static_cast<size_t>(i)] = {
+                        static_cast<float>(point[0]),
+                        static_cast<float>(point[1]),
+                        static_cast<float>(point[2])
+                    };
+                }
+
+                vtkDataArray* normalArray =
+                    activeTarget->GetPointData() ? activeTarget->GetPointData()->GetNormals() : nullptr;
+                if (normalArray) {
+                    for (vtkIdType i = 0; i < activeTarget->GetNumberOfPoints(); ++i) {
+                        double normal[3];
+                        normalArray->GetTuple(i, normal);
+                        targetNormals[static_cast<size_t>(i)] = {
+                            static_cast<float>(normal[0]),
+                            static_cast<float>(normal[1]),
+                            static_cast<float>(normal[2])
+                        };
+                    }
+                }
+
+                for (vtkIdType i = 0; i < activeTarget->GetNumberOfCells(); ++i) {
+                    vtkCell* cell = activeTarget->GetCell(i);
+                    if (cell && cell->GetNumberOfPoints() == 3) {
+                        targetTriangles.push_back({
+                            static_cast<int>(cell->GetPointId(0)),
+                            static_cast<int>(cell->GetPointId(1)),
+                            static_cast<int>(cell->GetPointId(2))
+                        });
+                    }
+                }
+
+                std::vector<mesh_gpu::Point3D> sourcePoints(source->GetNumberOfPoints());
+                for (vtkIdType i = 0; i < source->GetNumberOfPoints(); ++i) {
+                    double point[3];
+                    source->GetPoint(i, point);
+                    sourcePoints[static_cast<size_t>(i)] = {
+                        static_cast<float>(point[0]),
+                        static_cast<float>(point[1]),
+                        static_cast<float>(point[2])
+                    };
+                }
+
+                std::vector<mesh_gpu::Point3D> activeSourcePoints = sourcePoints;
+                if (!constrainedSourcePoints.isEmpty()) {
+                    activeSourcePoints.assign(constrainedSourcePoints.cbegin(), constrainedSourcePoints.cend());
+                } else {
+                    for (vtkIdType i = 0; i < source->GetNumberOfPoints(); ++i) {
+                        double point[3];
+                        source->GetPoint(i, point);
+                        double point4[4] = { point[0], point[1], point[2], 1.0 };
+                        double result4[4];
+                        initialMatrix->MultiplyPoint(point4, result4);
+                        activeSourcePoints[static_cast<size_t>(i)] = {
+                            static_cast<float>(result4[0]),
+                            static_cast<float>(result4[1]),
+                            static_cast<float>(result4[2])
+                        };
+                    }
+                }
+
+                candidateTransforms = buildCandidateInitialTransforms(
+                    vtkMatrix4x4ToQMatrix(initialMatrix),
+                    targetRegionCenter,
+                    plan);
+
+                vtkSmartPointer<vtkMatrix4x4> inverseInitialMatrix = invertMatrix(initialMatrix);
+                QList<CandidateInitialTransform> deltaCandidates;
+                deltaCandidates.reserve(candidateTransforms.size());
+                for (const CandidateInitialTransform& candidateTransform : candidateTransforms) {
+                    CandidateInitialTransform deltaCandidate = candidateTransform;
+                    vtkSmartPointer<vtkMatrix4x4> absoluteCandidateMatrix =
+                        qMatrix4x4ToVtkMatrix(candidateTransform.transformMatrix);
+                    vtkSmartPointer<vtkMatrix4x4> deltaMatrix = multiplyMatrix(
+                        absoluteCandidateMatrix,
+                        inverseInitialMatrix);
+                    deltaCandidate.transformMatrix = vtkMatrix4x4ToQMatrix(deltaMatrix);
+                    deltaCandidates.append(deltaCandidate);
+                }
+
+                QList<CandidateInitialTransform> activeCandidates = deltaCandidates;
+                int executedMultiResolutionLevelCount = 0;
+                for (int levelIndex = 0; levelIndex < multiResolutionCellSizes.size() && !activeCandidates.isEmpty(); ++levelIndex) {
+                    QVariantMap levelParameters = parameters;
+                    levelParameters.insert(QStringLiteral("cellSize"), multiResolutionCellSizes.at(levelIndex));
+                    const float levelCellSize = static_cast<float>(multiResolutionCellSizes.at(levelIndex));
+                    const bool targetPrepared =
+                        !targetMeshPath.isEmpty() && activeTarget == target
+                        ? m_meshGPU->loadTargetMesh(targetMeshPath.toStdString(), levelCellSize)
+                        : m_meshGPU->setTargetMesh(
+                            targetVertices,
+                            targetNormals,
+                            targetTriangles,
+                            levelCellSize);
+                    const bool sourcePrepared = targetPrepared && m_meshGPU->setSourcePointCloud(activeSourcePoints);
+                    if (!sourcePrepared) {
+                        qWarning() << "[RegistrationService] Parallel search skipped because MeshGPU runtime preparation failed"
+                                   << "registrationId=" << registrationId
+                                   << "levelIndex=" << levelIndex
+                                   << "targetPrepared=" << targetPrepared
+                                   << "sourcePrepared=" << sourcePrepared;
+                        activeCandidates.clear();
+                        break;
+                    }
+
+                    ++executedMultiResolutionLevelCount;
+                    candidateScores = evaluateCandidateTransformsGpu(activeCandidates, levelParameters);
+                    const int levelTopKCount =
+                        levelIndex == multiResolutionCellSizes.size() - 1
+                        ? plan.topKCount
+                        : qMin(plan.topKCount * 2, candidateScores.size());
+                    topKCandidateScores = selectTopKCandidates(candidateScores, levelTopKCount);
+                    if (levelIndex < multiResolutionCellSizes.size() - 1) {
+                        activeCandidates = filterCandidatesByIds(
+                            activeCandidates,
+                            candidateIds(topKCandidateScores));
+                    }
+                }
+
+                if (!topKCandidateScores.isEmpty()) {
+                    const QString bestCandidateId = topKCandidateScores.first().candidateId;
+                    for (const CandidateInitialTransform& candidateTransform : candidateTransforms) {
+                        if (candidateTransform.candidateId == bestCandidateId) {
+                            initialMatrix = qMatrix4x4ToVtkMatrix(candidateTransform.transformMatrix);
+                            break;
+                        }
+                    }
+                }
+
+                gpuParameters.insert(
+                    QStringLiteral("parallelSearchReport"),
+                    buildParallelSearchReport(
+                        candidateTransforms,
+                        topKCandidateScores,
+                        parameters,
+                        coarseSearchTimer.isValid() ? coarseSearchTimer.elapsed() : 0,
+                        constraintParallelFilterEnabled,
+                        roiFilterMs,
+                        executedMultiResolutionLevelCount));
+            } else {
+                gpuParameters.insert(
+                    QStringLiteral("parallelSearchReport"),
+                    buildParallelSearchReport(
+                        candidateTransforms,
+                        topKCandidateScores,
+                        parameters,
+                        coarseSearchTimer.isValid() ? coarseSearchTimer.elapsed() : 0,
+                        parameters.value(QStringLiteral("enableConstraintParallelFilter"), false).toBool(),
+                        roiFilterMs,
+                        0));
+            }
+
             qDebug() << "[RegistrationService] Dispatching GPU-GICP:"
                      << "registrationId=" << registrationId
                      << "hasInitialTransform=" << (initialMatrix != nullptr)
@@ -989,7 +1325,7 @@ vtkSmartPointer<vtkMatrix4x4> RegistrationServiceImpl::performICPRegistrationAdv
                      << "distanceThreshold=" << parameters.value("distanceThreshold", 10.0f).toFloat()
                      << "maxIterations=" << parameters.value("maxIterations", 50).toInt();
 
-            auto result = performGICPRegistration(source, target, initialMatrix, parameters, registrationId);
+            auto result = performGICPRegistration(source, target, initialMatrix, gpuParameters, registrationId);
             if (result) return result;
 
             qWarning() << "[RegistrationService] GPU-GICP returned no result, falling back to VTK ICP:"

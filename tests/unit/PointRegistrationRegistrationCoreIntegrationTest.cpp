@@ -19,6 +19,7 @@ class FakeRegistrationService final : public registration_core::RegistrationServ
 public:
     int advancedCallCount = 0;
     QVariantMap lastParameters;
+    QVariantMap registrationInfo;
     vtkIdType lastSourcePointCount = 0;
     vtkIdType lastTargetPointCount = 0;
 
@@ -72,7 +73,7 @@ public:
     bool saveRegistrationResult(const QString&, vtkMatrix4x4*, const QVariantMap&) override { return true; }
     vtkSmartPointer<vtkMatrix4x4> loadRegistrationResult(const QString&) override { return nullptr; }
     QStringList getRegistrationList() const override { return {}; }
-    QVariantMap getRegistrationInfo(const QString&) const override { return {}; }
+    QVariantMap getRegistrationInfo(const QString&) const override { return registrationInfo; }
     bool deleteRegistration(const QString&) override { return false; }
     vtkSmartPointer<vtkMatrix4x4> invertMatrix(vtkMatrix4x4* matrix) override
     {
@@ -110,6 +111,7 @@ private slots:
     void execute_registration_respects_two_stage_constrained_method();
     void execute_registration_uses_planned_constraint_regions_to_limit_two_stage_refinement();
     void execute_registration_emits_planning_constraint_context_metrics();
+    void execute_registration_surfaces_parallel_search_metrics_from_registration_core();
     void mutating_points_invalidates_previous_registration_state();
     void failed_reregistration_clears_previous_registration_state();
 
@@ -445,6 +447,74 @@ void PointRegistrationRegistrationCoreIntegrationTest::execute_registration_emit
     QCOMPARE(metrics.value(QStringLiteral("constraint_region_roles")).toString(), QStringLiteral("distal_region|dome_region"));
     QCOMPARE(metrics.value(QStringLiteral("constraint_region_source")).toString(), QStringLiteral("planning_json"));
     QCOMPARE(metrics.value(QStringLiteral("constraint_region_version")).toString(), QStringLiteral("1.1"));
+}
+
+void PointRegistrationRegistrationCoreIntegrationTest::execute_registration_surfaces_parallel_search_metrics_from_registration_core()
+{
+    PlatformServiceRegistry registry;
+    FakeRegistrationService registrationService;
+    registrationService.registrationInfo.insert(
+        QStringLiteral("metadata"),
+        QVariantMap{
+            { QStringLiteral("parallelSearchEnabled"), true },
+            { QStringLiteral("candidateCount"), 48 },
+            { QStringLiteral("topKCount"), 6 },
+            { QStringLiteral("coarseSearchMs"), 12.5 },
+            { QStringLiteral("roiFilterMs"), 1.75 },
+            { QStringLiteral("elapsedMs"), 8.5 },
+            { QStringLiteral("bestCandidateRank"), 2 },
+            { QStringLiteral("coarseScore"), 0.91 },
+            { QStringLiteral("multiResolutionProfile"), QStringLiteral("ankle_roi_two_level") }
+        });
+    registry.registerService(QStringLiteral("RegistrationCore"), QStringLiteral("RegistrationService"), &registrationService);
+
+    PointRegistrationServiceImpl service;
+    service.setServiceRegistry(&registry);
+    RegistrationWorkflow workflow(&service);
+
+    PointRegistrationExecutionOptions options;
+    options.registrationMethodId = QStringLiteral("ankle_two_stage_constrained");
+    options.candidateCount = 48;
+    options.topKCandidateCount = 6;
+    options.enableParallelInitialSearch = true;
+    options.enableConstraintParallelFilter = true;
+    options.multiResolutionProfileId = QStringLiteral("ankle_roi_two_level");
+    workflow.setExecutionOptions(options);
+
+    QVERIFY(service.loadModelFromPolyData(createTriangleModel(), QStringLiteral("ankle-model")));
+
+    const int point0 = service.addPoint(QStringLiteral("p0"));
+    const int point1 = service.addPoint(QStringLiteral("p1"));
+    const int point2 = service.addPoint(QStringLiteral("p2"));
+
+    QVERIFY(service.setSourcePosition(point0, QVector3D(0.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point1, QVector3D(10.0f, 0.0f, 0.0f)));
+    QVERIFY(service.setSourcePosition(point2, QVector3D(0.0f, 10.0f, 0.0f)));
+
+    QVERIFY(service.setTargetPosition(point0, QVector3D(5.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point1, QVector3D(15.0f, 3.0f, 0.0f)));
+    QVERIFY(service.setTargetPosition(point2, QVector3D(5.0f, 13.0f, 0.0f)));
+
+    QVERIFY(workflow.executeRegistration());
+
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("enableParallelInitialSearch")).toBool(), true);
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("enableConstraintParallelFilter")).toBool(), true);
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("candidateCount")).toInt(), 48);
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("topKCandidateCount")).toInt(), 6);
+    QCOMPARE(registrationService.lastParameters.value(QStringLiteral("multiResolutionProfileId")).toString(),
+             QStringLiteral("ankle_roi_two_level"));
+
+    const QVariantMap metrics = workflow.getLastResult().metrics;
+    QCOMPARE(metrics.value(QStringLiteral("candidate_count")).toInt(), 48);
+    QCOMPARE(metrics.value(QStringLiteral("top_k_count")).toInt(), 6);
+    QCOMPARE(metrics.value(QStringLiteral("coarse_search_ms")).toDouble(), 12.5);
+    QCOMPARE(metrics.value(QStringLiteral("roi_filter_ms")).toDouble(), 1.75);
+    QCOMPARE(metrics.value(QStringLiteral("refine_ms")).toDouble(), 8.5);
+    QCOMPARE(metrics.value(QStringLiteral("best_candidate_rank")).toInt(), 2);
+    QCOMPARE(metrics.value(QStringLiteral("coarse_score")).toDouble(), 0.91);
+    QCOMPARE(metrics.value(QStringLiteral("parallel_search_enabled")).toBool(), true);
+    QCOMPARE(metrics.value(QStringLiteral("multi_resolution_profile")).toString(),
+             QStringLiteral("ankle_roi_two_level"));
 }
 
 void PointRegistrationRegistrationCoreIntegrationTest::mutating_points_invalidates_previous_registration_state()

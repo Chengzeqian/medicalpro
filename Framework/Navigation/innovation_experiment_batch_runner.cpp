@@ -67,6 +67,7 @@ InnovationBatchOutput InnovationExperimentBatchRunner::run(const InnovationBatch
 
         Innovation3GateInput innovation3Input;
         innovation3Input.caseId = caseId;
+        innovation3Input.caseDataRoot = input.caseDataRoot;
         innovation3Input.gateStrategyIds = innovation3GateIds();
         innovation3Records.append(innovation3.run(innovation3Input));
     }

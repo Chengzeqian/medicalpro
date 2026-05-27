@@ -86,6 +86,11 @@ struct PointRegistrationParameters {
 struct PointRegistrationExecutionOptions {
     QString pointSelectionStrategyId = QStringLiteral("target_sensitive");
     QString registrationMethodId = QStringLiteral("ankle_two_stage_constrained");
+    int candidateCount = 64;
+    int topKCandidateCount = 4;
+    bool enableParallelInitialSearch = true;
+    bool enableConstraintParallelFilter = true;
+    QString multiResolutionProfileId = QStringLiteral("ankle_roi_three_level");
     bool exportDetailedMetrics = false;
 };
 

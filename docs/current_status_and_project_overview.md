@@ -878,3 +878,30 @@ Start-Sleep -Seconds 8
 - `three_page_presentation_utils_test` 继续通过。
 - `medicalpro.exe` 在 8 秒观察窗口内持续运行，`HasExited=False`。
 - 本轮改动没有触碰页面跳转、状态来源、设置项结构和插件链逻辑，属于纯展示层收口。
+## 配准现状补充
+
+- 当前主链已经固定为 `target_sensitive` 采点 + `ankle_two_stage_constrained` 配准，默认执行入口仍然保持在 `PointRegistration`。
+- `PointRegistration` 负责病例目标区与约束区语义、参数下发和结果回写，`RegistrationCore` 负责候选初值调度、coarse-to-fine 评估与局部 refine，`MeshGPU` 负责批量候选评分和 GPU GICP refine。
+- 本轮配准并行加速已经补齐的核心能力包括：多初值并行搜索、约束区并行筛选开关、多分辨率 `ankle_roi_three_level` profile、`PointRegistrationWidget` 研究型参数入口，以及 `candidate_count`、`top_k_count`、`coarse_search_ms`、`best_candidate_rank`、`parallel_search_enabled`、`multi_resolution_profile` 等指标回写与导出。
+- 当前这条路线仍然保持增量演进，没有推翻原有 `PointRegistration -> RegistrationCore -> MeshGPU` 主链，因此适合直接作为硕士论文中“目标区域约束两阶段配准及其并行加速”章节的实现基础。
+
+## 与数字孪生的衔接
+
+- 数字孪生后续不需要重写配准链，而是直接消费配准阶段输出的 `candidate_count`、`best_candidate_rank`、`coarse_search_ms`、`parallel_search_enabled`、`multi_resolution_profile`、`target_tre_mm` 等指标，把它们作为配准可信度和目标区风险评估的证据输入。
+- `NavigationEvaluationService` 已经保留并导出这批配准指标，后续可以继续用于术中导航准入、病例回放、实验统计和数字孪生状态聚合，形成“配准结果 -> 导航评估 -> 数字孪生可信度表达”的连续链路。
+- 这意味着数字孪生章节可以把当前配准并行搜索结果视为上游先验，而把自身创新集中在误差感知、目标区风险表达和在线决策辅助上，避免和配准章节重复造轮子。
+
+## 数字孪生现状补充
+
+- 当前导航系统已经具备实时位姿链、单窗口 3D twin、目标区上下文、病例级评估落盘和工作区摘要展示能力。
+- 本轮增强后，数字孪生已经从“显示型”升级为“误差感知型”，可以统一表达配准、追踪、标定和目标区局部风险。
+- 当前主链已经落地 `NavigationRuntimeState + NavigationRuntimeCoordinator + NavigationVtkBridge + Navigation3DViewWidget + NavigationEvaluationService` 的误差感知数字孪生闭环。
+- 已经稳定消费并导出的数字孪生关键指标包括：
+  - `twin_confidence_score`
+  - `local_risk_score`
+  - `target_region_distance_mm`
+  - `target_region_angle_error_deg`
+  - `dominant_risk_source`
+  - `re_register_recommended`
+  - `tracking_degradation_detected`
+- 当前 `innovation_3`、病例级 `case summary`、`evaluation metrics csv` 和工作区评估摘要已经开始统一消费这批 twin 指标，后续可以直接用于论文实验统计和数字孪生章节展示。

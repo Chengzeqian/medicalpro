@@ -25,6 +25,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
     set(REGISTRATIONCORE_PLATFORM_SOURCES
         RegistrationServiceImpl.cpp
         ankle_registration_utils.cpp
+        ankle_registration_parallel_search.cpp
         registration_core_module.cpp
     )
 
@@ -32,6 +33,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
         RegistrationService.h
         RegistrationServiceImpl.h
         ankle_registration_utils.h
+        ankle_registration_parallel_search.h
         registration_core_module.h
     )
 

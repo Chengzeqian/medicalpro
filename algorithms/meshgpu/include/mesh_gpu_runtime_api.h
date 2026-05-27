@@ -11,6 +11,13 @@ struct RuntimeRegistrationResult {
     bool converged = false;
 };
 
+struct RuntimeTransformCandidateScore {
+    int candidateIndex = -1;
+    int score = 0;
+    float meanDistanceMm = 0.0f;
+    bool success = false;
+};
+
 class MeshGPURuntimeApi {
 public:
     virtual ~MeshGPURuntimeApi() = default;
@@ -26,6 +33,9 @@ public:
     virtual RuntimeRegistrationResult runRegistrationWithRotationSearch(
         const RotationSearchParams& rotationParams,
         const RegistrationParams& params) = 0;
+    virtual std::vector<RuntimeTransformCandidateScore> scoreTransformCandidates(
+        const std::vector<Transform4x4>& candidates,
+        float cutoffMm = 12.0f) = 0;
 };
 
 } // namespace mesh_gpu

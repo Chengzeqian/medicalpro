@@ -8,6 +8,7 @@
 #include "Framework/Navigation/ankle_planning_service.h"
 #include "Framework/Navigation/innovation_experiment_batch_runner.h"
 #include "Framework/Navigation/innovation_2_registration_experiment.h"
+#include "Framework/Navigation/navigation_evaluation_service.h"
 
 namespace
 {
@@ -82,6 +83,8 @@ private slots:
     void batch_runner_exports_three_summary_csv_files_for_a_case_set();
     void batch_runner_passes_case_planning_context_to_innovation_2_summary();
     void batch_runner_exports_innovation_2_anatomical_constraint_metrics();
+    void batch_runner_exports_parallel_search_columns_for_innovation_2_summary();
+    void batch_runner_exports_innovation_3_digital_twin_columns_from_case_metrics();
 };
 
 void InnovationExperimentBatchRunnerTest::batch_runner_exports_three_summary_csv_files_for_a_case_set()
@@ -275,6 +278,89 @@ void InnovationExperimentBatchRunnerTest::batch_runner_exports_innovation_2_anat
     QCOMPARE(summaryRow.value(QStringLiteral("talus_dome_point_count")), QStringLiteral("3"));
     QCOMPARE(summaryRow.value(QStringLiteral("anatomical_region_point_count")), QStringLiteral("6"));
     QCOMPARE(summaryRow.value(QStringLiteral("case_loaded_bones")), QStringLiteral("tibia|talus"));
+}
+
+void InnovationExperimentBatchRunnerTest::batch_runner_exports_parallel_search_columns_for_innovation_2_summary()
+{
+    InnovationExperimentBatchRunner runner;
+    InnovationBatchInput input;
+    input.caseIds = QStringList({ QStringLiteral("ankle-case-601") });
+
+    const InnovationBatchOutput output = runner.run(input);
+
+    QVERIFY(output.summaryFiles.contains(QStringLiteral("innovation_2_summary.csv")));
+
+    QFile innovation2Summary(QDir::currentPath() + QStringLiteral("/summaries/innovation_2_summary.csv"));
+    QVERIFY(innovation2Summary.open(QIODevice::ReadOnly | QIODevice::Text));
+    const QString innovation2Csv = QString::fromUtf8(innovation2Summary.readAll());
+
+    const QMap<QString, QString> summaryRow = summaryRowForMethod(
+        innovation2Csv,
+        QStringLiteral("ankle_two_stage_constrained"));
+    QVERIFY(!summaryRow.isEmpty());
+    QVERIFY(summaryRow.contains(QStringLiteral("candidate_count")));
+    QVERIFY(summaryRow.contains(QStringLiteral("top_k_count")));
+    QVERIFY(summaryRow.contains(QStringLiteral("coarse_search_ms")));
+    QVERIFY(summaryRow.contains(QStringLiteral("best_candidate_rank")));
+    QVERIFY(summaryRow.contains(QStringLiteral("parallel_search_enabled")));
+    QVERIFY(summaryRow.contains(QStringLiteral("multi_resolution_profile")));
+}
+
+void InnovationExperimentBatchRunnerTest::batch_runner_exports_innovation_3_digital_twin_columns_from_case_metrics()
+{
+    QTemporaryDir tempRoot;
+    QVERIFY(tempRoot.isValid());
+    ScopedCurrentDir scopedCurrentDir(tempRoot.path());
+
+    NavigationEvaluationService evaluationService(tempRoot.path() + QStringLiteral("/cases"));
+    AnkleEvaluationReport report;
+    report.caseId = QStringLiteral("ankle-case-705");
+    report.allowNavigation = true;
+    report.confidenceScore = 0.83;
+    report.gateReasons = QStringList {
+        QStringLiteral("review_target_alignment")
+    };
+    report.calibrated = true;
+    report.calibrationAccuracyMm = 0.31;
+    report.metrics.insert(QStringLiteral("twin_confidence_score"), 0.44);
+    report.metrics.insert(QStringLiteral("local_risk_score"), 0.73);
+    report.metrics.insert(QStringLiteral("target_region_distance_mm"), 5.20);
+    report.metrics.insert(QStringLiteral("target_region_angle_error_deg"), 7.80);
+    report.metrics.insert(QStringLiteral("dominant_risk_source"), QStringLiteral("tracking"));
+    report.metrics.insert(QStringLiteral("re_register_recommended"), true);
+    report.metrics.insert(QStringLiteral("tracking_degradation_detected"), true);
+    QVERIFY(evaluationService.saveEvaluationReport(report));
+
+    InnovationExperimentBatchRunner runner;
+    InnovationBatchInput input;
+    input.caseIds = QStringList({ report.caseId });
+    input.caseDataRoot = tempRoot.path();
+
+    const InnovationBatchOutput output = runner.run(input);
+
+    QVERIFY(output.summaryFiles.contains(QStringLiteral("innovation_3_summary.csv")));
+
+    QFile innovation3Summary(QDir::currentPath() + QStringLiteral("/summaries/innovation_3_summary.csv"));
+    QVERIFY(innovation3Summary.open(QIODevice::ReadOnly | QIODevice::Text));
+    const QString innovation3Csv = QString::fromUtf8(innovation3Summary.readAll());
+
+    QVERIFY(innovation3Csv.contains(QStringLiteral("twin_confidence_score")));
+    QVERIFY(innovation3Csv.contains(QStringLiteral("local_risk_score")));
+    QVERIFY(innovation3Csv.contains(QStringLiteral("target_region_distance_mm")));
+    QVERIFY(innovation3Csv.contains(QStringLiteral("dominant_risk_source")));
+    QVERIFY(innovation3Csv.contains(QStringLiteral("re_register_recommended")));
+    QVERIFY(innovation3Csv.contains(QStringLiteral("tracking_degradation_detected")));
+
+    const QMap<QString, QString> summaryRow = summaryRowForMethod(
+        innovation3Csv,
+        QStringLiteral("joint_confidence"));
+    QVERIFY(!summaryRow.isEmpty());
+    QCOMPARE(summaryRow.value(QStringLiteral("twin_confidence_score")), QStringLiteral("0.4400"));
+    QCOMPARE(summaryRow.value(QStringLiteral("local_risk_score")), QStringLiteral("0.7300"));
+    QCOMPARE(summaryRow.value(QStringLiteral("target_region_distance_mm")), QStringLiteral("5.2000"));
+    QCOMPARE(summaryRow.value(QStringLiteral("dominant_risk_source")), QStringLiteral("tracking"));
+    QCOMPARE(summaryRow.value(QStringLiteral("re_register_recommended")), QStringLiteral("true"));
+    QCOMPARE(summaryRow.value(QStringLiteral("tracking_degradation_detected")), QStringLiteral("true"));
 }
 
 QTEST_APPLESS_MAIN(InnovationExperimentBatchRunnerTest)

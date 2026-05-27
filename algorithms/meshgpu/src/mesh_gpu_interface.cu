@@ -2321,6 +2321,25 @@ public:
         return toRuntimeResult(impl_.runRegistrationWithRotationSearch(rotationParams, params));
     }
 
+    std::vector<mesh_gpu::RuntimeTransformCandidateScore> scoreTransformCandidates(
+        const std::vector<mesh_gpu::Transform4x4>& candidates,
+        float cutoffMm) override {
+        const auto scores = impl_.scoreTransformCandidates(candidates, cutoffMm);
+        std::vector<mesh_gpu::RuntimeTransformCandidateScore> runtimeScores;
+        runtimeScores.reserve(scores.size());
+
+        for (const auto& score : scores) {
+            mesh_gpu::RuntimeTransformCandidateScore runtimeScore;
+            runtimeScore.candidateIndex = score.candidate_index;
+            runtimeScore.score = score.score;
+            runtimeScore.meanDistanceMm = score.mean_dist_mm;
+            runtimeScore.success = score.success;
+            runtimeScores.push_back(runtimeScore);
+        }
+
+        return runtimeScores;
+    }
+
 private:
     static mesh_gpu::RuntimeRegistrationResult toRuntimeResult(
         const mesh_gpu::RegistrationResult& result) {

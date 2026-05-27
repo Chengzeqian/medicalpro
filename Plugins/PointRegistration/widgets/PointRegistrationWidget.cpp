@@ -14,7 +14,9 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QDoubleSpinBox>
+#include <QSpinBox>
 #include <QRadioButton>
 #include <QButtonGroup>
 #include <QShowEvent>
@@ -89,6 +91,11 @@ PointRegistrationWidget::PointRegistrationWidget(PointRegistrationService* servi
     , m_setSourceBtn(nullptr)
     , m_setTargetBtn(nullptr)
     , m_transformModeCombo(nullptr)
+    , m_parallelInitialSearchCheck(nullptr)
+    , m_constraintParallelFilterCheck(nullptr)
+    , m_candidateCountSpin(nullptr)
+    , m_topKCandidateCountSpin(nullptr)
+    , m_multiResolutionProfileCombo(nullptr)
     , m_pickSourceRadio(nullptr)
     , m_pickTargetRadio(nullptr)
     , m_pickingSource(true)
@@ -108,6 +115,7 @@ PointRegistrationWidget::PointRegistrationWidget(PointRegistrationService* servi
     , m_resultTable(nullptr)
     , m_rmsErrorLabel(nullptr)
     , m_maxErrorLabel(nullptr)
+    , m_parallelMetricsLabel(nullptr)
     , m_accuracyFrame(nullptr)
 {
     setupUI();
@@ -128,6 +136,7 @@ PointRegistrationWidget::~PointRegistrationWidget()
 void PointRegistrationWidget::refresh()
 {
     updatePointTable();
+    loadExecutionOptionsFromService();
 }
 
 // ========== 样式定义 ==========
@@ -361,6 +370,68 @@ QWidget* PointRegistrationWidget::createLeftPanel()
 
     leftLayout->addWidget(modeGroup);
 
+    QGroupBox* parallelGroup = new QGroupBox("并行搜索参数");
+    parallelGroup->setStyleSheet(getGroupStyle());
+    QVBoxLayout* parallelLayout = new QVBoxLayout(parallelGroup);
+    parallelLayout->setContentsMargins(8, 12, 8, 8);
+    parallelLayout->setSpacing(6);
+
+    const QString controlStyle =
+        "QComboBox, QSpinBox { background: rgba(15,23,42,0.8); border: 1px solid rgba(96,165,250,0.3); "
+        "border-radius: 4px; color: #e2e8f0; padding: 4px; }"
+        "QComboBox QAbstractItemView { background: rgba(30,41,59,0.95); color: #e2e8f0; "
+        "selection-background-color: rgba(59,130,246,0.5); }";
+    const QString checkStyle =
+        "QCheckBox { color: #e2e8f0; background: transparent; }"
+        "QCheckBox::indicator { width: 14px; height: 14px; }";
+
+    m_parallelInitialSearchCheck = new QCheckBox("启用多初值并行搜索");
+    m_parallelInitialSearchCheck->setObjectName(QStringLiteral("parallel_initial_search_checkbox"));
+    m_parallelInitialSearchCheck->setStyleSheet(checkStyle);
+    parallelLayout->addWidget(m_parallelInitialSearchCheck);
+
+    m_constraintParallelFilterCheck = new QCheckBox("启用 ROI 并行过滤");
+    m_constraintParallelFilterCheck->setObjectName(QStringLiteral("constraint_parallel_filter_checkbox"));
+    m_constraintParallelFilterCheck->setStyleSheet(checkStyle);
+    parallelLayout->addWidget(m_constraintParallelFilterCheck);
+
+    QHBoxLayout* candidateRow = new QHBoxLayout();
+    QLabel* candidateLabel = new QLabel("候选数");
+    candidateLabel->setStyleSheet("color: #93c5fd; background: transparent;");
+    m_candidateCountSpin = new QSpinBox();
+    m_candidateCountSpin->setObjectName(QStringLiteral("candidate_count_spinbox"));
+    m_candidateCountSpin->setRange(4, 512);
+    m_candidateCountSpin->setSingleStep(4);
+    m_candidateCountSpin->setStyleSheet(controlStyle);
+    candidateRow->addWidget(candidateLabel);
+    candidateRow->addWidget(m_candidateCountSpin, 1);
+    parallelLayout->addLayout(candidateRow);
+
+    QHBoxLayout* topKRow = new QHBoxLayout();
+    QLabel* topKLabel = new QLabel("Top-K");
+    topKLabel->setStyleSheet("color: #93c5fd; background: transparent;");
+    m_topKCandidateCountSpin = new QSpinBox();
+    m_topKCandidateCountSpin->setObjectName(QStringLiteral("top_k_candidate_count_spinbox"));
+    m_topKCandidateCountSpin->setRange(1, 64);
+    m_topKCandidateCountSpin->setStyleSheet(controlStyle);
+    topKRow->addWidget(topKLabel);
+    topKRow->addWidget(m_topKCandidateCountSpin, 1);
+    parallelLayout->addLayout(topKRow);
+
+    QHBoxLayout* profileRow = new QHBoxLayout();
+    QLabel* profileLabel = new QLabel("多分辨率");
+    profileLabel->setStyleSheet("color: #93c5fd; background: transparent;");
+    m_multiResolutionProfileCombo = new QComboBox();
+    m_multiResolutionProfileCombo->setObjectName(QStringLiteral("multi_resolution_profile_combo"));
+    m_multiResolutionProfileCombo->addItem(QStringLiteral("两层 ROI"), QStringLiteral("ankle_roi_two_level"));
+    m_multiResolutionProfileCombo->addItem(QStringLiteral("三层 ROI"), QStringLiteral("ankle_roi_three_level"));
+    m_multiResolutionProfileCombo->setStyleSheet(controlStyle);
+    profileRow->addWidget(profileLabel);
+    profileRow->addWidget(m_multiResolutionProfileCombo, 1);
+    parallelLayout->addLayout(profileRow);
+
+    leftLayout->addWidget(parallelGroup);
+
     // ========== 3D选点模式组 ==========
     QGroupBox* pickGroup = new QGroupBox("🎯 3D选点模式");
     pickGroup->setStyleSheet(getGroupStyle());
@@ -423,6 +494,7 @@ QWidget* PointRegistrationWidget::createLeftPanel()
 
     // ========== 开始配准按钮 ==========
     m_startBtn = new QPushButton("▶ 开始配准");
+    m_startBtn->setObjectName(QStringLiteral("start_registration_button"));
     m_startBtn->setMinimumHeight(40);
     m_startBtn->setStyleSheet(
         "QPushButton { "
@@ -579,6 +651,26 @@ QWidget* PointRegistrationWidget::createRightPanel()
     accLayout->addWidget(m_maxErrorLabel);
 
     resultLayout->addWidget(m_accuracyFrame);
+
+    QFrame* parallelMetricsFrame = new QFrame();
+    parallelMetricsFrame->setStyleSheet(
+        "background: rgba(59,130,246,0.08); border: 1px solid rgba(96,165,250,0.25); "
+        "border-radius: 8px; padding: 8px;");
+    QVBoxLayout* parallelMetricsLayout = new QVBoxLayout(parallelMetricsFrame);
+    parallelMetricsLayout->setContentsMargins(8, 6, 8, 6);
+    parallelMetricsLayout->setSpacing(4);
+
+    QLabel* parallelMetricsTitle = new QLabel("并行搜索摘要");
+    parallelMetricsTitle->setStyleSheet("color: #60a5fa; font-weight: bold; font-size: 11px; background: transparent;");
+    parallelMetricsLayout->addWidget(parallelMetricsTitle);
+
+    m_parallelMetricsLabel = new QLabel("并行搜索: 未执行");
+    m_parallelMetricsLabel->setObjectName(QStringLiteral("parallel_metrics_summary_label"));
+    m_parallelMetricsLabel->setWordWrap(true);
+    m_parallelMetricsLabel->setStyleSheet("color: #e2e8f0; font-size: 11px; background: transparent;");
+    parallelMetricsLayout->addWidget(m_parallelMetricsLabel);
+
+    resultLayout->addWidget(parallelMetricsFrame);
     rightLayout->addWidget(resultGroup);
     rightLayout->addStretch();
 
@@ -754,8 +846,11 @@ void PointRegistrationWidget::onSetSourcePoint()
     if (m_service) {
         QVector3D pos(m_sourceXSpin->value(), m_sourceYSpin->value(), m_sourceZSpin->value());
         m_service->setSourcePosition(row, pos);
-        appendLog(QString("设置点 %1 源坐标: (%.2f, %.2f, %.2f)")
-                  .arg(row + 1).arg(pos.x()).arg(pos.y()).arg(pos.z()));
+        appendLog(QString("设置点 %1 源坐标: (%2, %3, %4)")
+                  .arg(row + 1)
+                  .arg(pos.x(), 0, 'f', 2)
+                  .arg(pos.y(), 0, 'f', 2)
+                  .arg(pos.z(), 0, 'f', 2));
     }
 }
 
@@ -769,8 +864,11 @@ void PointRegistrationWidget::onSetTargetPoint()
     if (m_service) {
         QVector3D pos(m_targetXSpin->value(), m_targetYSpin->value(), m_targetZSpin->value());
         m_service->setTargetPosition(row, pos);
-        appendLog(QString("设置点 %1 目标坐标: (%.2f, %.2f, %.2f)")
-                  .arg(row + 1).arg(pos.x()).arg(pos.y()).arg(pos.z()));
+        appendLog(QString("设置点 %1 目标坐标: (%2, %3, %4)")
+                  .arg(row + 1)
+                  .arg(pos.x(), 0, 'f', 2)
+                  .arg(pos.y(), 0, 'f', 2)
+                  .arg(pos.z(), 0, 'f', 2));
     }
 }
 
@@ -804,6 +902,7 @@ void PointRegistrationWidget::onTransformModeChanged(int index)
 void PointRegistrationWidget::onStartRegistration()
 {
     if (!m_service) return;
+    m_service->setExecutionOptions(buildExecutionOptionsFromControls());
 
     if (!m_service->canExecuteRegistration()) {
         appendLog("⚠️ 至少需要3个完整的点对才能执行配准");
@@ -851,7 +950,7 @@ void PointRegistrationWidget::onRegistrationCompleted(const PointRegistrationRes
     m_statusLabel->setStyleSheet("color: #10b981; font-weight: bold;");
 
     updateResultDisplay(result);
-    appendLog(QString("✅ 配准完成: RMS=%.3f mm").arg(result.rmsError));
+    appendLog(QString("✅ 配准完成: RMS=%1 mm").arg(result.rmsError, 0, 'f', 3));
 }
 
 void PointRegistrationWidget::onRegistrationFailed(const QString& error)
@@ -937,6 +1036,92 @@ void PointRegistrationWidget::updateResultDisplay(const PointRegistrationResult&
     m_resultTable->item(3, 1)->setText(QString::number(result.rotationX, 'f', 3));
     m_resultTable->item(4, 1)->setText(QString::number(result.rotationY, 'f', 3));
     m_resultTable->item(5, 1)->setText(QString::number(result.rotationZ, 'f', 3));
+    updateParallelMetricsDisplay(result.metrics);
+}
+
+void PointRegistrationWidget::loadExecutionOptionsFromService()
+{
+    if (!m_service) {
+        return;
+    }
+
+    const PointRegistrationExecutionOptions options = m_service->executionOptions();
+
+    if (m_candidateCountSpin) {
+        m_candidateCountSpin->setValue(options.candidateCount);
+    }
+    if (m_topKCandidateCountSpin) {
+        m_topKCandidateCountSpin->setValue(options.topKCandidateCount);
+    }
+    if (m_parallelInitialSearchCheck) {
+        m_parallelInitialSearchCheck->setChecked(options.enableParallelInitialSearch);
+    }
+    if (m_constraintParallelFilterCheck) {
+        m_constraintParallelFilterCheck->setChecked(options.enableConstraintParallelFilter);
+    }
+    if (m_multiResolutionProfileCombo) {
+        const int profileIndex = m_multiResolutionProfileCombo->findData(options.multiResolutionProfileId);
+        if (profileIndex >= 0) {
+            m_multiResolutionProfileCombo->setCurrentIndex(profileIndex);
+        }
+    }
+}
+
+PointRegistrationExecutionOptions PointRegistrationWidget::buildExecutionOptionsFromControls() const
+{
+    PointRegistrationExecutionOptions options =
+        m_service ? m_service->executionOptions() : PointRegistrationExecutionOptions {};
+
+    if (m_candidateCountSpin) {
+        options.candidateCount = m_candidateCountSpin->value();
+    }
+    if (m_topKCandidateCountSpin) {
+        options.topKCandidateCount = m_topKCandidateCountSpin->value();
+    }
+    if (m_parallelInitialSearchCheck) {
+        options.enableParallelInitialSearch = m_parallelInitialSearchCheck->isChecked();
+    }
+    if (m_constraintParallelFilterCheck) {
+        options.enableConstraintParallelFilter = m_constraintParallelFilterCheck->isChecked();
+    }
+    if (m_multiResolutionProfileCombo) {
+        options.multiResolutionProfileId = m_multiResolutionProfileCombo->currentData().toString();
+    }
+
+    return options;
+}
+
+void PointRegistrationWidget::updateParallelMetricsDisplay(const QVariantMap& metrics)
+{
+    if (!m_parallelMetricsLabel) {
+        return;
+    }
+
+    QStringList segments;
+    segments.append(QStringLiteral("并行搜索:%1").arg(
+        metrics.value(QStringLiteral("parallel_search_enabled")).toBool()
+            ? QStringLiteral("开启")
+            : QStringLiteral("关闭")));
+
+    if (metrics.contains(QStringLiteral("candidate_count"))) {
+        segments.append(QStringLiteral("候选 %1").arg(metrics.value(QStringLiteral("candidate_count")).toInt()));
+    }
+    if (metrics.contains(QStringLiteral("top_k_count"))) {
+        segments.append(QStringLiteral("Top-K %1").arg(metrics.value(QStringLiteral("top_k_count")).toInt()));
+    }
+    if (metrics.contains(QStringLiteral("coarse_search_ms"))) {
+        segments.append(QStringLiteral("粗搜索 %1 ms").arg(
+            metrics.value(QStringLiteral("coarse_search_ms")).toDouble(), 0, 'f', 1));
+    }
+    if (metrics.contains(QStringLiteral("best_candidate_rank"))) {
+        segments.append(QStringLiteral("最优排名 %1").arg(
+            metrics.value(QStringLiteral("best_candidate_rank")).toInt()));
+    }
+    if (metrics.contains(QStringLiteral("multi_resolution_profile"))) {
+        segments.append(metrics.value(QStringLiteral("multi_resolution_profile")).toString());
+    }
+
+    m_parallelMetricsLabel->setText(segments.join(QStringLiteral(" | ")));
 }
 
 void PointRegistrationWidget::appendLog(const QString& message)
@@ -1117,14 +1302,22 @@ void PointRegistrationWidget::onPointPicked(double x, double y, double z)
         m_sourceXSpin->setValue(x);
         m_sourceYSpin->setValue(y);
         m_sourceZSpin->setValue(z);
-        appendLog(QString("选取源点 %1: (%.2f, %.2f, %.2f)").arg(row + 1).arg(x).arg(y).arg(z));
+        appendLog(QString("选取源点 %1: (%2, %3, %4)")
+                  .arg(row + 1)
+                  .arg(x, 0, 'f', 2)
+                  .arg(y, 0, 'f', 2)
+                  .arg(z, 0, 'f', 2));
     } else {
         // 设置目标点
         m_service->setTargetPosition(row, pos);
         m_targetXSpin->setValue(x);
         m_targetYSpin->setValue(y);
         m_targetZSpin->setValue(z);
-        appendLog(QString("选取目标点 %1: (%.2f, %.2f, %.2f)").arg(row + 1).arg(x).arg(y).arg(z));
+        appendLog(QString("选取目标点 %1: (%2, %3, %4)")
+                  .arg(row + 1)
+                  .arg(x, 0, 'f', 2)
+                  .arg(y, 0, 'f', 2)
+                  .arg(z, 0, 'f', 2));
     }
 
     updatePointMarkers();

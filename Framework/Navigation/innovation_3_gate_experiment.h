@@ -8,6 +8,7 @@
 struct Innovation3GateInput
 {
     QString caseId;
+    QString caseDataRoot;
     QStringList gateStrategyIds;
 };
 

@@ -57,6 +57,73 @@ bool shouldUseGpuRefine(const QString& registrationMethodId)
         registrationMethodId == QStringLiteral("ankle_two_stage_constrained");
 }
 
+void insertMetadataMetric(
+    QVariantMap& metrics,
+    const QVariantMap& metadata,
+    const QString& metadataKey,
+    const QString& resultKey)
+{
+    if (metadata.contains(metadataKey)) {
+        metrics.insert(resultKey, metadata.value(metadataKey));
+    }
+}
+
+void applyParallelSearchMetadataMetrics(QVariantMap& metrics, const QVariantMap& metadata)
+{
+    insertMetadataMetric(
+        metrics,
+        metadata,
+        QStringLiteral("parallelSearchEnabled"),
+        QStringLiteral("parallel_search_enabled"));
+    insertMetadataMetric(
+        metrics,
+        metadata,
+        QStringLiteral("candidateCount"),
+        QStringLiteral("candidate_count"));
+    insertMetadataMetric(
+        metrics,
+        metadata,
+        QStringLiteral("topKCount"),
+        QStringLiteral("top_k_count"));
+    insertMetadataMetric(
+        metrics,
+        metadata,
+        QStringLiteral("coarseSearchMs"),
+        QStringLiteral("coarse_search_ms"));
+    insertMetadataMetric(
+        metrics,
+        metadata,
+        QStringLiteral("roiFilterMs"),
+        QStringLiteral("roi_filter_ms"));
+    insertMetadataMetric(
+        metrics,
+        metadata,
+        QStringLiteral("bestCandidateRank"),
+        QStringLiteral("best_candidate_rank"));
+    insertMetadataMetric(
+        metrics,
+        metadata,
+        QStringLiteral("coarseScore"),
+        QStringLiteral("coarse_score"));
+    insertMetadataMetric(
+        metrics,
+        metadata,
+        QStringLiteral("multiResolutionProfile"),
+        QStringLiteral("multi_resolution_profile"));
+    insertMetadataMetric(
+        metrics,
+        metadata,
+        QStringLiteral("elapsedMs"),
+        QStringLiteral("refine_ms"));
+}
+
+void insertMetricFallback(QVariantMap& metrics, const QString& key, const QVariant& value)
+{
+    if (!metrics.contains(key)) {
+        metrics.insert(key, value);
+    }
+}
+
 #ifdef VTK_FOUND
 QMatrix4x4 vtkMatrixToQMatrix(vtkMatrix4x4* matrix)
 {
@@ -533,6 +600,8 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
     finalMatrix->DeepCopy(m_landmarkTransform->GetMatrix());
     QString refineMethod = refineMethodForRegistrationMethod(registrationMethodId);
     bool delegatedGpuRefine = false;
+    QVariantMap refineMetadata;
+    double refineElapsedMs = -1.0;
 
     if (shouldDelegateSurfaceRefine(registrationMethodId) &&
         m_modelPolyData &&
@@ -548,16 +617,22 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
 
             auto coarsePhysicalToCt = vtkSmartPointer<vtkMatrix4x4>::New();
             vtkMatrix4x4::Invert(coarseCtToPhysical, coarsePhysicalToCt);
+            const QString coreRegistrationId =
+                QStringLiteral("point_registration_gpu_%1").arg(m_currentSession.sessionId);
 
             QVariantMap parameters;
             parameters.insert(QStringLiteral("useGPU"), shouldUseGpuRefine(registrationMethodId));
-            parameters.insert(QStringLiteral("registrationId"),
-                              QStringLiteral("point_registration_gpu_%1").arg(m_currentSession.sessionId));
+            parameters.insert(QStringLiteral("registrationId"), coreRegistrationId);
             parameters.insert(QStringLiteral("initialTransform"), vtkMatrixToVariantList(coarsePhysicalToCt));
             parameters.insert(QStringLiteral("maxIterations"), 50);
             parameters.insert(QStringLiteral("distanceThreshold"), 10.0);
             parameters.insert(QStringLiteral("usePointToPlane"), shouldUseGpuRefine(registrationMethodId));
             parameters.insert(QStringLiteral("registrationMethodId"), registrationMethodId);
+            parameters.insert(QStringLiteral("enableParallelInitialSearch"), options.enableParallelInitialSearch);
+            parameters.insert(QStringLiteral("enableConstraintParallelFilter"), options.enableConstraintParallelFilter);
+            parameters.insert(QStringLiteral("candidateCount"), options.candidateCount);
+            parameters.insert(QStringLiteral("topKCandidateCount"), options.topKCandidateCount);
+            parameters.insert(QStringLiteral("multiResolutionProfileId"), options.multiResolutionProfileId);
             parameters.insert(QStringLiteral("constrainedPointCount"), refineTargetPoints.size());
             parameters.insert(QStringLiteral("constraintRefineUsed"), useConstraintRefinePoints);
             parameters.insert(QStringLiteral("constraintRegionCount"), m_planningConstraintRegions.size());
@@ -586,13 +661,21 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
                 parameters.insert(QStringLiteral("curvatureWeightMode"), 4);
             }
 
+            QElapsedTimer refineTimer;
+            refineTimer.start();
             if (auto refinedPhysicalToCt =
                     coreRegistrationService->performICPRegistrationAdvanced(
                         probePointCloud, m_modelPolyData, parameters)) {
+                refineElapsedMs = static_cast<double>(refineTimer.elapsed());
                 vtkMatrix4x4::Invert(refinedPhysicalToCt, finalMatrix);
                 delegatedGpuRefine = shouldUseGpuRefine(registrationMethodId);
+                refineMetadata =
+                    coreRegistrationService->getRegistrationInfo(coreRegistrationId)
+                        .value(QStringLiteral("metadata")).toMap();
+                applyParallelSearchMetadataMetrics(result.metrics, refineMetadata);
                 logMessage("INFO", QString::fromUtf8("RegistrationCore 表面精配准已接管当前主链"));
             } else {
+                refineElapsedMs = static_cast<double>(refineTimer.elapsed());
                 refineMethod = QStringLiteral("weighted_landmark_only");
                 logMessage("WARNING", QString::fromUtf8("RegistrationCore 表面精配准失败，回退到加权地标结果"));
             }
@@ -682,8 +765,33 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
     result.metrics.insert(QStringLiteral("coarse_translation_x"), coarseResult.translation.x());
     result.metrics.insert(QStringLiteral("coarse_translation_y"), coarseResult.translation.y());
     result.metrics.insert(QStringLiteral("coarse_translation_z"), coarseResult.translation.z());
-
+    insertMetricFallback(
+        result.metrics,
+        QStringLiteral("candidate_count"),
+        refineMetadata.value(QStringLiteral("candidateCount"), options.candidateCount));
+    insertMetricFallback(
+        result.metrics,
+        QStringLiteral("top_k_count"),
+        refineMetadata.value(QStringLiteral("topKCount"), options.topKCandidateCount));
+    insertMetricFallback(
+        result.metrics,
+        QStringLiteral("parallel_search_enabled"),
+        refineMetadata.value(
+            QStringLiteral("parallelSearchEnabled"),
+            options.enableParallelInitialSearch));
+    insertMetricFallback(
+        result.metrics,
+        QStringLiteral("multi_resolution_profile"),
+        refineMetadata.value(
+            QStringLiteral("multiResolutionProfile"),
+            options.multiResolutionProfileId));
     result.durationMs = timer.elapsed();
+    insertMetricFallback(
+        result.metrics,
+        QStringLiteral("refine_ms"),
+        refineMetadata.contains(QStringLiteral("elapsedMs"))
+            ? refineMetadata.value(QStringLiteral("elapsedMs"))
+            : QVariant(refineElapsedMs >= 0.0 ? refineElapsedMs : 0.0));
 
     logMessage("INFO",
                QStringLiteral("配准成功: RMS=%1 mm, MaxErr=%2 mm, 耗时=%3 ms")
