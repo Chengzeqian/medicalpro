@@ -11,6 +11,7 @@ class NavigationEvaluationSummaryFormatterTest : public QObject
 private slots:
     void formatter_exposes_registration_constraint_tracking_and_gate_sections();
     void formatter_builds_summary_from_workspace_snapshot_truth_source();
+    void formatter_exposes_digital_twin_risk_fields_from_evaluation_metrics();
 };
 
 void NavigationEvaluationSummaryFormatterTest::formatter_exposes_registration_constraint_tracking_and_gate_sections()
@@ -102,6 +103,28 @@ void NavigationEvaluationSummaryFormatterTest::formatter_builds_summary_from_wor
     QVERIFY(summary.trackingText.contains(QStringLiteral("0.91")));
     QVERIFY(summary.gateText.contains(QStringLiteral("ready")));
     QVERIFY(summary.gateText.contains(QStringLiteral("navigation_active")));
+}
+
+void NavigationEvaluationSummaryFormatterTest::formatter_exposes_digital_twin_risk_fields_from_evaluation_metrics()
+{
+    AnkleEvaluationSnapshot snapshot;
+    snapshot.caseId = QStringLiteral("ankle-case-twin-302");
+    snapshot.hasEvaluationReport = true;
+    snapshot.allowNavigation = false;
+    snapshot.evaluationConfidenceScore = 0.41;
+    snapshot.evaluationMetrics.insert(QStringLiteral("gate_reason_count"), 2);
+    snapshot.evaluationMetrics.insert(QStringLiteral("twin_confidence_score"), 0.37);
+    snapshot.evaluationMetrics.insert(QStringLiteral("local_risk_score"), 0.72);
+    snapshot.evaluationMetrics.insert(QStringLiteral("target_region_distance_mm"), 6.8);
+    snapshot.evaluationMetrics.insert(QStringLiteral("dominant_risk_source"), QStringLiteral("registration"));
+    snapshot.evaluationMetrics.insert(QStringLiteral("re_register_recommended"), true);
+
+    const NavigationEvaluationSummary summary = buildNavigationEvaluationSummary(snapshot);
+
+    QVERIFY(summary.gateText.contains(QStringLiteral("0.37")));
+    QVERIFY(summary.gateText.contains(QStringLiteral("0.72")));
+    QVERIFY(summary.gateText.contains(QStringLiteral("6.80")));
+    QVERIFY(summary.gateText.contains(QStringLiteral("registration")));
 }
 
 QTEST_APPLESS_MAIN(NavigationEvaluationSummaryFormatterTest)

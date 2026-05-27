@@ -76,6 +76,11 @@ public:
      * @param r, g, b RGB颜色值 [0.0, 1.0]
      */
     void setProbeColor(double r, double g, double b);
+    void setTargetRegionMarker(const QVector3D& center, double radiusMm);
+    void clearTargetRegionMarker();
+    bool hasTargetRegionActor() const;
+    void setTargetRegionRiskTone(const QString& tone);
+    QString targetRegionRiskTone() const;
 
     /**
      * @brief 重置相机视角
@@ -111,10 +116,12 @@ private:
     vtkSmartPointer<vtkRenderer> m_renderer;
     vtkSmartPointer<vtkActor> m_boneActor;
     vtkSmartPointer<vtkActor> m_probeActor;
+    vtkSmartPointer<vtkActor> m_targetRegionActor;
 
     double m_probeRadius;     // 探针球体半径 (mm)
     double m_boneOpacity;     // 骨骼透明度
     bool m_initialized;       // VTK是否已初始化
+    QString m_targetRegionRiskTone = QStringLiteral("ok");
 };
 
 #endif // NAVIGATION3DVIEWWIDGET_H

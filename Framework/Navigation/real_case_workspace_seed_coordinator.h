@@ -14,6 +14,12 @@ struct RealCaseWorkspaceSeed
     QString surgeryId;
     QString tibiaModelPath;
     QString talusModelPath;
+    QString primaryInstrumentAssetId;
+    QString primaryInstrumentDisplayName;
+    QString primaryInstrumentModelPath;
+    QString primaryInstrumentTrackingMarkerId;
+    QString primaryInstrumentGeometryFilePath;
+    QString primaryInstrumentGeometryAssetId;
     QVector3D targetRegionCenter;
     double targetRegionRadiusMm = 0.0;
 };

@@ -43,6 +43,23 @@ QWidget#NavigationPage QLabel#subtitleLabel {
     font-size: 16px;
 }
 
+QWidget#NavigationPage QFrame#navigationHudFrame {
+    background-color: rgba(12, 24, 32, 0.88);
+    border: 1px solid rgba(124, 160, 191, 0.16);
+    border-radius: 10px;
+}
+
+QWidget#NavigationPage QLabel#navigationHudRiskLabel {
+    color: #f4b63a;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+QWidget#NavigationPage QLabel#navigationHudTargetLabel {
+    color: #d9e4ec;
+    font-size: 14px;
+}
+
 QWidget#WelcomePage QLabel#logoLabel {
     color: ${ACCENT_PRIMARY};
     font-size: 32px;

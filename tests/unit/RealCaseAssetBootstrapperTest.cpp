@@ -40,6 +40,8 @@ void RealCaseAssetBootstrapperTest::bootstrap_copies_external_tibia_talus_models
 
     const QString externalTibiaPath = externalDir + QStringLiteral("/jinggu_left.stl");
     const QString externalTalusPath = externalDir + QStringLiteral("/jugu_left.stl");
+    const QString externalProbePath = externalDir + QStringLiteral("/5.stl");
+    const QString externalGeometryPath = externalDir + QStringLiteral("/geometry40.ini");
 
     const QByteArray tibiaStl =
         "solid tibia\n"
@@ -79,6 +81,8 @@ void RealCaseAssetBootstrapperTest::bootstrap_copies_external_tibia_talus_models
 
     QVERIFY(writeAsciiFile(externalTibiaPath, tibiaStl));
     QVERIFY(writeAsciiFile(externalTalusPath, talusStl));
+    QVERIFY(writeAsciiFile(externalProbePath, tibiaStl));
+    QVERIFY(writeAsciiFile(externalGeometryPath, "[geometry]\nid=4000000\ncount=4\n"));
 
     RealCaseAssetBootstrapRequest request;
     request.dataRoot = tempRoot.path();
@@ -88,20 +92,20 @@ void RealCaseAssetBootstrapperTest::bootstrap_copies_external_tibia_talus_models
     request.surgeryId = QStringLiteral("ankle-navigation-real-import-001");
     request.tibiaModelPath = externalTibiaPath;
     request.talusModelPath = externalTalusPath;
+    request.primaryInstrumentAssetId = QStringLiteral("instrument:probe-main");
+    request.primaryInstrumentDisplayName = QStringLiteral("主探针");
+    request.primaryInstrumentModelPath = externalProbePath;
+    request.primaryInstrumentTrackingMarkerId = QStringLiteral("40");
+    request.primaryInstrumentGeometryFilePath = externalGeometryPath;
+    request.primaryInstrumentGeometryAssetId = QStringLiteral("geometry:probe-main");
     request.defaultInstrumentAssetIds = QStringList {
-        QStringLiteral("instrument:probe-main"),
-        QStringLiteral("instrument:guide-default")
+        QStringLiteral("instrument:probe-main")
     };
     request.defaultInstrumentGeometryBindings = {
         AnkleInstrumentGeometryBinding {
             QStringLiteral("instrument:probe-main"),
             QStringLiteral("geometry:probe-main"),
-            QStringLiteral("geometry/probe-main.ini")
-        },
-        AnkleInstrumentGeometryBinding {
-            QStringLiteral("instrument:guide-default"),
-            QStringLiteral("geometry:guide-default"),
-            QStringLiteral("geometry/guide-default.ini")
+            QStringLiteral("geometry/geometry40.ini")
         }
     };
     request.targetRegionCenter = QVector3D(35.0f, 5.0f, 5.0f);
@@ -124,9 +128,14 @@ void RealCaseAssetBootstrapperTest::bootstrap_copies_external_tibia_talus_models
     QCOMPARE(bindings.activeBoneAssetIds, bindings.boundBoneAssetIds);
     QCOMPARE(bindings.boundInstrumentAssetIds, request.defaultInstrumentAssetIds);
     QCOMPARE(bindings.activeInstrumentAssetIds, request.defaultInstrumentAssetIds);
-    QCOMPARE(bindings.instrumentGeometryBindings.size(), 2);
-    QCOMPARE(bindings.instrumentGeometryBindings.at(0).geometryFilePath, QStringLiteral("geometry/probe-main.ini"));
-    QCOMPARE(bindings.instrumentGeometryBindings.at(1).geometryAssetId, QStringLiteral("geometry:guide-default"));
+    QCOMPARE(bindings.instrumentGeometryBindings.size(), 1);
+    QCOMPARE(bindings.instrumentGeometryBindings.at(0).geometryFilePath, QStringLiteral("geometry/geometry40.ini"));
+    QCOMPARE(bindings.instrumentGeometryBindings.at(0).geometryAssetId, QStringLiteral("geometry:probe-main"));
+
+    QCOMPARE(manifest.instrumentAssets.size(), 1);
+    QCOMPARE(manifest.instrumentAssets.first().normalizedPath, QStringLiteral("instruments/5.stl"));
+    QCOMPARE(manifest.instrumentAssets.first().geometryFilePath, QStringLiteral("geometry/geometry40.ini"));
+    QCOMPARE(manifest.instrumentAssets.first().trackingMarkerId, QStringLiteral("40"));
 
     const QString tibiaWorkspacePath = repository.stagePath(request.caseId, QStringLiteral("models")) + QStringLiteral("/tibia.stl");
     const QString talusWorkspacePath = repository.stagePath(request.caseId, QStringLiteral("models")) + QStringLiteral("/talus.stl");

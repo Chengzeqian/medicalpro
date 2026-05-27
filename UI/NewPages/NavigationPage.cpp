@@ -317,13 +317,15 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
     // 鍒濆鐘舵€?
     updateTrackerStatus(false);
 
-    if (ui->opticalRegLayout) {
+    auto* calibrationHostLayout =
+        findChild<QVBoxLayout*>(QStringLiteral("registrationGateReadinessLayout"));
+    if (calibrationHostLayout) {
         auto* calibrationStatusLabel = findChild<QLabel*>(QStringLiteral("calibrationStatusLabel"));
         if (!calibrationStatusLabel) {
             calibrationStatusLabel = new QLabel(this);
             calibrationStatusLabel->setObjectName(QStringLiteral("calibrationStatusLabel"));
             calibrationStatusLabel->setWordWrap(true);
-            ui->opticalRegLayout->addWidget(calibrationStatusLabel);
+            calibrationHostLayout->addWidget(calibrationStatusLabel);
         }
 
         auto* navigationReadinessLabel = findChild<QLabel*>(QStringLiteral("navigationReadinessLabel"));
@@ -331,7 +333,7 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
             navigationReadinessLabel = new QLabel(this);
             navigationReadinessLabel->setObjectName(QStringLiteral("navigationReadinessLabel"));
             navigationReadinessLabel->setWordWrap(true);
-            ui->opticalRegLayout->addWidget(navigationReadinessLabel);
+            calibrationHostLayout->addWidget(navigationReadinessLabel);
         }
 
         auto* navigationConfidenceLabel = findChild<QLabel*>(QStringLiteral("navigationConfidenceLabel"));
@@ -339,14 +341,14 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
             navigationConfidenceLabel = new QLabel(this);
             navigationConfidenceLabel->setObjectName(QStringLiteral("navigationConfidenceLabel"));
             navigationConfidenceLabel->setWordWrap(true);
-            ui->opticalRegLayout->addWidget(navigationConfidenceLabel);
+            calibrationHostLayout->addWidget(navigationConfidenceLabel);
         }
 
         auto* captureCalibrationPointButton = findChild<QPushButton*>(QStringLiteral("captureCalibrationPointButton"));
         if (!captureCalibrationPointButton) {
             captureCalibrationPointButton = new QPushButton(QStringLiteral("采集标定点"), this);
             captureCalibrationPointButton->setObjectName(QStringLiteral("captureCalibrationPointButton"));
-            ui->opticalRegLayout->addWidget(captureCalibrationPointButton);
+            calibrationHostLayout->addWidget(captureCalibrationPointButton);
             connect(captureCalibrationPointButton, &QPushButton::clicked, this, [this]() {
                 captureProbeCalibrationPoint();
             });
@@ -356,7 +358,7 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
         if (!finishCalibrationButton) {
             finishCalibrationButton = new QPushButton(QStringLiteral("完成标定"), this);
             finishCalibrationButton->setObjectName(QStringLiteral("finishCalibrationButton"));
-            ui->opticalRegLayout->addWidget(finishCalibrationButton);
+            calibrationHostLayout->addWidget(finishCalibrationButton);
             connect(finishCalibrationButton, &QPushButton::clicked, this, [this]() {
                 finishProbeCalibration();
             });
@@ -366,7 +368,7 @@ NavigationPageNew::NavigationPageNew(QWidget* parent, NavigationPageServiceAcces
         if (!cancelCalibrationButton) {
             cancelCalibrationButton = new QPushButton(QStringLiteral("取消标定"), this);
             cancelCalibrationButton->setObjectName(QStringLiteral("cancelCalibrationButton"));
-            ui->opticalRegLayout->addWidget(cancelCalibrationButton);
+            calibrationHostLayout->addWidget(cancelCalibrationButton);
             connect(cancelCalibrationButton, &QPushButton::clicked, this, [this]() {
                 cancelProbeCalibration();
             });
@@ -441,6 +443,8 @@ QFrame* NavigationPageNew::createNavigationStatusCard(const QString& title, QWid
 
 void NavigationPageNew::hideLegacyPlanningActions()
 {
+    auto* load2DImageButton = findChild<QPushButton*>(QStringLiteral("load2DImageButton"));
+    auto* start2D3DRegButton = findChild<QPushButton*>(QStringLiteral("start2D3DRegButton"));
     const QList<QWidget*> legacyWidgets = {
         ui->autoSegmentButton,
         ui->exportSTLButton,
@@ -448,8 +452,8 @@ void NavigationPageNew::hideLegacyPlanningActions()
         ui->toggleModelButton,
         ui->selectProsthesisButton,
         ui->adjustProsthesisButton,
-        ui->load2DImageButton,
-        ui->start2D3DRegButton,
+        load2DImageButton,
+        start2D3DRegButton,
         ui->importInstrumentButton,
         ui->axialLabel,
         ui->sagittalLabel,
@@ -492,9 +496,11 @@ void NavigationPageNew::setupRegistrationActionVisibility()
         return;
     }
 
+    auto* load2DImageButton = findChild<QPushButton*>(QStringLiteral("load2DImageButton"));
+    auto* start2D3DRegButton = findChild<QPushButton*>(QStringLiteral("start2D3DRegButton"));
     const QList<QWidget*> obsolete = {
-        ui->load2DImageButton,
-        ui->start2D3DRegButton
+        load2DImageButton,
+        start2D3DRegButton
     };
     for (QWidget* widget : obsolete) {
         if (widget) {
@@ -732,6 +738,30 @@ void NavigationPageNew::setupNavigationWorkspaceShell()
             QStringLiteral("可信度评分：待评估"));
     }
     statusLayout->addWidget(createNavigationStatusCard(QStringLiteral("可信度"), confidenceLabel));
+
+    auto* hudFrame = new QFrame(statusRail);
+    hudFrame->setObjectName(QStringLiteral("navigationHudFrame"));
+    auto* hudLayout = new QVBoxLayout(hudFrame);
+    hudLayout->setContentsMargins(12, 12, 12, 12);
+    hudLayout->setSpacing(8);
+
+    auto* hudTitleLabel = new QLabel(QStringLiteral("数字孪生 HUD"), hudFrame);
+    hudTitleLabel->setObjectName(QStringLiteral("navigationHudTitleLabel"));
+    hudLayout->addWidget(hudTitleLabel);
+
+    m_navigationHudRiskLabel = createNavigationStatusValueLabel(
+        QStringLiteral("navigationHudRiskLabel"),
+        QStringLiteral("主风险：待评估"));
+    m_navigationHudRiskLabel->setParent(hudFrame);
+    hudLayout->addWidget(m_navigationHudRiskLabel);
+
+    m_navigationHudTargetLabel = createNavigationStatusValueLabel(
+        QStringLiteral("navigationHudTargetLabel"),
+        QStringLiteral("目标区：待规划"));
+    m_navigationHudTargetLabel->setParent(hudFrame);
+    hudLayout->addWidget(m_navigationHudTargetLabel);
+
+    statusLayout->addWidget(hudFrame);
 
     auto* calibrationLabel = findChild<QLabel*>(QStringLiteral("calibrationStatusLabel"));
     if (!calibrationLabel) {
@@ -2523,8 +2553,9 @@ void NavigationPageNew::updateProbeCalibrationUi()
         && m_activeCalibrationRequiredPoints > 0
         && m_activeCalibrationCollectedPoints >= m_activeCalibrationRequiredPoints;
 
-    if (ui->calibrateButton) {
-        ui->calibrateButton->setEnabled(trackingReady && !hasActiveCalibration);
+    auto* calibrateButton = findChild<QPushButton*>(QStringLiteral("calibrateButton"));
+    if (calibrateButton) {
+        calibrateButton->setEnabled(trackingReady && !hasActiveCalibration);
     }
     if (captureCalibrationPointButton) {
         captureCalibrationPointButton->setEnabled(canCapturePoint);
@@ -3098,7 +3129,9 @@ void NavigationPageNew::onRegistrationStateChanged(RegistrationSessionState stat
         case RegistrationSessionState::Completed:
             ui->collectPointButton->setEnabled(true);
             ui->computeRegButton->setEnabled(true);
-            ui->calibrateButton->setEnabled(true);
+            if (auto* calibrateButton = findChild<QPushButton*>(QStringLiteral("calibrateButton"))) {
+                calibrateButton->setEnabled(true);
+            }
             break;
         case RegistrationSessionState::Failed:
             ui->collectPointButton->setEnabled(true);
@@ -3325,6 +3358,10 @@ void NavigationPageNew::refreshRealtimeDigitalTwin()
         return;
     }
 
+    const DigitalTwinTargetRegionDefinition targetRegion = currentTargetRegionDefinition();
+    m_runtimeCoordinator->setTargetRegionDefinition(targetRegion);
+    m_navigationVtkBridge->setTargetRegionDefinition(targetRegion);
+
     const NavigationDisplayState displayState =
         m_runtimeCoordinator->buildDisplayState(activeBoneModelPaths(), activeInstrumentModelPath());
 
@@ -3332,6 +3369,55 @@ void NavigationPageNew::refreshRealtimeDigitalTwin()
     m_navigationVtkBridge->loadInstrumentModel(displayState.activeToolId, displayState.activeToolModelPath);
     m_navigationVtkBridge->updateInstrumentPose(displayState.activeToolId, displayState.vtkToolTransform);
     m_navigationVtkBridge->setInstrumentVisible(displayState.activeToolId, displayState.toolVisible);
+
+    if (!m_runtimeState->hasDigitalTwinState() || !m_runtimeState->hasTargetRegionNavigationStatus()) {
+        if (m_navigationHudRiskLabel) {
+            m_navigationHudRiskLabel->setText(QStringLiteral("主风险：待评估"));
+        }
+        if (m_navigationHudTargetLabel) {
+            m_navigationHudTargetLabel->setText(QStringLiteral("目标区：待规划"));
+        }
+        return;
+    }
+
+    const DigitalTwinState twinState = m_runtimeState->digitalTwinState();
+    const TargetRegionNavigationStatus targetStatus = m_runtimeState->targetRegionNavigationStatus();
+    const DigitalTwinRiskReport riskReport = m_runtimeState->digitalTwinRiskReport();
+
+    if (m_navigationHudRiskLabel) {
+        m_navigationHudRiskLabel->setText(
+            QStringLiteral("主风险：%1 | 建议重配准：%2")
+                .arg(riskReport.dominantRiskSource.isEmpty() ? QStringLiteral("无") : riskReport.dominantRiskSource)
+                .arg(twinState.reRegisterRecommended ? QStringLiteral("是") : QStringLiteral("否")));
+    }
+    if (m_navigationHudTargetLabel) {
+        m_navigationHudTargetLabel->setText(
+            QStringLiteral("目标距离：%1 mm | 角度误差：%2 deg | twin：%3")
+                .arg(targetStatus.distanceToTargetMm, 0, 'f', 2)
+                .arg(targetStatus.angleErrorDeg, 0, 'f', 2)
+                .arg(twinState.twinConfidenceScore, 0, 'f', 2));
+    }
+
+    m_navigationVtkBridge->setTargetRegionRiskTone(
+        twinState.localRiskScore > 0.7 ? QStringLiteral("danger")
+        : twinState.localRiskScore > 0.4 ? QStringLiteral("warning")
+                                         : QStringLiteral("ok"));
+}
+
+DigitalTwinTargetRegionDefinition NavigationPageNew::currentTargetRegionDefinition() const
+{
+    DigitalTwinTargetRegionDefinition definition;
+    if (!m_workspaceApplicationService) {
+        return definition;
+    }
+
+    const NavigationWorkspacePlanningState planningState =
+        m_workspaceApplicationService->currentSnapshot().planningState;
+    definition.available = planningState.targetRegionReady && planningState.targetRegionRadiusMm > 0.0;
+    definition.centerPatient = planningState.targetRegionCenter;
+    definition.plannedAxisPatient = planningState.targetRegionAxis;
+    definition.radiusMm = planningState.targetRegionRadiusMm;
+    return definition;
 }
 
 QStringList NavigationPageNew::activeBoneModelPaths() const

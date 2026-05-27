@@ -3,6 +3,7 @@
 
 #include "BasePage.h"
 #include "PageIndex.h"
+#include "Framework/Navigation/ankle_navigation_types.h"
 #include "Framework/Navigation/navigation_confidence_evaluator.h"
 #include "Plugins/PointRegistration/PointRegistrationDataStructures.h"
 #include "UI/NewPages/Navigation/navigation_workflow_stage.h"
@@ -180,6 +181,7 @@ private:
     void performStartNavigation();
     void pushSimulatedPoseFrameToRuntime(const QList<double>& trackingPose);
     void refreshRealtimeDigitalTwin();
+    DigitalTwinTargetRegionDefinition currentTargetRegionDefinition() const;
     QStringList activeBoneModelPaths() const;
     QString activeInstrumentModelPath() const;
 
@@ -204,6 +206,8 @@ private:
     QPointer<QLabel> m_navigationPatientSummaryLabel;
     QPointer<QLabel> m_navigationStageSummaryLabel;
     QPointer<QLabel> m_navigationCaseStatusLabel;
+    QPointer<QLabel> m_navigationHudRiskLabel;
+    QPointer<QLabel> m_navigationHudTargetLabel;
     bool m_trackerConnected;
     bool m_navigationActive;
     QString m_lastDicomDirPath;

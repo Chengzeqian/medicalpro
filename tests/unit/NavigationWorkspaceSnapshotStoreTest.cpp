@@ -112,14 +112,20 @@ void NavigationWorkspaceSnapshotStoreTest::store_round_trips_multi_bone_multi_in
     snapshot.assetState.instrumentGeometryBindings = QList<NavigationInstrumentGeometryState> {
         NavigationInstrumentGeometryState {
             QStringLiteral("instrument:probe-main"),
+            QStringLiteral("Probe Main"),
+            QStringLiteral("instruments/probe-main.stl"),
             QStringLiteral("geometry:probe-main"),
             QStringLiteral("probe-main.rom"),
+            QStringLiteral("40"),
             true
         },
         NavigationInstrumentGeometryState {
             QStringLiteral("instrument:guide-default"),
+            QStringLiteral("Guide Default"),
+            QStringLiteral("instruments/guide-default.stl"),
             QStringLiteral("geometry:guide-default"),
             QStringLiteral("guide-default.rom"),
+            QStringLiteral("50"),
             true
         }
     };

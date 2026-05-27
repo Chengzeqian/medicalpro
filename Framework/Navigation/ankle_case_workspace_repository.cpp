@@ -35,6 +35,34 @@ AnkleInstrumentGeometryBinding geometryBindingFromJson(const QJsonObject& object
     binding.geometryFilePath = object.value(QStringLiteral("geometry_file_path")).toString();
     return binding;
 }
+
+QJsonObject instrumentAssetToJson(const AnkleInstrumentAsset& asset)
+{
+    QJsonObject object;
+    object.insert(QStringLiteral("instrument_asset_id"), asset.instrumentAssetId);
+    object.insert(QStringLiteral("display_name"), asset.displayName);
+    object.insert(QStringLiteral("source_path"), asset.sourcePath);
+    object.insert(QStringLiteral("normalized_path"), asset.normalizedPath);
+    object.insert(QStringLiteral("source_type"), asset.sourceType);
+    object.insert(QStringLiteral("tracking_marker_id"), asset.trackingMarkerId);
+    object.insert(QStringLiteral("geometry_file_path"), asset.geometryFilePath);
+    object.insert(QStringLiteral("geometry_asset_id"), asset.geometryAssetId);
+    return object;
+}
+
+AnkleInstrumentAsset instrumentAssetFromJson(const QJsonObject& object)
+{
+    AnkleInstrumentAsset asset;
+    asset.instrumentAssetId = object.value(QStringLiteral("instrument_asset_id")).toString();
+    asset.displayName = object.value(QStringLiteral("display_name")).toString();
+    asset.sourcePath = object.value(QStringLiteral("source_path")).toString();
+    asset.normalizedPath = object.value(QStringLiteral("normalized_path")).toString();
+    asset.sourceType = object.value(QStringLiteral("source_type")).toString();
+    asset.trackingMarkerId = object.value(QStringLiteral("tracking_marker_id")).toString();
+    asset.geometryFilePath = object.value(QStringLiteral("geometry_file_path")).toString();
+    asset.geometryAssetId = object.value(QStringLiteral("geometry_asset_id")).toString();
+    return asset;
+}
 }
 
 AnkleCaseWorkspaceRepository::AnkleCaseWorkspaceRepository(const QString& dataRoot)
@@ -49,6 +77,8 @@ bool AnkleCaseWorkspaceRepository::createCaseWorkspace(AnkleCaseManifest& manife
         QStringLiteral("dicom"),
         QStringLiteral("segmentation"),
         QStringLiteral("models"),
+        QStringLiteral("instruments"),
+        QStringLiteral("geometry"),
         QStringLiteral("planning"),
         QStringLiteral("registration"),
         QStringLiteral("navigation"),
@@ -114,56 +144,50 @@ bool AnkleCaseWorkspaceRepository::saveCaseAssetBindings(const AnkleCaseAssetBin
         geometryBindings.append(geometryBindingToJson(binding));
     }
 
-    const QString createdAtIso = bindings.createdAtIso.isEmpty()
-        ? QDateTime::currentDateTimeUtc().toString(Qt::ISODate)
-        : bindings.createdAtIso;
-    const QString updatedAtIso = bindings.updatedAtIso.isEmpty()
-        ? QDateTime::currentDateTimeUtc().toString(Qt::ISODate)
-        : bindings.updatedAtIso;
+    QJsonObject object;
+    object.insert(QStringLiteral("case_id"), bindings.caseId);
+    object.insert(QStringLiteral("bound_bone_asset_ids"), QJsonArray::fromStringList(bindings.boundBoneAssetIds));
+    object.insert(QStringLiteral("active_bone_asset_ids"), QJsonArray::fromStringList(bindings.activeBoneAssetIds));
+    object.insert(QStringLiteral("bound_instrument_asset_ids"), QJsonArray::fromStringList(bindings.boundInstrumentAssetIds));
+    object.insert(QStringLiteral("active_instrument_asset_ids"), QJsonArray::fromStringList(bindings.activeInstrumentAssetIds));
+    object.insert(QStringLiteral("instrument_geometry_bindings"), geometryBindings);
+    object.insert(QStringLiteral("created_at_iso"), bindings.createdAtIso);
+    object.insert(QStringLiteral("updated_at_iso"), bindings.updatedAtIso);
 
-    QJsonObject root;
-    root.insert(QStringLiteral("case_id"), bindings.caseId);
-    root.insert(QStringLiteral("bound_bone_asset_ids"), QJsonArray::fromStringList(bindings.boundBoneAssetIds));
-    root.insert(QStringLiteral("active_bone_asset_ids"), QJsonArray::fromStringList(bindings.activeBoneAssetIds));
-    root.insert(QStringLiteral("bound_instrument_asset_ids"), QJsonArray::fromStringList(bindings.boundInstrumentAssetIds));
-    root.insert(QStringLiteral("active_instrument_asset_ids"), QJsonArray::fromStringList(bindings.activeInstrumentAssetIds));
-    root.insert(QStringLiteral("instrument_geometry_bindings"), geometryBindings);
-    root.insert(QStringLiteral("created_at_iso"), createdAtIso);
-    root.insert(QStringLiteral("updated_at_iso"), updatedAtIso);
-
-    QFile file(caseAssetBindingsPath(bindings.caseId));
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    QFile bindingsFile(caseAssetBindingsPath(bindings.caseId));
+    if (!bindingsFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         return false;
     }
 
-    file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
-    return file.error() == QFile::NoError;
+    bindingsFile.write(QJsonDocument(object).toJson(QJsonDocument::Indented));
+    return bindingsFile.error() == QFile::NoError;
 }
 
 AnkleCaseAssetBindings AnkleCaseWorkspaceRepository::loadCaseAssetBindings(const QString& caseId) const
 {
-    QFile file(caseAssetBindingsPath(caseId));
-    if (!file.open(QIODevice::ReadOnly)) {
+    QFile bindingsFile(caseAssetBindingsPath(caseId));
+    if (!bindingsFile.open(QIODevice::ReadOnly)) {
         return {};
     }
 
-    const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
+    const QJsonDocument document = QJsonDocument::fromJson(bindingsFile.readAll());
     if (!document.isObject()) {
         return {};
     }
 
-    const QJsonObject root = document.object();
+    const QJsonObject object = document.object();
     AnkleCaseAssetBindings bindings;
-    bindings.caseId = root.value(QStringLiteral("case_id")).toString();
-    bindings.boundBoneAssetIds = toStringList(root.value(QStringLiteral("bound_bone_asset_ids")).toArray());
-    bindings.activeBoneAssetIds = toStringList(root.value(QStringLiteral("active_bone_asset_ids")).toArray());
-    bindings.boundInstrumentAssetIds = toStringList(root.value(QStringLiteral("bound_instrument_asset_ids")).toArray());
-    bindings.activeInstrumentAssetIds = toStringList(root.value(QStringLiteral("active_instrument_asset_ids")).toArray());
-    bindings.createdAtIso = root.value(QStringLiteral("created_at_iso")).toString();
-    bindings.updatedAtIso = root.value(QStringLiteral("updated_at_iso")).toString();
+    bindings.caseId = object.value(QStringLiteral("case_id")).toString();
+    bindings.boundBoneAssetIds = toStringList(object.value(QStringLiteral("bound_bone_asset_ids")).toArray());
+    bindings.activeBoneAssetIds = toStringList(object.value(QStringLiteral("active_bone_asset_ids")).toArray());
+    bindings.boundInstrumentAssetIds =
+        toStringList(object.value(QStringLiteral("bound_instrument_asset_ids")).toArray());
+    bindings.activeInstrumentAssetIds =
+        toStringList(object.value(QStringLiteral("active_instrument_asset_ids")).toArray());
+    bindings.createdAtIso = object.value(QStringLiteral("created_at_iso")).toString();
+    bindings.updatedAtIso = object.value(QStringLiteral("updated_at_iso")).toString();
 
-    const QJsonArray geometryBindings = root.value(QStringLiteral("instrument_geometry_bindings")).toArray();
-    bindings.instrumentGeometryBindings.reserve(geometryBindings.size());
+    const QJsonArray geometryBindings = object.value(QStringLiteral("instrument_geometry_bindings")).toArray();
     for (const QJsonValue& value : geometryBindings) {
         bindings.instrumentGeometryBindings.append(geometryBindingFromJson(value.toObject()));
     }
@@ -203,6 +227,11 @@ QJsonObject AnkleCaseWorkspaceRepository::toJson(const AnkleCaseManifest& manife
         modelAssets.append(assetObject);
     }
 
+    QJsonArray instrumentAssets;
+    for (const AnkleInstrumentAsset& asset : manifest.instrumentAssets) {
+        instrumentAssets.append(instrumentAssetToJson(asset));
+    }
+
     QJsonObject object;
     object.insert(QStringLiteral("case_id"), manifest.caseId);
     object.insert(QStringLiteral("patient_id"), manifest.patientId);
@@ -213,6 +242,7 @@ QJsonObject AnkleCaseWorkspaceRepository::toJson(const AnkleCaseManifest& manife
     object.insert(QStringLiteral("created_at_iso"), manifest.createdAtIso);
     object.insert(QStringLiteral("updated_at_iso"), manifest.updatedAtIso);
     object.insert(QStringLiteral("model_assets"), modelAssets);
+    object.insert(QStringLiteral("instrument_assets"), instrumentAssets);
     return object;
 }
 
@@ -237,6 +267,11 @@ AnkleCaseManifest AnkleCaseWorkspaceRepository::fromJson(const QJsonObject& obje
         asset.normalizedPath = assetObject.value(QStringLiteral("normalized_path")).toString();
         asset.sourceType = assetObject.value(QStringLiteral("source_type")).toString();
         manifest.modelAssets.append(asset);
+    }
+
+    const QJsonArray instrumentAssets = object.value(QStringLiteral("instrument_assets")).toArray();
+    for (const QJsonValue& value : instrumentAssets) {
+        manifest.instrumentAssets.append(instrumentAssetFromJson(value.toObject()));
     }
 
     return manifest;

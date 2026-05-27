@@ -19,6 +19,7 @@ class NavigationWorkspaceApplicationServiceTest : public QObject
 private slots:
     void service_builds_workspace_snapshot_from_runtime_inputs();
     void service_builds_v2_snapshot_from_case_package_and_per_bone_results();
+    void snapshot_preserves_target_region_geometry_for_digital_twin();
     void service_evaluates_stage_gate_from_workspace_snapshot();
     void service_records_runtime_workspace_states_into_snapshot_truth_source();
     void service_builds_runtime_status_summaries_for_workspace_states();
@@ -225,6 +226,39 @@ void NavigationWorkspaceApplicationServiceTest::service_builds_v2_snapshot_from_
     QCOMPARE(snapshot.preparationState.allRequiredInstrumentsCalibrated, true);
     QCOMPARE(snapshot.registrationState.perBoneResults.size(), 2);
     QCOMPARE(snapshot.registrationState.fusedNavigationSpaceReady, true);
+}
+
+void NavigationWorkspaceApplicationServiceTest::snapshot_preserves_target_region_geometry_for_digital_twin()
+{
+    QTemporaryDir tempRoot;
+    QVERIFY(tempRoot.isValid());
+
+    AnkleCaseWorkspaceRepository repository(tempRoot.path());
+    NavigationWorkspaceApplicationService service(tempRoot.path(), nullptr);
+
+    AnkleCaseManifest manifest;
+    manifest.caseId = QStringLiteral("ankle-case-twin-001");
+    manifest.patientId = QStringLiteral("patient-001");
+    manifest.patientName = QStringLiteral("Patient A");
+    manifest.surgeryId = QStringLiteral("surgery-001");
+    QVERIFY(repository.createCaseWorkspace(manifest));
+
+    AnklePlanningService planningService(repository);
+    AnklePlanningData planning = planningService.createDefaultPlanning(manifest.caseId);
+    planning.targetRegionCenter = QVector3D(12.0f, -4.0f, 8.0f);
+    planning.targetRegionRadiusMm = 18.0;
+    planning.targetOrientation = QQuaternion::fromDirection(
+        QVector3D(0.0f, 0.0f, 1.0f),
+        QVector3D(0.0f, 1.0f, 0.0f));
+    QVERIFY(planningService.savePlanning(manifest.caseId, planning));
+
+    service.loadWorkspace(manifest.caseId, manifest.patientId, manifest.patientName);
+    const NavigationWorkspaceSnapshot snapshot = service.currentSnapshot();
+
+    QVERIFY(snapshot.planningState.targetRegionReady);
+    QCOMPARE(snapshot.planningState.targetRegionCenter, QVector3D(12.0f, -4.0f, 8.0f));
+    QCOMPARE(snapshot.planningState.targetRegionRadiusMm, 18.0);
+    QCOMPARE(snapshot.planningState.targetRegionAxis, QVector3D(0.0f, 0.0f, 1.0f));
 }
 
 void NavigationWorkspaceApplicationServiceTest::service_evaluates_stage_gate_from_workspace_snapshot()
@@ -548,6 +582,11 @@ void NavigationWorkspaceApplicationServiceTest::binder_exposes_case_level_evalua
     evaluationState.errorMetrics.insert(QStringLiteral("visibleFrameRatio"), 0.95);
     evaluationState.errorMetrics.insert(QStringLiteral("trackingLatencyMs"), 31.0);
     evaluationState.errorMetrics.insert(QStringLiteral("trackingJitterMm"), 0.28);
+    evaluationState.errorMetrics.insert(QStringLiteral("twin_confidence_score"), 0.44);
+    evaluationState.errorMetrics.insert(QStringLiteral("local_risk_score"), 0.73);
+    evaluationState.errorMetrics.insert(QStringLiteral("target_region_distance_mm"), 5.20);
+    evaluationState.errorMetrics.insert(QStringLiteral("dominant_risk_source"), QStringLiteral("tracking"));
+    evaluationState.errorMetrics.insert(QStringLiteral("re_register_recommended"), true);
 
     binder.applyEvaluationSummary(evaluationState);
 
@@ -555,6 +594,12 @@ void NavigationWorkspaceApplicationServiceTest::binder_exposes_case_level_evalua
     QVERIFY(text.contains(QStringLiteral("ankle-case-real-45971129749")));
     QVERIFY(text.contains(QStringLiteral("导航过程稳定")));
     QVERIFY(text.contains(QStringLiteral("tibia:0.42mm")));
+    QVERIFY(text.contains(QStringLiteral("Twin")));
+    QVERIFY(text.contains(QStringLiteral("tracking")));
+    QVERIFY(text.contains(QStringLiteral("5.20")));
+    QVERIFY(text.contains(QStringLiteral("0.44")));
+    QVERIFY(text.contains(QStringLiteral("0.73")));
+    QVERIFY(!text.contains(QStringLiteral("数字孪生：病例 ankle-case-real-45971129749")));
     QVERIFY(text.contains(QStringLiteral("registrationErrorMm=0.42")));
     QVERIFY(text.contains(QStringLiteral("visibleFrameRatio=0.95")));
     QVERIFY(text.contains(QStringLiteral("trackingLatencyMs=31")));

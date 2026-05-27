@@ -473,6 +473,9 @@ NavigationWorkspacePlanningState NavigationWorkspaceApplicationService::buildPla
     state.targetRegion = planning.targetRegionRadiusMm > 0.0
         ? QStringLiteral("radius=%1mm").arg(planning.targetRegionRadiusMm, 0, 'f', 1)
         : QString();
+    state.targetRegionCenter = planning.targetRegionCenter;
+    state.targetRegionRadiusMm = planning.targetRegionRadiusMm;
+    state.targetRegionAxis = planning.targetOrientation.rotatedVector(QVector3D(0.0f, 0.0f, 1.0f));
     state.referenceBones = planning.primaryBones;
     state.constraintRegions = planning.anatomicalConstraintRegions.keys();
     state.recommendedPointOrder = planning.recommendedPointOrder;

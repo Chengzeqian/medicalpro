@@ -2,6 +2,7 @@
 
 #include "Framework/Navigation/ankle_navigation_types.h"
 #include "Framework/Navigation/navigation_evaluation_service.h"
+#include "Framework/Navigation/navigation_pose_frame.h"
 #include "UI/NewPages/Navigation/navigation_runtime_coordinator.h"
 
 class NavigationRuntimeCoordinatorContractTest : public QObject
@@ -13,6 +14,7 @@ private slots:
     void coordinator_exposes_evaluation_snapshot_persistence_entry();
     void coordinator_keeps_last_confidence_empty_until_required_snapshots_exist();
     void coordinator_uses_configured_cases_root_for_default_persistence_actions();
+    void coordinator_persists_digital_twin_metrics_into_evaluation_report();
 };
 
 void NavigationRuntimeCoordinatorContractTest::coordinator_depends_on_runtime_state_and_recomputes_confidence()
@@ -214,6 +216,77 @@ void NavigationRuntimeCoordinatorContractTest::coordinator_uses_configured_cases
     QCOMPARE(snapshot.caseId, QStringLiteral("case-004"));
     QCOMPARE(snapshot.translationErrorMm, 1.5);
     QCOMPARE(snapshot.allowNavigation, true);
+}
+
+void NavigationRuntimeCoordinatorContractTest::coordinator_persists_digital_twin_metrics_into_evaluation_report()
+{
+    NavigationRuntimeState runtimeState;
+    runtimeState.setCaseContext(
+        QStringLiteral("case-twin-export-001"),
+        QStringLiteral("tracking-001"),
+        QStringLiteral("instrument:probe-main"));
+
+    QVariantMap trackingQuality;
+    trackingQuality.insert(QStringLiteral("tracking_jitter_mm"), 0.86);
+    trackingQuality.insert(QStringLiteral("visible_frame_ratio"), 0.80);
+    trackingQuality.insert(QStringLiteral("calibrated"), true);
+    trackingQuality.insert(QStringLiteral("calibration_accuracy_mm"), 0.74);
+
+    PointRegistrationResult registrationResult;
+    registrationResult.success = true;
+    registrationResult.targetRegionTre = 2.4;
+    registrationResult.coverageScore = 0.66;
+
+    NavigationConfidenceResult confidenceResult;
+    confidenceResult.allowNavigation = false;
+    confidenceResult.score = 0.39;
+
+    AnkleEvaluationReport savedReport;
+    NavigationRuntimeCoordinator::PersistenceActions persistenceActions;
+    persistenceActions.loadEvaluationSnapshot = [](const QString& caseId) {
+        AnkleEvaluationSnapshot snapshot;
+        snapshot.caseId = caseId;
+        return snapshot;
+    };
+    persistenceActions.saveEvaluationReport = [&savedReport](const AnkleEvaluationReport& report) {
+        savedReport = report;
+        return true;
+    };
+    persistenceActions.exportMetricsCsv = [](const QString&) { return true; };
+    persistenceActions.exportCaseSummary = [](const QString&) { return true; };
+
+    NavigationRuntimeCoordinator coordinator(&runtimeState, persistenceActions);
+
+    DigitalTwinTargetRegionDefinition targetRegion;
+    targetRegion.available = true;
+    targetRegion.centerPatient = QVector3D(0.0f, 0.0f, 0.0f);
+    targetRegion.radiusMm = 5.0;
+    coordinator.setTargetRegionDefinition(targetRegion);
+
+    QMatrix4x4 markerToTool;
+    coordinator.handleCalibrationTransform(markerToTool);
+    QMatrix4x4 patientToVtkWorld;
+    coordinator.handleRegistrationTransform(patientToVtkWorld);
+
+    NavigationPoseFrame frame;
+    frame.toolId = QStringLiteral("instrument:probe-main");
+    frame.trackingVisible = true;
+    frame.timestamp = QDateTime::currentDateTimeUtc();
+    frame.trackingToMarker.translate(9.0f, 0.0f, 0.0f);
+
+    coordinator.handleTrackingQuality(trackingQuality);
+    coordinator.handleRegistrationResult(registrationResult);
+    runtimeState.setConfidenceResult(confidenceResult);
+    coordinator.handlePoseFrame(frame);
+    coordinator.persistEvaluationReportSnapshot();
+
+    QVERIFY(runtimeState.hasDigitalTwinState());
+    QVERIFY(runtimeState.hasTargetRegionNavigationStatus());
+    QVERIFY(savedReport.metrics.contains(QStringLiteral("twin_confidence_score")));
+    QVERIFY(savedReport.metrics.contains(QStringLiteral("target_region_distance_mm")));
+    QVERIFY(savedReport.metrics.contains(QStringLiteral("local_risk_score")));
+    QVERIFY(savedReport.metrics.contains(QStringLiteral("dominant_risk_source")));
+    QVERIFY(savedReport.metrics.contains(QStringLiteral("re_register_recommended")));
 }
 
 QTEST_APPLESS_MAIN(NavigationRuntimeCoordinatorContractTest)

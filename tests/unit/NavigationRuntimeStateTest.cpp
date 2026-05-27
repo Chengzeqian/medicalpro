@@ -11,6 +11,7 @@ private slots:
     void state_stores_tracking_quality_snapshot();
     void state_stores_registration_result_snapshot();
     void state_stores_confidence_result_snapshot();
+    void state_stores_target_region_and_digital_twin_snapshots();
     void state_tracks_active_instrument_visibility_and_pose_summary();
     void state_clears_runtime_snapshots_when_case_context_changes();
 };
@@ -75,6 +76,41 @@ void NavigationRuntimeStateTest::state_stores_confidence_result_snapshot()
     QCOMPARE(state.confidenceResult().score, 0.88);
 }
 
+void NavigationRuntimeStateTest::state_stores_target_region_and_digital_twin_snapshots()
+{
+    NavigationRuntimeState state;
+
+    DigitalTwinTargetRegionDefinition targetRegion;
+    targetRegion.available = true;
+    targetRegion.centerPatient = QVector3D(1.0f, 2.0f, 3.0f);
+    targetRegion.radiusMm = 6.5;
+
+    TargetRegionNavigationStatus targetStatus;
+    targetStatus.targetRegionAvailable = true;
+    targetStatus.distanceToTargetMm = 1.8;
+
+    DigitalTwinRiskReport riskReport;
+    riskReport.dominantRiskSource = QStringLiteral("registration");
+
+    DigitalTwinState twinState;
+    twinState.valid = true;
+    twinState.twinConfidenceScore = 0.73;
+
+    state.setTargetRegionDefinition(targetRegion);
+    state.setTargetRegionNavigationStatus(targetStatus);
+    state.setDigitalTwinRiskReport(riskReport);
+    state.setDigitalTwinState(twinState);
+
+    QVERIFY(state.hasTargetRegionDefinition());
+    QVERIFY(state.hasTargetRegionNavigationStatus());
+    QVERIFY(state.hasDigitalTwinRiskReport());
+    QVERIFY(state.hasDigitalTwinState());
+    QCOMPARE(state.targetRegionDefinition().centerPatient, QVector3D(1.0f, 2.0f, 3.0f));
+    QCOMPARE(state.targetRegionNavigationStatus().distanceToTargetMm, 1.8);
+    QCOMPARE(state.digitalTwinRiskReport().dominantRiskSource, QStringLiteral("registration"));
+    QCOMPARE(state.digitalTwinState().twinConfidenceScore, 0.73);
+}
+
 void NavigationRuntimeStateTest::state_tracks_active_instrument_visibility_and_pose_summary()
 {
     NavigationRuntimeState state;
@@ -109,6 +145,22 @@ void NavigationRuntimeStateTest::state_clears_runtime_snapshots_when_case_contex
     confidenceResult.score = 0.82;
     state.setConfidenceResult(confidenceResult);
 
+    DigitalTwinTargetRegionDefinition targetRegion;
+    targetRegion.available = true;
+    state.setTargetRegionDefinition(targetRegion);
+
+    TargetRegionNavigationStatus targetStatus;
+    targetStatus.targetRegionAvailable = true;
+    state.setTargetRegionNavigationStatus(targetStatus);
+
+    DigitalTwinRiskReport riskReport;
+    riskReport.dominantRiskSource = QStringLiteral("tracking");
+    state.setDigitalTwinRiskReport(riskReport);
+
+    DigitalTwinState twinState;
+    twinState.valid = true;
+    state.setDigitalTwinState(twinState);
+
     state.setCaseContext(QStringLiteral("case-002"), QStringLiteral("tracking-002"), QStringLiteral("tool-002"));
 
     QCOMPARE(state.caseId(), QStringLiteral("case-002"));
@@ -117,6 +169,10 @@ void NavigationRuntimeStateTest::state_clears_runtime_snapshots_when_case_contex
     QVERIFY(!state.hasTrackingQuality());
     QVERIFY(!state.hasRegistrationResult());
     QVERIFY(!state.hasConfidenceResult());
+    QVERIFY(!state.hasTargetRegionDefinition());
+    QVERIFY(!state.hasTargetRegionNavigationStatus());
+    QVERIFY(!state.hasDigitalTwinRiskReport());
+    QVERIFY(!state.hasDigitalTwinState());
 }
 
 QTEST_APPLESS_MAIN(NavigationRuntimeStateTest)

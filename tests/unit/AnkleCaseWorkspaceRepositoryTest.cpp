@@ -18,7 +18,7 @@ private slots:
     void create_case_workspace_writes_manifest_and_stage_directories();
     void real_case_workspace_persists_tibia_talus_model_assets_and_planning_bones();
     void case_workspace_persists_case_asset_bindings_for_multiple_bones_and_instruments();
-    void case_workspace_binding_file_round_trips_as_json_truth_source();
+    void case_workspace_manifest_persists_primary_instrument_assets();
 };
 
 void AnkleCaseWorkspaceRepositoryTest::create_case_workspace_writes_manifest_and_stage_directories()
@@ -122,7 +122,7 @@ void AnkleCaseWorkspaceRepositoryTest::real_case_workspace_persists_tibia_talus_
 void AnkleCaseWorkspaceRepositoryTest::case_workspace_persists_case_asset_bindings_for_multiple_bones_and_instruments()
 {
     QTemporaryDir tempRoot;
-    QVERIFY(tempRoot.isValid());
+    QVERIFY2(tempRoot.isValid(), "temporary root must exist");
 
     AnkleCaseWorkspaceRepository repo(tempRoot.path());
 
@@ -134,10 +134,15 @@ void AnkleCaseWorkspaceRepositoryTest::case_workspace_persists_case_asset_bindin
 
     AnkleCaseAssetBindings bindings;
     bindings.caseId = manifest.caseId;
-    bindings.boundBoneAssetIds = QStringList { QStringLiteral("bone-tibia"), QStringLiteral("bone-talus") };
+    bindings.boundBoneAssetIds = QStringList {
+        QStringLiteral("bone-tibia"),
+        QStringLiteral("bone-talus")
+    };
     bindings.activeBoneAssetIds = bindings.boundBoneAssetIds;
-    bindings.boundInstrumentAssetIds = QStringList { QStringLiteral("probe-main"), QStringLiteral("tool-guide") };
-    bindings.activeInstrumentAssetIds = bindings.boundInstrumentAssetIds;
+    bindings.boundInstrumentAssetIds = QStringList {
+        QStringLiteral("probe-main"),
+        QStringLiteral("tool-guide")
+    };
     bindings.instrumentGeometryBindings = {
         AnkleInstrumentGeometryBinding {
             QStringLiteral("probe-main"),
@@ -155,44 +160,43 @@ void AnkleCaseWorkspaceRepositoryTest::case_workspace_persists_case_asset_bindin
 
     const AnkleCaseAssetBindings restored = repo.loadCaseAssetBindings(manifest.caseId);
     QCOMPARE(restored.boundBoneAssetIds, bindings.boundBoneAssetIds);
-    QCOMPARE(restored.activeBoneAssetIds, bindings.activeBoneAssetIds);
     QCOMPARE(restored.boundInstrumentAssetIds, bindings.boundInstrumentAssetIds);
-    QCOMPARE(restored.activeInstrumentAssetIds, bindings.activeInstrumentAssetIds);
     QCOMPARE(restored.instrumentGeometryBindings.size(), 2);
-    QCOMPARE(restored.instrumentGeometryBindings.at(0).geometryFilePath, QStringLiteral("geometry/probe.ini"));
-    QCOMPARE(restored.instrumentGeometryBindings.at(1).geometryAssetId, QStringLiteral("geometry-guide"));
 }
 
-void AnkleCaseWorkspaceRepositoryTest::case_workspace_binding_file_round_trips_as_json_truth_source()
+void AnkleCaseWorkspaceRepositoryTest::case_workspace_manifest_persists_primary_instrument_assets()
 {
     QTemporaryDir tempRoot;
-    QVERIFY(tempRoot.isValid());
+    QVERIFY2(tempRoot.isValid(), "temporary root must exist");
 
     AnkleCaseWorkspaceRepository repo(tempRoot.path());
+
     AnkleCaseManifest manifest;
-    manifest.caseId = QStringLiteral("ankle-case-bindings-002");
+    manifest.caseId = QStringLiteral("ankle-case-instrument-001");
+    manifest.patientId = QStringLiteral("patient-001");
+    manifest.patientName = QStringLiteral("Patient 001");
     QVERIFY(repo.createCaseWorkspace(manifest));
 
-    AnkleCaseAssetBindings bindings;
-    bindings.caseId = manifest.caseId;
-    bindings.boundBoneAssetIds = QStringList { QStringLiteral("bone-tibia") };
-    bindings.activeBoneAssetIds = bindings.boundBoneAssetIds;
-    bindings.boundInstrumentAssetIds = QStringList { QStringLiteral("instrument:probe-main") };
-    bindings.activeInstrumentAssetIds = bindings.boundInstrumentAssetIds;
-    bindings.instrumentGeometryBindings = {
-        AnkleInstrumentGeometryBinding {
+    manifest.instrumentAssets = {
+        AnkleInstrumentAsset {
             QStringLiteral("instrument:probe-main"),
-            QStringLiteral("geometry:probe-main"),
-            QStringLiteral("geometry/probe-main.ini")
+            QStringLiteral("主探针"),
+            QStringLiteral("instruments/5.stl"),
+            QStringLiteral("instruments/5.stl"),
+            QStringLiteral("stl"),
+            QStringLiteral("40"),
+            QStringLiteral("geometry/geometry40.ini"),
+            QStringLiteral("geometry:probe-main")
         }
     };
-    QVERIFY(repo.saveCaseAssetBindings(bindings));
+    QVERIFY(repo.saveManifest(manifest));
 
-    QVERIFY(QFileInfo::exists(repo.caseAssetBindingsPath(manifest.caseId)));
-    const AnkleCaseAssetBindings restored = repo.loadCaseAssetBindings(manifest.caseId);
-    QCOMPARE(restored.caseId, manifest.caseId);
-    QCOMPARE(restored.boundBoneAssetIds, QStringList({ QStringLiteral("bone-tibia") }));
-    QCOMPARE(restored.instrumentGeometryBindings.size(), 1);
+    const AnkleCaseManifest restored = repo.loadManifest(manifest.caseId);
+    QCOMPARE(restored.instrumentAssets.size(), 1);
+    QCOMPARE(restored.instrumentAssets.first().instrumentAssetId, QStringLiteral("instrument:probe-main"));
+    QCOMPARE(restored.instrumentAssets.first().normalizedPath, QStringLiteral("instruments/5.stl"));
+    QCOMPARE(restored.instrumentAssets.first().geometryFilePath, QStringLiteral("geometry/geometry40.ini"));
+    QCOMPARE(restored.instrumentAssets.first().trackingMarkerId, QStringLiteral("40"));
 }
 
 QTEST_APPLESS_MAIN(AnkleCaseWorkspaceRepositoryTest)

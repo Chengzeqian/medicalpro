@@ -287,6 +287,70 @@ void Navigation3DViewWidget::setProbeColor(double r, double g, double b)
     }
 }
 
+void Navigation3DViewWidget::setTargetRegionMarker(const QVector3D& center, double radiusMm)
+{
+    clearTargetRegionMarker();
+    if (radiusMm <= 0.0 || !m_renderer) {
+        return;
+    }
+
+    auto sphere = vtkSmartPointer<vtkSphereSource>::New();
+    sphere->SetCenter(center.x(), center.y(), center.z());
+    sphere->SetRadius(radiusMm);
+    sphere->SetThetaResolution(24);
+    sphere->SetPhiResolution(24);
+
+    auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputConnection(sphere->GetOutputPort());
+
+    m_targetRegionActor = vtkSmartPointer<vtkActor>::New();
+    m_targetRegionActor->SetMapper(mapper);
+    m_targetRegionActor->GetProperty()->SetOpacity(0.18);
+    m_renderer->AddActor(m_targetRegionActor);
+
+    setTargetRegionRiskTone(m_targetRegionRiskTone);
+    render();
+}
+
+void Navigation3DViewWidget::clearTargetRegionMarker()
+{
+    if (!m_targetRegionActor || !m_renderer) {
+        return;
+    }
+
+    m_renderer->RemoveActor(m_targetRegionActor);
+    m_targetRegionActor = nullptr;
+    render();
+}
+
+bool Navigation3DViewWidget::hasTargetRegionActor() const
+{
+    return m_targetRegionActor != nullptr;
+}
+
+void Navigation3DViewWidget::setTargetRegionRiskTone(const QString& tone)
+{
+    m_targetRegionRiskTone = tone;
+    if (!m_targetRegionActor) {
+        return;
+    }
+
+    if (tone == QStringLiteral("warning")) {
+        m_targetRegionActor->GetProperty()->SetColor(0.95, 0.67, 0.12);
+    } else if (tone == QStringLiteral("danger")) {
+        m_targetRegionActor->GetProperty()->SetColor(0.85, 0.23, 0.18);
+    } else {
+        m_targetRegionActor->GetProperty()->SetColor(0.16, 0.68, 0.45);
+    }
+
+    render();
+}
+
+QString Navigation3DViewWidget::targetRegionRiskTone() const
+{
+    return m_targetRegionRiskTone;
+}
+
 void Navigation3DViewWidget::resetCamera()
 {
     if (m_renderer) {

@@ -67,8 +67,11 @@ QJsonObject toJson(const NavigationInstrumentGeometryState& state)
 {
     QJsonObject object;
     object.insert(QStringLiteral("instrument_id"), state.instrumentId);
+    object.insert(QStringLiteral("instrument_display_name"), state.instrumentDisplayName);
+    object.insert(QStringLiteral("model_file_path"), state.modelFilePath);
     object.insert(QStringLiteral("geometry_id"), state.geometryId);
     object.insert(QStringLiteral("geometry_file_path"), state.geometryFilePath);
+    object.insert(QStringLiteral("tracking_marker_id"), state.trackingMarkerId);
     object.insert(QStringLiteral("geometry_ready"), state.geometryReady);
     return object;
 }
@@ -77,8 +80,11 @@ NavigationInstrumentGeometryState geometryStateFromJson(const QJsonObject& objec
 {
     NavigationInstrumentGeometryState state;
     state.instrumentId = object.value(QStringLiteral("instrument_id")).toString();
+    state.instrumentDisplayName = object.value(QStringLiteral("instrument_display_name")).toString();
+    state.modelFilePath = object.value(QStringLiteral("model_file_path")).toString();
     state.geometryId = object.value(QStringLiteral("geometry_id")).toString();
     state.geometryFilePath = object.value(QStringLiteral("geometry_file_path")).toString();
+    state.trackingMarkerId = object.value(QStringLiteral("tracking_marker_id")).toString();
     state.geometryReady = object.value(QStringLiteral("geometry_ready")).toBool();
     return state;
 }
@@ -117,8 +123,11 @@ QJsonObject toJson(const NavigationWorkspaceAssetState& assetState)
     object.insert(QStringLiteral("selected_bone_assets"), toJson(assetState.selectedBoneAssets));
     object.insert(QStringLiteral("selected_bone_asset"), assetState.selectedBoneAsset);
     object.insert(QStringLiteral("selected_instrument_id"), assetState.selectedInstrumentId);
+    object.insert(QStringLiteral("selected_instrument_display_name"), assetState.selectedInstrumentDisplayName);
+    object.insert(QStringLiteral("instrument_model_path"), assetState.instrumentModelPath);
     object.insert(QStringLiteral("geometry_file_path"), assetState.geometryFilePath);
     object.insert(QStringLiteral("geometry_id"), assetState.geometryId);
+    object.insert(QStringLiteral("tracking_marker_id"), assetState.trackingMarkerId);
     object.insert(QStringLiteral("instrument_service_available"), assetState.instrumentServiceAvailable);
     object.insert(QStringLiteral("tool_visible"), assetState.toolVisible);
     return object;
@@ -140,8 +149,11 @@ NavigationWorkspaceAssetState assetStateFromJson(const QJsonObject& object)
     assetState.selectedBoneAssets = stringListFromJson(object.value(QStringLiteral("selected_bone_assets")).toArray());
     assetState.selectedBoneAsset = object.value(QStringLiteral("selected_bone_asset")).toString();
     assetState.selectedInstrumentId = object.value(QStringLiteral("selected_instrument_id")).toString();
+    assetState.selectedInstrumentDisplayName = object.value(QStringLiteral("selected_instrument_display_name")).toString();
+    assetState.instrumentModelPath = object.value(QStringLiteral("instrument_model_path")).toString();
     assetState.geometryFilePath = object.value(QStringLiteral("geometry_file_path")).toString();
     assetState.geometryId = object.value(QStringLiteral("geometry_id")).toString();
+    assetState.trackingMarkerId = object.value(QStringLiteral("tracking_marker_id")).toString();
     assetState.instrumentServiceAvailable = object.value(QStringLiteral("instrument_service_available")).toBool();
     assetState.toolVisible = object.value(QStringLiteral("tool_visible")).toBool();
     return assetState;
@@ -372,6 +384,12 @@ QJsonObject toJson(const NavigationWorkspaceRegistrationState& registrationState
     object.insert(QStringLiteral("fre"), registrationState.fre);
     object.insert(QStringLiteral("target_tre"), registrationState.targetTre);
     object.insert(QStringLiteral("coverage_score"), registrationState.coverageScore);
+    object.insert(QStringLiteral("registration_method_id"), registrationState.registrationMethodId);
+    object.insert(QStringLiteral("point_selection_strategy_id"), registrationState.pointSelectionStrategyId);
+    object.insert(QStringLiteral("refine_method"), registrationState.refineMethod);
+    object.insert(QStringLiteral("constraint_refine_used"), registrationState.constraintRefineUsed);
+    object.insert(QStringLiteral("constraint_region_count"), registrationState.constraintRegionCount);
+    object.insert(QStringLiteral("target_region_radius_mm"), registrationState.targetRegionRadiusMm);
     object.insert(QStringLiteral("translation_x"), registrationState.translationX);
     object.insert(QStringLiteral("translation_y"), registrationState.translationY);
     object.insert(QStringLiteral("translation_z"), registrationState.translationZ);
@@ -404,6 +422,12 @@ NavigationWorkspaceRegistrationState registrationStateFromJson(const QJsonObject
     registrationState.fre = object.value(QStringLiteral("fre")).toDouble();
     registrationState.targetTre = object.value(QStringLiteral("target_tre")).toDouble();
     registrationState.coverageScore = object.value(QStringLiteral("coverage_score")).toDouble();
+    registrationState.registrationMethodId = object.value(QStringLiteral("registration_method_id")).toString();
+    registrationState.pointSelectionStrategyId = object.value(QStringLiteral("point_selection_strategy_id")).toString();
+    registrationState.refineMethod = object.value(QStringLiteral("refine_method")).toString();
+    registrationState.constraintRefineUsed = object.value(QStringLiteral("constraint_refine_used")).toBool();
+    registrationState.constraintRegionCount = object.value(QStringLiteral("constraint_region_count")).toInt();
+    registrationState.targetRegionRadiusMm = object.value(QStringLiteral("target_region_radius_mm")).toDouble();
     registrationState.translationX = object.value(QStringLiteral("translation_x")).toDouble();
     registrationState.translationY = object.value(QStringLiteral("translation_y")).toDouble();
     registrationState.translationZ = object.value(QStringLiteral("translation_z")).toDouble();

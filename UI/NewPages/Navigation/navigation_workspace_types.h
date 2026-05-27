@@ -8,6 +8,7 @@
 #include <QString>
 #include <QStringList>
 #include <QVariantMap>
+#include <QVector3D>
 
 struct NavigationStageGate
 {
@@ -32,8 +33,11 @@ struct NavigationWorkspaceCaseContext
 struct NavigationInstrumentGeometryState
 {
     QString instrumentId;
+    QString instrumentDisplayName;
+    QString modelFilePath;
     QString geometryId;
     QString geometryFilePath;
+    QString trackingMarkerId;
     bool geometryReady = false;
 };
 
@@ -51,8 +55,11 @@ struct NavigationWorkspaceAssetState
     QStringList selectedBoneAssets;
     QString selectedBoneAsset;
     QString selectedInstrumentId;
+    QString selectedInstrumentDisplayName;
+    QString instrumentModelPath;
     QString geometryFilePath;
     QString geometryId;
+    QString trackingMarkerId;
     bool instrumentServiceAvailable = false;
     bool toolVisible = false;
 };
@@ -96,6 +103,9 @@ struct NavigationWorkspacePlanningState
     bool targetRegionReady = false;
     QString targetBone;
     QString targetRegion;
+    QVector3D targetRegionCenter;
+    double targetRegionRadiusMm = 0.0;
+    QVector3D targetRegionAxis = QVector3D(0.0f, 0.0f, 1.0f);
     QStringList referenceBones;
     QStringList constraintRegions;
     QStringList recommendedPointOrder;
@@ -123,6 +133,12 @@ struct NavigationWorkspaceRegistrationState
     double fre = 0.0;
     double targetTre = 0.0;
     double coverageScore = 0.0;
+    QString registrationMethodId;
+    QString pointSelectionStrategyId;
+    QString refineMethod;
+    bool constraintRefineUsed = false;
+    int constraintRegionCount = 0;
+    double targetRegionRadiusMm = 0.0;
     double translationX = 0.0;
     double translationY = 0.0;
     double translationZ = 0.0;

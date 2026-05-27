@@ -44,6 +44,28 @@ AnkleModelAsset createModelAsset(
     return asset;
 }
 
+AnkleInstrumentAsset createInstrumentAsset(
+    const QString& instrumentAssetId,
+    const QString& displayName,
+    const QString& sourcePath,
+    const QString& normalizedPath,
+    const QString& sourceType,
+    const QString& trackingMarkerId,
+    const QString& geometryFilePath,
+    const QString& geometryAssetId)
+{
+    AnkleInstrumentAsset asset;
+    asset.instrumentAssetId = instrumentAssetId;
+    asset.displayName = displayName;
+    asset.sourcePath = sourcePath;
+    asset.normalizedPath = normalizedPath;
+    asset.sourceType = sourceType;
+    asset.trackingMarkerId = trackingMarkerId;
+    asset.geometryFilePath = geometryFilePath;
+    asset.geometryAssetId = geometryAssetId;
+    return asset;
+}
+
 vtkSmartPointer<vtkPolyData> loadPolyDataFromPath(const QString& modelPath)
 {
     const auto clonePolyData = [](vtkPolyData* source) {
@@ -217,6 +239,29 @@ bool RealCaseAssetBootstrapper::bootstrap(const RealCaseAssetBootstrapRequest& r
         return false;
     }
 
+    QString workspaceInstrumentModelPath;
+    QString workspaceInstrumentGeometryPath;
+    if (!request.primaryInstrumentModelPath.isEmpty() && QFileInfo::exists(request.primaryInstrumentModelPath)) {
+        const QString instrumentsDir = repository.stagePath(request.caseId, QStringLiteral("instruments"));
+        const QString instrumentModelFileName =
+            QFileInfo(request.primaryInstrumentModelPath).fileName();
+        workspaceInstrumentModelPath = instrumentsDir + QStringLiteral("/") + instrumentModelFileName;
+        if (!copyModelIntoWorkspace(request.primaryInstrumentModelPath, workspaceInstrumentModelPath)) {
+            return false;
+        }
+    }
+
+    if (!request.primaryInstrumentGeometryFilePath.isEmpty()
+        && QFileInfo::exists(request.primaryInstrumentGeometryFilePath)) {
+        const QString geometryDir = repository.stagePath(request.caseId, QStringLiteral("geometry"));
+        const QString geometryFileName =
+            QFileInfo(request.primaryInstrumentGeometryFilePath).fileName();
+        workspaceInstrumentGeometryPath = geometryDir + QStringLiteral("/") + geometryFileName;
+        if (!copyModelIntoWorkspace(request.primaryInstrumentGeometryFilePath, workspaceInstrumentGeometryPath)) {
+            return false;
+        }
+    }
+
     manifest.modelAssets = {
         createModelAsset(
             QStringLiteral("tibia"),
@@ -229,6 +274,20 @@ bool RealCaseAssetBootstrapper::bootstrap(const RealCaseAssetBootstrapRequest& r
             QStringLiteral("models/talus.stl"),
             QStringLiteral("stl"))
     };
+    if (!workspaceInstrumentModelPath.isEmpty()) {
+        manifest.instrumentAssets.append(
+            createInstrumentAsset(
+                request.primaryInstrumentAssetId,
+                request.primaryInstrumentDisplayName,
+                workspaceInstrumentModelPath,
+                QStringLiteral("instruments/%1").arg(QFileInfo(workspaceInstrumentModelPath).fileName()),
+                QFileInfo(workspaceInstrumentModelPath).suffix().toLower(),
+                request.primaryInstrumentTrackingMarkerId,
+                workspaceInstrumentGeometryPath.isEmpty()
+                    ? request.primaryInstrumentGeometryFilePath
+                    : QStringLiteral("geometry/%1").arg(QFileInfo(workspaceInstrumentGeometryPath).fileName()),
+                request.primaryInstrumentGeometryAssetId));
+    }
 
     if (!repository.saveManifest(manifest)) {
         return false;

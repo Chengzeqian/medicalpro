@@ -43,6 +43,7 @@ private slots:
     void navigation_page_selects_instrument_stl_from_current_selected_instrument();
     void navigation_page_persists_tracking_latency_in_navigation_run();
     void navigation_page_routes_single_virtual_space_pose_updates_through_runtime_coordinator_and_vtk_bridge();
+    void navigation_page_exposes_error_aware_digital_twin_hud();
     void navigation_page_removes_legacy_import_and_segmentation_primary_actions();
 
 private:
@@ -944,6 +945,34 @@ void AnkleNavigationWorkflowContractTest::navigation_page_routes_single_virtual_
         "navigation page must update instrument pose through NavigationVtkBridge");
     QVERIFY2(navigationSource.contains(QStringLiteral("m_navigationVtkBridge->setInstrumentVisible(")),
         "navigation page must update instrument visibility through NavigationVtkBridge");
+}
+
+void AnkleNavigationWorkflowContractTest::navigation_page_exposes_error_aware_digital_twin_hud()
+{
+    const QString pageHeader = readFile(QStringLiteral("UI/NewPages/NavigationPage.h"));
+    const QString pageCode = readFile(QStringLiteral("UI/NewPages/NavigationPage.cpp"));
+    const QString theme = readFile(QStringLiteral("UI/styles/three_pages_theme.qss"));
+
+    QVERIFY2(pageHeader.contains(QStringLiteral("DigitalTwinTargetRegionDefinition currentTargetRegionDefinition() const;")),
+        "navigation page must declare a target-region-to-digital-twin adapter helper");
+    QVERIFY2(pageCode.contains(QStringLiteral("navigationHudFrame")),
+        "navigation page must expose a digital twin hud frame");
+    QVERIFY2(pageCode.contains(QStringLiteral("navigationHudRiskLabel")),
+        "navigation page must expose digital twin dominant risk text");
+    QVERIFY2(pageCode.contains(QStringLiteral("navigationHudTargetLabel")),
+        "navigation page must expose target region navigation status text");
+    QVERIFY2(pageCode.contains(QStringLiteral("m_runtimeCoordinator->setTargetRegionDefinition(")),
+        "navigation page must push target region context into runtime coordinator");
+    QVERIFY2(pageCode.contains(QStringLiteral("m_navigationVtkBridge->setTargetRegionDefinition(")),
+        "navigation page must push target region context into vtk bridge");
+    QVERIFY2(pageCode.contains(QStringLiteral("m_navigationVtkBridge->setTargetRegionRiskTone(")),
+        "navigation page must project digital twin risk tone into the vtk bridge");
+    QVERIFY2(theme.contains(QStringLiteral("QFrame#navigationHudFrame")),
+        "theme must style the digital twin hud frame");
+    QVERIFY2(theme.contains(QStringLiteral("QLabel#navigationHudRiskLabel")),
+        "theme must style the digital twin risk label");
+    QVERIFY2(theme.contains(QStringLiteral("QLabel#navigationHudTargetLabel")),
+        "theme must style the digital twin target label");
 }
 
 void AnkleNavigationWorkflowContractTest::navigation_page_removes_legacy_import_and_segmentation_primary_actions()

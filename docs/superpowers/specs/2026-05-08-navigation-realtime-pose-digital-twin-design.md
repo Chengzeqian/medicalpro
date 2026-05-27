@@ -548,6 +548,16 @@ void setInstrumentVisible(const QString& toolId, bool visible);
 
 本设计在现有病例中心化导航工作区基础上，新增一条清晰、可解释、可扩展的实时数字孪生位姿链路。
 
+## Implementation Status
+
+- 实时位姿帧：已实现（`Framework/Navigation/navigation_pose_frame.*`）
+- 位姿流缓冲：已实现（`Framework/Navigation/navigation_pose_stream.*`）
+- 固定多坐标系链路：已实现（`Framework/Navigation/navigation_transform_graph.*`）
+- 运行时状态与协调器实时链路：已实现（`navigation_runtime_state.*`, `navigation_runtime_coordinator.*`）
+- 单窗口数字孪生渲染桥：已实现（`navigation_vtk_bridge.*` 新增 `loadBoneModels/loadInstrumentModel/updateInstrumentPose/setInstrumentVisible`）
+- NavigationPage 位姿采样与 VTK 桥对接：已实现（`pushSimulatedPoseFrameToRuntime` / `refreshRealtimeDigitalTwin`）
+- latency / jitter / visible frame ratio 病例级导出：已实现（`navigation_evaluation_service.cpp`, `navigation_evaluation_summary_formatter.cpp`）
+
 第一版明确采用：
 
 - 单活动器械

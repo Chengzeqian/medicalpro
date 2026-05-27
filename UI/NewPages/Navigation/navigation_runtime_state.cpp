@@ -21,11 +21,19 @@ void NavigationRuntimeState::setCaseContext(
     m_trackingQuality.clear();
     m_registrationResult = PointRegistrationResult();
     m_confidenceResult = NavigationConfidenceResult();
+    m_targetRegionDefinition = DigitalTwinTargetRegionDefinition();
+    m_targetRegionNavigationStatus = TargetRegionNavigationStatus();
+    m_digitalTwinRiskReport = DigitalTwinRiskReport();
+    m_digitalTwinState = DigitalTwinState();
     m_trackedInstrumentVisibility.clear();
     m_activeInstrumentPoseSummaries.clear();
     m_hasTrackingQuality = false;
     m_hasRegistrationResult = false;
     m_hasConfidenceResult = false;
+    m_hasTargetRegionDefinition = false;
+    m_hasTargetRegionNavigationStatus = false;
+    m_hasDigitalTwinRiskReport = false;
+    m_hasDigitalTwinState = false;
 }
 
 void NavigationRuntimeState::setTrackingQuality(const QVariantMap& trackingQuality)
@@ -44,6 +52,30 @@ void NavigationRuntimeState::setConfidenceResult(const NavigationConfidenceResul
 {
     m_confidenceResult = confidenceResult;
     m_hasConfidenceResult = true;
+}
+
+void NavigationRuntimeState::setTargetRegionDefinition(const DigitalTwinTargetRegionDefinition& targetRegionDefinition)
+{
+    m_targetRegionDefinition = targetRegionDefinition;
+    m_hasTargetRegionDefinition = true;
+}
+
+void NavigationRuntimeState::setTargetRegionNavigationStatus(const TargetRegionNavigationStatus& targetRegionNavigationStatus)
+{
+    m_targetRegionNavigationStatus = targetRegionNavigationStatus;
+    m_hasTargetRegionNavigationStatus = true;
+}
+
+void NavigationRuntimeState::setDigitalTwinRiskReport(const DigitalTwinRiskReport& digitalTwinRiskReport)
+{
+    m_digitalTwinRiskReport = digitalTwinRiskReport;
+    m_hasDigitalTwinRiskReport = true;
+}
+
+void NavigationRuntimeState::setDigitalTwinState(const DigitalTwinState& digitalTwinState)
+{
+    m_digitalTwinState = digitalTwinState;
+    m_hasDigitalTwinState = true;
 }
 
 void NavigationRuntimeState::setTrackedInstrumentVisible(const QString& instrumentId, bool visible)
@@ -84,6 +116,30 @@ void NavigationRuntimeState::clearConfidenceResult()
     m_hasConfidenceResult = false;
 }
 
+void NavigationRuntimeState::clearTargetRegionDefinition()
+{
+    m_targetRegionDefinition = DigitalTwinTargetRegionDefinition();
+    m_hasTargetRegionDefinition = false;
+}
+
+void NavigationRuntimeState::clearTargetRegionNavigationStatus()
+{
+    m_targetRegionNavigationStatus = TargetRegionNavigationStatus();
+    m_hasTargetRegionNavigationStatus = false;
+}
+
+void NavigationRuntimeState::clearDigitalTwinRiskReport()
+{
+    m_digitalTwinRiskReport = DigitalTwinRiskReport();
+    m_hasDigitalTwinRiskReport = false;
+}
+
+void NavigationRuntimeState::clearDigitalTwinState()
+{
+    m_digitalTwinState = DigitalTwinState();
+    m_hasDigitalTwinState = false;
+}
+
 const QString& NavigationRuntimeState::caseId() const
 {
     return m_caseId;
@@ -114,6 +170,26 @@ const NavigationConfidenceResult& NavigationRuntimeState::confidenceResult() con
     return m_confidenceResult;
 }
 
+const DigitalTwinTargetRegionDefinition& NavigationRuntimeState::targetRegionDefinition() const
+{
+    return m_targetRegionDefinition;
+}
+
+const TargetRegionNavigationStatus& NavigationRuntimeState::targetRegionNavigationStatus() const
+{
+    return m_targetRegionNavigationStatus;
+}
+
+const DigitalTwinRiskReport& NavigationRuntimeState::digitalTwinRiskReport() const
+{
+    return m_digitalTwinRiskReport;
+}
+
+const DigitalTwinState& NavigationRuntimeState::digitalTwinState() const
+{
+    return m_digitalTwinState;
+}
+
 bool NavigationRuntimeState::hasTrackingQuality() const
 {
     return m_hasTrackingQuality;
@@ -127,4 +203,24 @@ bool NavigationRuntimeState::hasRegistrationResult() const
 bool NavigationRuntimeState::hasConfidenceResult() const
 {
     return m_hasConfidenceResult;
+}
+
+bool NavigationRuntimeState::hasTargetRegionDefinition() const
+{
+    return m_hasTargetRegionDefinition;
+}
+
+bool NavigationRuntimeState::hasTargetRegionNavigationStatus() const
+{
+    return m_hasTargetRegionNavigationStatus;
+}
+
+bool NavigationRuntimeState::hasDigitalTwinRiskReport() const
+{
+    return m_hasDigitalTwinRiskReport;
+}
+
+bool NavigationRuntimeState::hasDigitalTwinState() const
+{
+    return m_hasDigitalTwinState;
 }

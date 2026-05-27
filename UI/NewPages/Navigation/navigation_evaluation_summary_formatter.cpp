@@ -61,6 +61,18 @@ NavigationEvaluationSummary buildNavigationEvaluationSummary(const AnkleEvaluati
         .arg(snapshot.calibrationAccuracyMm, 0, 'f', 2)
         .arg(joinOrDash(snapshot.gateReasons));
 
+    if (snapshot.evaluationMetrics.contains(QStringLiteral("twin_confidence_score"))) {
+        summary.gateText.append(QStringLiteral(
+            "\nTwin可信度：%1\n局部风险：%2\n目标距离：%3 mm\n主风险：%4\n建议重配准：%5")
+                .arg(snapshot.evaluationMetrics.value(QStringLiteral("twin_confidence_score")).toDouble(), 0, 'f', 2)
+                .arg(snapshot.evaluationMetrics.value(QStringLiteral("local_risk_score")).toDouble(), 0, 'f', 2)
+                .arg(snapshot.evaluationMetrics.value(QStringLiteral("target_region_distance_mm")).toDouble(), 0, 'f', 2)
+                .arg(valueOrDash(snapshot.evaluationMetrics, QStringLiteral("dominant_risk_source")))
+                .arg(snapshot.evaluationMetrics.value(QStringLiteral("re_register_recommended")).toBool()
+                    ? QStringLiteral("是")
+                    : QStringLiteral("否")));
+    }
+
     return summary;
 }
 

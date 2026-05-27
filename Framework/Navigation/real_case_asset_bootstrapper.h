@@ -16,6 +16,12 @@ struct RealCaseAssetBootstrapRequest
     QString surgeryId;
     QString tibiaModelPath;
     QString talusModelPath;
+    QString primaryInstrumentAssetId;
+    QString primaryInstrumentDisplayName;
+    QString primaryInstrumentModelPath;
+    QString primaryInstrumentTrackingMarkerId;
+    QString primaryInstrumentGeometryFilePath;
+    QString primaryInstrumentGeometryAssetId;
     QStringList defaultInstrumentAssetIds;
     QList<AnkleInstrumentGeometryBinding> defaultInstrumentGeometryBindings;
     QVector3D targetRegionCenter;

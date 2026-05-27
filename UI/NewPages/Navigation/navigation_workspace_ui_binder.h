@@ -22,8 +22,17 @@ public:
         QLabel* navigationReadinessLabel = nullptr;
         QLabel* navigationConfidenceLabel = nullptr;
         QLabel* calibrationStatusLabel = nullptr;
+        QLabel* preparationAssetSummaryLabel = nullptr;
         QLabel* planningSummaryLabel = nullptr;
         QLabel* registrationSummaryLabel = nullptr;
+        QLabel* registrationMetricSummaryLabel = nullptr;
+        QLabel* registrationFreValueLabel = nullptr;
+        QLabel* registrationTargetTreValueLabel = nullptr;
+        QLabel* registrationCoverageValueLabel = nullptr;
+        QLabel* registrationPointCountValueLabel = nullptr;
+        QLabel* registrationConstraintRefineValueLabel = nullptr;
+        QLabel* registrationFusedSpaceValueLabel = nullptr;
+        QLabel* registrationTransformValueLabel = nullptr;
         QLabel* evaluationSummaryLabel = nullptr;
         QPushButton* startNavigationButton = nullptr;
         QHash<AnkleWorkflowStage, QPointer<QPushButton>> workflowRailButtons;

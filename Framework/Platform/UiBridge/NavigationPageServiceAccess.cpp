@@ -6,6 +6,7 @@
 
 namespace
 {
+const QString kInstrumentManagementPluginName = QStringLiteral("InstrumentManagement");
 const QString kPointRegistrationPluginName = QStringLiteral("PointRegistration");
 }
 
@@ -22,6 +23,10 @@ NavigationPageServiceAccess::NavigationPageServiceAccess(INavigationPageServiceP
 
 InstrumentManagementService* NavigationPageServiceAccess::instrumentManagementService() const
 {
+    if (m_port->frameworkReady() && !m_port->isPluginStarted(kInstrumentManagementPluginName)) {
+        m_port->startPlugin(kInstrumentManagementPluginName);
+    }
+
     return m_port->instrumentManagementService();
 }
 

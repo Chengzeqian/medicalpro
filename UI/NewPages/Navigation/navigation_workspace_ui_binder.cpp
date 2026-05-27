@@ -1,9 +1,40 @@
-#include "UI/NewPages/Navigation/navigation_workspace_ui_binder.h"
+﻿#include "UI/NewPages/Navigation/navigation_workspace_ui_binder.h"
 
 #include <QLabel>
 #include <QPushButton>
 #include <QVariant>
 #include <QWidget>
+
+namespace {
+
+const QString formatTwinScalar(const QVariantMap& metrics, const QString& key)
+{
+    return QString::number(metrics.value(key).toDouble(), 'f', 2);
+}
+
+const QString digitalTwinSummaryOrEmpty(const QVariantMap& metrics)
+{
+    if (!metrics.contains(QStringLiteral("twin_confidence_score"))) {
+        return QString();
+    }
+
+    const QString dominantRiskSource =
+        metrics.value(QStringLiteral("dominant_risk_source")).toString();
+    const QString reRegisterRecommended =
+        metrics.value(QStringLiteral("re_register_recommended")).toBool() ? QStringLiteral("yes")
+                                                                          : QStringLiteral("no");
+
+    return QStringLiteral(
+               "Twin: confidence=%1 | local_risk=%2 | target_distance=%3 mm | dominant_risk=%4 | "
+               "re_register=%5")
+        .arg(formatTwinScalar(metrics, QStringLiteral("twin_confidence_score")))
+        .arg(formatTwinScalar(metrics, QStringLiteral("local_risk_score")))
+        .arg(formatTwinScalar(metrics, QStringLiteral("target_region_distance_mm")))
+        .arg(dominantRiskSource.isEmpty() ? QStringLiteral("unknown") : dominantRiskSource)
+        .arg(reRegisterRecommended);
+}
+
+}
 
 NavigationWorkspaceUiBinder::NavigationWorkspaceUiBinder(Bindings bindings)
     : m_bindings(std::move(bindings))
@@ -227,6 +258,12 @@ void NavigationWorkspaceUiBinder::applyEvaluationSummary(
     if (!evaluationState.summaryText.isEmpty()) {
         lines.append(evaluationState.summaryText);
     }
+
+    const QString digitalTwinSummary = digitalTwinSummaryOrEmpty(evaluationState.errorMetrics);
+    if (!digitalTwinSummary.isEmpty()) {
+        lines.append(digitalTwinSummary);
+    }
+
     if (!evaluationState.navigationProcessSummary.isEmpty()) {
         lines.append(QStringLiteral("导航过程：%1").arg(evaluationState.navigationProcessSummary));
     }

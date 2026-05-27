@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>NavigationPage</class>
  <widget class="QWidget" name="NavigationPage">
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>手术导航</string>
+   <string>鎵嬫湳瀵艰埅</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QWidget#NavigationPage {
@@ -49,9 +49,9 @@ QTabBar::tab {
 }
 
 QTabBar::tab:selected {
-    background-color: rgba(233, 69, 96, 0.2);
+    background-color: rgba(34, 211, 238, 0.18);
     color: #ffffff;
-    border-bottom: 3px solid #e94560;
+    border-bottom: 3px solid #22d3ee;
 }
 
 QTabBar::tab:hover:!selected {
@@ -93,7 +93,7 @@ QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
     padding: 0 8px;
-    color: #e94560;
+    color: #22d3ee;
 }
 
 QPushButton {
@@ -102,11 +102,11 @@ QPushButton {
     border: none;
     border-radius: 6px;
     padding: 10px 20px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 QPushButton:hover {
-    background-color: #e94560;
+    background-color: #22d3ee;
 }
 
 QPushButton:disabled {
@@ -143,7 +143,7 @@ QPushButton#disconnectButton:hover {
 
 QLabel {
     color: #a0a0a0;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 QLabel#statusValue {
@@ -170,7 +170,7 @@ QProgressBar {
 }
 
 QProgressBar::chunk {
-    background-color: #e94560;
+    background-color: #22d3ee;
     border-radius: 4px;
 }
 
@@ -181,7 +181,7 @@ QSlider::groove:horizontal {
 }
 
 QSlider::handle:horizontal {
-    background: #e94560;
+    background: #22d3ee;
     width: 16px;
     height: 16px;
     margin: -5px 0;
@@ -189,7 +189,7 @@ QSlider::handle:horizontal {
 }
 
 QSlider::sub-page:horizontal {
-    background: #e94560;
+    background: #22d3ee;
     border-radius: 3px;
 }
 
@@ -227,7 +227,7 @@ QWidget#instrumentScrollContent {
      <item>
       <widget class="QPushButton" name="backButton">
        <property name="text">
-        <string>← 返回仪表板</string>
+        <string>鈫?杩斿洖浠〃鏉?</string>
        </property>
        <property name="cursor">
         <cursorShape>PointingHandCursor</cursorShape>
@@ -250,7 +250,7 @@ QWidget#instrumentScrollContent {
      <item>
       <widget class="QLabel" name="titleLabel">
        <property name="text">
-        <string>手术导航系统</string>
+        <string>鎵嬫湳瀵艰埅绯荤粺</string>
        </property>
       </widget>
      </item>
@@ -273,7 +273,7 @@ QWidget#instrumentScrollContent {
      <item>
       <widget class="QLabel" name="patientInfoLabel">
        <property name="text">
-        <string>患者：-</string>
+        <string>鎮ｈ€咃細-</string>
        </property>
       </widget>
      </item>
@@ -299,7 +299,7 @@ QWidget#instrumentScrollContent {
      </property>
      <widget class="QWidget" name="instrumentTab">
       <attribute name="title">
-       <string>器械</string>
+       <string>鍣ㄦ</string>
       </attribute>
       <layout class="QVBoxLayout" name="instrumentTabLayout">
        <property name="spacing">
@@ -325,35 +325,35 @@ QWidget#instrumentScrollContent {
             <bool>false</bool>
            </property>
            <property name="text">
-            <string>已下线</string>
+            <string>宸蹭笅绾?</string>
            </property>
           </widget>
          </item>
          <item>
           <widget class="QPushButton" name="deleteInstrumentButton">
            <property name="text">
-            <string>删除</string>
+            <string>鍒犻櫎</string>
            </property>
           </widget>
          </item>
          <item>
           <widget class="QPushButton" name="refreshInstrumentButton">
            <property name="text">
-            <string>刷新</string>
+            <string>鍒锋柊</string>
            </property>
           </widget>
          </item>
          <item>
           <widget class="QPushButton" name="clearAllInstrumentButton">
            <property name="text">
-            <string>全部清除</string>
+            <string>鍏ㄩ儴娓呴櫎</string>
            </property>
           </widget>
          </item>
          <item>
           <widget class="QPushButton" name="generateThumbnailButton">
            <property name="text">
-            <string>生成缩略图</string>
+            <string>鐢熸垚缂╃暐鍥?</string>
            </property>
           </widget>
          </item>
@@ -393,7 +393,7 @@ QWidget#instrumentScrollContent {
      </widget>
      <widget class="QWidget" name="planningTab">
       <attribute name="title">
-       <string>规划</string>
+       <string>瑙勫垝</string>
       </attribute>
       <layout class="QHBoxLayout" name="planningTabLayout">
        <property name="spacing">
@@ -423,7 +423,7 @@ QWidget#instrumentScrollContent {
              <string notr="true">color: #606060; font-size: 16px;</string>
             </property>
             <property name="text">
-             <string>3D规划视图</string>
+             <string>3D瑙勫垝瑙嗗浘</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -469,13 +469,13 @@ QWidget#instrumentScrollContent {
           <item>
            <widget class="QGroupBox" name="segmentationGroup">
             <property name="title">
-             <string>分割</string>
+             <string>鍒嗗壊</string>
             </property>
             <layout class="QVBoxLayout" name="segmentationLayout">
              <item>
               <widget class="QPushButton" name="loadDicomButton">
                <property name="text">
-                <string>加载DICOM</string>
+                <string>鍔犺浇DICOM</string>
                </property>
               </widget>
              </item>
@@ -485,14 +485,14 @@ QWidget#instrumentScrollContent {
                 <bool>false</bool>
                </property>
                <property name="text">
-                <string>已下线</string>
+                <string>宸蹭笅绾?</string>
                </property>
               </widget>
              </item>
              <item>
               <widget class="QPushButton" name="manualSegmentButton">
                <property name="text">
-                <string>手动编辑</string>
+                <string>鎵嬪姩缂栬緫</string>
                </property>
               </widget>
              </item>
@@ -502,7 +502,7 @@ QWidget#instrumentScrollContent {
                 <bool>false</bool>
                </property>
                <property name="text">
-                <string>已下线</string>
+                <string>宸蹭笅绾?</string>
                </property>
               </widget>
              </item>
@@ -512,7 +512,7 @@ QWidget#instrumentScrollContent {
           <item>
            <widget class="QGroupBox" name="prosthesisGroup">
             <property name="title">
-             <string>假体</string>
+             <string>鍋囦綋</string>
             </property>
             <layout class="QVBoxLayout" name="prosthesisLayout">
              <item>
@@ -521,7 +521,7 @@ QWidget#instrumentScrollContent {
                 <bool>false</bool>
                </property>
                <property name="text">
-                <string>已下线</string>
+                <string>宸蹭笅绾?</string>
                </property>
               </widget>
              </item>
@@ -531,7 +531,7 @@ QWidget#instrumentScrollContent {
                 <bool>false</bool>
                </property>
                <property name="text">
-                <string>已下线</string>
+                <string>宸蹭笅绾?</string>
                </property>
               </widget>
              </item>
@@ -541,7 +541,7 @@ QWidget#instrumentScrollContent {
                 <bool>false</bool>
                </property>
                <property name="text">
-                <string>已下线</string>
+                <string>宸蹭笅绾?</string>
                </property>
               </widget>
              </item>
@@ -551,7 +551,7 @@ QWidget#instrumentScrollContent {
                 <bool>false</bool>
                </property>
                <property name="text">
-                <string>已下线</string>
+                <string>宸蹭笅绾?</string>
                </property>
               </widget>
              </item>
@@ -578,7 +578,7 @@ QWidget#instrumentScrollContent {
      </widget>
      <widget class="QWidget" name="registrationTab">
       <attribute name="title">
-       <string>配准</string>
+       <string>閰嶅噯</string>
       </attribute>
       <layout class="QHBoxLayout" name="registrationTabLayout">
        <property name="spacing">
@@ -608,7 +608,7 @@ QWidget#instrumentScrollContent {
              <string notr="true">color: #606060; font-size: 16px;</string>
             </property>
             <property name="text">
-             <string>配准视图</string>
+             <string>閰嶅噯瑙嗗浘</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -652,28 +652,38 @@ QWidget#instrumentScrollContent {
            <number>15</number>
           </property>
           <item>
-           <widget class="QGroupBox" name="registration2D3DGroup">
+           <widget class="QGroupBox" name="registrationStrategyPanel">
             <property name="title">
-             <string>2D-3D配准</string>
+             <string>閰嶅噯绛栫暐</string>
             </property>
-            <layout class="QVBoxLayout" name="registration2D3DLayout">
+            <layout class="QVBoxLayout" name="registrationStrategyLayout">
              <item>
-              <widget class="QPushButton" name="load2DImageButton">
-               <property name="visible">
-                <bool>false</bool>
+              <widget class="QLabel" name="registrationStrategySummaryLabel">
+               <property name="wordWrap">
+                <bool>true</bool>
                </property>
                <property name="text">
-                <string>已下线</string>
+                <string>绛栫暐锛氬湴鏍囩偣绮楅厤鍑?鈫?绾︽潫鍖虹簿閰嶅噯</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="start2D3DRegButton">
-               <property name="visible">
-                <bool>false</bool>
+              <widget class="QLabel" name="registrationMethodSummaryLabel">
+               <property name="wordWrap">
+                <bool>true</bool>
                </property>
                <property name="text">
-                <string>已下线</string>
+                <string>绠楁硶锛歛nkle_two_stage_constrained / GPU GICP 绮鹃厤鍑?</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="registrationConstraintSummaryLabel">
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>绾︽潫锛氱瓑寰呰鍒掍腑鐨勭洰鏍囧尯涓庣害鏉熷尯鏁版嵁</string>
                </property>
               </widget>
              </item>
@@ -681,15 +691,87 @@ QWidget#instrumentScrollContent {
            </widget>
           </item>
           <item>
-           <widget class="QGroupBox" name="pointRegGroup">
+           <widget class="QFrame" name="registrationGuidancePanel">
+            <layout class="QVBoxLayout" name="registrationGuidanceLayout">
+             <property name="spacing">
+              <number>10</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="registrationGuidanceModeLabel">
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>妯″紡锛歵arget_sensitive 鎺ㄨ崘椤哄簭寮曞</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="registrationGuidanceCurrentPointLabel">
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>褰撳墠寤鸿鐐癸細绛夊緟瑙勫垝鏁版嵁</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="registrationRecommendedOrderLabel">
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>鎺ㄨ崘椤哄簭锛氱瓑寰呰鍒掓暟鎹?</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="registrationGuidanceActionLayout">
+               <item>
+                <widget class="QPushButton" name="collectPointButton">
+                 <property name="text">
+                  <string>娣诲姞 CT 鐐?</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="captureProbePointButton">
+                 <property name="text">
+                  <string>閲囬泦瀵瑰簲鎺㈤拡鐐?</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="registrationPointProgressPanel">
             <property name="title">
-             <string>点配准</string>
+             <string>鐐归泦杩涘害</string>
             </property>
             <layout class="QVBoxLayout" name="pointRegLayout">
              <item>
-              <widget class="QPushButton" name="collectPointButton">
+              <widget class="QLabel" name="registrationPointProgressSummaryLabel">
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
                <property name="text">
-                <string>采集点</string>
+                <string>瀹屾暣鐐瑰锛? / 鏈€浣?3 瀵?/ 寤鸿 5-7 瀵?</string>
                </property>
               </widget>
              </item>
@@ -714,14 +796,14 @@ QWidget#instrumentScrollContent {
     border-radius: 6px;
     gridline-color: rgba(255, 255, 255, 0.1);
     color: #e0e0e0;
-    font-size: 11px;
+    font-size: 14px;
 }
 QTableWidget::item {
     padding: 4px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 QTableWidget::item:selected {
-    background-color: rgba(233, 69, 96, 0.3);
+    background-color: rgba(56, 189, 248, 0.26);
 }
 QHeaderView::section {
     background-color: rgba(30, 41, 59, 0.9);
@@ -729,7 +811,7 @@ QHeaderView::section {
     padding: 4px;
     border: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 10px;
+    font-size: 14px;
     font-weight: bold;
 }</string>
                </property>
@@ -764,7 +846,7 @@ QHeaderView::section {
                </column>
                <column>
                 <property name="text">
-                 <string>名称</string>
+                 <string>鍚嶇О</string>
                 </property>
                </column>
                <column>
@@ -793,7 +875,7 @@ QHeaderView::section {
                </column>
                <column>
                 <property name="text">
-                 <string>状态</string>
+                 <string>鐘舵€?</string>
                 </property>
                 <property name="textAlignment">
                  <set>AlignCenter</set>
@@ -806,7 +888,7 @@ QHeaderView::section {
                <item>
                 <widget class="QPushButton" name="deletePointButton">
                  <property name="text">
-                  <string>删除选中</string>
+                  <string>鍒犻櫎閫変腑</string>
                  </property>
                  <property name="styleSheet">
                   <string notr="true">QPushButton { background-color: #c0392b; }
@@ -817,7 +899,7 @@ QPushButton:hover { background-color: #e74c3c; }</string>
                <item>
                 <widget class="QPushButton" name="clearAllPointsButton">
                  <property name="text">
-                  <string>清空所有</string>
+                  <string>娓呯┖鎵€鏈?</string>
                  </property>
                  <property name="styleSheet">
                   <string notr="true">QPushButton { background-color: #7f8c8d; }
@@ -830,7 +912,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
              <item>
               <widget class="QPushButton" name="computeRegButton">
                <property name="text">
-                <string>计算</string>
+                <string>璁＄畻</string>
                </property>
               </widget>
              </item>
@@ -839,7 +921,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
                <item>
                 <widget class="QLabel" name="regErrorTitle">
                  <property name="text">
-                  <string>误差：</string>
+                  <string>璇樊锛?</string>
                  </property>
                 </widget>
                </item>
@@ -859,15 +941,75 @@ QPushButton:hover { background-color: #95a5a6; }</string>
            </widget>
           </item>
           <item>
-           <widget class="QGroupBox" name="opticalRegGroup">
+           <widget class="QGroupBox" name="registrationGateReadinessPanel">
             <property name="title">
-             <string>光学配准</string>
+             <string>瀵艰埅鍑嗗叆鐘舵€?</string>
             </property>
-            <layout class="QVBoxLayout" name="opticalRegLayout">
+            <layout class="QVBoxLayout" name="registrationGateReadinessLayout">
              <item>
-              <widget class="QPushButton" name="calibrateButton">
+              <widget class="QLabel" name="registrationGateSummaryLabel">
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
                <property name="text">
-                <string>校准</string>
+                <string>鎮ｈ€呯┖闂达細鏈畬鎴?铻嶅悎瀵艰埅绌洪棿锛氭湭鐢熸垚
+鎺㈤拡鏍″噯锛氳鍥炲噯澶囬〉瀹屾垚
+瀵艰埅鍑嗗叆锛氬緟鍒ゆ柇</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="calibrationStatusLabel">
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>鏍″噯鐘舵€侊細璇峰洖鍑嗗椤靛畬鎴?</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="probeCalibrationActionLayout">
+               <item>
+                <widget class="QPushButton" name="captureCalibrationPointButton">
+                 <property name="text">
+                  <string>采集标定点</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="finishCalibrationButton">
+                 <property name="text">
+                  <string>完成标定</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="cancelCalibrationButton">
+                 <property name="text">
+                  <string>取消标定</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <widget class="QLabel" name="navigationReadinessLabel">
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>瀵艰埅鍑嗗叆锛氬緟鍒ゆ柇</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="navigationConfidenceLabel">
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>鍙俊搴﹁瘎鍒嗭細寰呰瘎浼?</string>
                </property>
               </widget>
              </item>
@@ -894,7 +1036,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
      </widget>
      <widget class="QWidget" name="navigationTab">
       <attribute name="title">
-       <string>导航</string>
+       <string>瀵艰埅</string>
       </attribute>
       <layout class="QHBoxLayout" name="navigationTabLayout">
        <property name="spacing">
@@ -938,10 +1080,10 @@ QPushButton:hover { background-color: #95a5a6; }</string>
             <item alignment="Qt::AlignLeft|Qt::AlignTop">
              <widget class="QLabel" name="axialLabel">
               <property name="styleSheet">
-               <string notr="true">color: #ffffff; font-size: 12px; font-weight: bold; background-color: rgba(0, 0, 0, 0.7); padding: 3px 8px; border-radius: 3px;</string>
+               <string notr="true">color: #ffffff; font-size: 14px; font-weight: bold; background-color: rgba(0, 0, 0, 0.7); padding: 3px 8px; border-radius: 3px;</string>
               </property>
               <property name="text">
-               <string>轴位</string>
+               <string>杞翠綅</string>
               </property>
              </widget>
             </item>
@@ -969,10 +1111,10 @@ QPushButton:hover { background-color: #95a5a6; }</string>
             <item alignment="Qt::AlignLeft|Qt::AlignTop">
              <widget class="QLabel" name="sagittalLabel">
               <property name="styleSheet">
-               <string notr="true">color: #ffffff; font-size: 12px; font-weight: bold; background-color: rgba(0, 0, 0, 0.7); padding: 3px 8px; border-radius: 3px;</string>
+               <string notr="true">color: #ffffff; font-size: 14px; font-weight: bold; background-color: rgba(0, 0, 0, 0.7); padding: 3px 8px; border-radius: 3px;</string>
               </property>
               <property name="text">
-               <string>矢状位</string>
+               <string>鐭㈢姸浣?</string>
               </property>
              </widget>
             </item>
@@ -1000,10 +1142,10 @@ QPushButton:hover { background-color: #95a5a6; }</string>
             <item alignment="Qt::AlignLeft|Qt::AlignTop">
              <widget class="QLabel" name="coronalLabel">
               <property name="styleSheet">
-               <string notr="true">color: #ffffff; font-size: 12px; font-weight: bold; background-color: rgba(0, 0, 0, 0.7); padding: 3px 8px; border-radius: 3px;</string>
+               <string notr="true">color: #ffffff; font-size: 14px; font-weight: bold; background-color: rgba(0, 0, 0, 0.7); padding: 3px 8px; border-radius: 3px;</string>
               </property>
               <property name="text">
-               <string>冠状位</string>
+               <string>鍐犵姸浣?</string>
               </property>
              </widget>
             </item>
@@ -1031,10 +1173,10 @@ QPushButton:hover { background-color: #95a5a6; }</string>
             <item alignment="Qt::AlignLeft|Qt::AlignTop">
              <widget class="QLabel" name="view3DLabel">
               <property name="styleSheet">
-               <string notr="true">color: #ffffff; font-size: 12px; font-weight: bold; background-color: rgba(0, 0, 0, 0.7); padding: 3px 8px; border-radius: 3px;</string>
+               <string notr="true">color: #ffffff; font-size: 14px; font-weight: bold; background-color: rgba(0, 0, 0, 0.7); padding: 3px 8px; border-radius: 3px;</string>
               </property>
               <property name="text">
-               <string>3D视图</string>
+               <string>3D瑙嗗浘</string>
               </property>
              </widget>
             </item>
@@ -1079,7 +1221,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
           <item>
            <widget class="QGroupBox" name="trackerGroup">
             <property name="title">
-             <string>光学追踪器</string>
+             <string>鍏夊杩借釜鍣?</string>
             </property>
             <layout class="QVBoxLayout" name="trackerLayout">
              <item>
@@ -1087,7 +1229,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
                <item>
                 <widget class="QLabel" name="trackerStatusTitle">
                  <property name="text">
-                  <string>状态：</string>
+                  <string>鐘舵€侊細</string>
                  </property>
                 </widget>
                </item>
@@ -1097,7 +1239,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
                   <string notr="true">color: #c0392b; font-weight: bold;</string>
                  </property>
                  <property name="text">
-                  <string>未连接</string>
+                  <string>鏈繛鎺?</string>
                  </property>
                 </widget>
                </item>
@@ -1111,7 +1253,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
                   <string notr="true">background-color: #27ae60;</string>
                  </property>
                  <property name="text">
-                  <string>连接</string>
+                  <string>杩炴帴</string>
                  </property>
                 </widget>
                </item>
@@ -1121,7 +1263,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
                   <string notr="true">background-color: #c0392b;</string>
                  </property>
                  <property name="text">
-                  <string>断开</string>
+                  <string>鏂紑</string>
                  </property>
                 </widget>
                </item>
@@ -1133,7 +1275,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
           <item>
            <widget class="QGroupBox" name="positionGroup">
             <property name="title">
-             <string>工具位置</string>
+             <string>宸ュ叿浣嶇疆</string>
             </property>
             <layout class="QGridLayout" name="positionLayout">
              <item row="0" column="0">
@@ -1193,7 +1335,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
           <item>
            <widget class="QGroupBox" name="accuracyGroup">
             <property name="title">
-             <string>精度</string>
+             <string>绮惧害</string>
             </property>
             <layout class="QVBoxLayout" name="accuracyLayout">
              <item>
@@ -1201,7 +1343,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
                <item>
                 <widget class="QLabel" name="accuracyTitle">
                  <property name="text">
-                  <string>当前：</string>
+                  <string>褰撳墠锛?</string>
                  </property>
                 </widget>
                </item>
@@ -1236,27 +1378,27 @@ QPushButton:hover { background-color: #95a5a6; }</string>
           <item>
            <widget class="QGroupBox" name="navControlGroup">
             <property name="title">
-             <string>导航控制</string>
+             <string>瀵艰埅鎺у埗</string>
             </property>
             <layout class="QVBoxLayout" name="navControlLayout">
              <item>
               <widget class="QPushButton" name="startNavigationButton">
                <property name="text">
-                <string>开始导航</string>
+                <string>寮€濮嬪鑸?</string>
                </property>
               </widget>
              </item>
              <item>
               <widget class="QPushButton" name="pauseNavigationButton">
                <property name="text">
-                <string>暂停</string>
+                <string>鏆傚仠</string>
                </property>
               </widget>
              </item>
              <item>
               <widget class="QPushButton" name="resetViewButton">
                <property name="text">
-                <string>重置视图</string>
+                <string>閲嶇疆瑙嗗浘</string>
                </property>
               </widget>
              </item>
@@ -1283,7 +1425,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
      </widget>
      <widget class="QWidget" name="evaluationTab">
       <attribute name="title">
-       <string>评估</string>
+       <string>璇勪及</string>
       </attribute>
       <layout class="QVBoxLayout" name="evaluationTabLayout">
        <property name="leftMargin">
@@ -1301,14 +1443,14 @@ QPushButton:hover { background-color: #95a5a6; }</string>
        <item>
         <widget class="QPushButton" name="exportEvaluationSummaryButton">
          <property name="text">
-          <string>导出全部病例评估汇总</string>
+          <string>瀵煎嚭鍏ㄩ儴鐥呬緥璇勪及姹囨€?</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QLabel" name="evaluationPlaceholderLabel">
          <property name="text">
-          <string>评估结果与导出将在此汇总</string>
+          <string>璇勪及缁撴灉涓庡鍑哄皢鍦ㄦ姹囨€?</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -1322,9 +1464,7 @@ QPushButton:hover { background-color: #95a5a6; }</string>
  </layout>
  </widget>
  <!-- calibrationStatusLabel -->
- <!-- captureCalibrationPointButton -->
- <!-- finishCalibrationButton -->
- <!-- cancelCalibrationButton -->
  <resources/>
  <connections/>
 </ui>
+
