@@ -87,6 +87,12 @@ void PlatformStartupCoordinatorTest::loadFromFile_reads_real_case_workspace_seed
         "surgery_id": "ankle-navigation-real-45971129749",
         "tibia_model_path": "D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/tibia.stl",
         "talus_model_path": "D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/talus.stl",
+        "primary_instrument_asset_id": "instrument:probe-main",
+        "primary_instrument_display_name": "主探针",
+        "primary_instrument_model_path": "D:/Adata/ANSN/ASNS/plustookitModels/5.stl",
+        "primary_instrument_tracking_marker_id": "40",
+        "primary_instrument_geometry_file_path": "D:/Qtproject/medicalpro/geometry/geometry40.ini",
+        "primary_instrument_geometry_asset_id": "geometry:probe-main",
         "target_region_center": {
           "x": 46.4,
           "y": -27.6,
@@ -105,6 +111,10 @@ void PlatformStartupCoordinatorTest::loadFromFile_reads_real_case_workspace_seed
     QCOMPARE(config.realCaseWorkspaceSeed.patientId, QStringLiteral("45971129749"));
     QCOMPARE(config.realCaseWorkspaceSeed.tibiaModelPath, QStringLiteral("D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/tibia.stl"));
     QCOMPARE(config.realCaseWorkspaceSeed.talusModelPath, QStringLiteral("D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/talus.stl"));
+    QCOMPARE(config.realCaseWorkspaceSeed.primaryInstrumentAssetId, QStringLiteral("instrument:probe-main"));
+    QCOMPARE(config.realCaseWorkspaceSeed.primaryInstrumentModelPath, QStringLiteral("D:/Adata/ANSN/ASNS/plustookitModels/5.stl"));
+    QCOMPARE(config.realCaseWorkspaceSeed.primaryInstrumentTrackingMarkerId, QStringLiteral("40"));
+    QCOMPARE(config.realCaseWorkspaceSeed.primaryInstrumentGeometryFilePath, QStringLiteral("D:/Qtproject/medicalpro/geometry/geometry40.ini"));
     QCOMPARE(config.realCaseWorkspaceSeed.targetRegionCenter, QVector3D(46.4f, -27.6f, -15.0f));
     QCOMPARE(config.realCaseWorkspaceSeed.targetRegionRadiusMm, 20.0);
 }

@@ -125,11 +125,23 @@ QJsonObject toJson(const AnkleEvaluationSnapshot& snapshot)
     object.insert(QStringLiteral("calibration_accuracy_mm"), snapshot.calibrationAccuracyMm);
     object.insert(QStringLiteral("gate_reasons"), toJsonArray(snapshot.gateReasons));
     object.insert(QStringLiteral("gate_reason_count"), snapshot.evaluationMetrics.value(QStringLiteral("gate_reason_count")).toInt());
+    object.insert(QStringLiteral("candidate_count"), snapshot.registrationMetrics.value(QStringLiteral("candidate_count")).toInt());
+    object.insert(QStringLiteral("top_k_count"), snapshot.registrationMetrics.value(QStringLiteral("top_k_count")).toInt());
+    object.insert(QStringLiteral("coarse_search_ms"), snapshot.registrationMetrics.value(QStringLiteral("coarse_search_ms")).toDouble());
+    object.insert(QStringLiteral("best_candidate_rank"), snapshot.registrationMetrics.value(QStringLiteral("best_candidate_rank")).toInt());
+    object.insert(QStringLiteral("parallel_search_enabled"), snapshot.registrationMetrics.value(QStringLiteral("parallel_search_enabled")).toBool());
     object.insert(QStringLiteral("target_region_radius_mm"), snapshot.registrationMetrics.value(QStringLiteral("target_region_radius_mm")).toDouble());
     object.insert(QStringLiteral("constraint_region_count"), snapshot.registrationMetrics.value(QStringLiteral("constraint_region_count")).toInt());
     object.insert(QStringLiteral("tracking_jitter_mm"), snapshot.navigationMetrics.value(QStringLiteral("tracking_jitter_mm")).toDouble());
     object.insert(QStringLiteral("visible_frame_ratio"), snapshot.navigationMetrics.value(QStringLiteral("visible_frame_ratio")).toDouble());
     object.insert(QStringLiteral("tracking_confidence_score"), snapshot.navigationMetrics.value(QStringLiteral("tracking_confidence_score")).toDouble());
+    object.insert(QStringLiteral("twin_confidence_score"), snapshot.evaluationMetrics.value(QStringLiteral("twin_confidence_score")).toDouble());
+    object.insert(QStringLiteral("local_risk_score"), snapshot.evaluationMetrics.value(QStringLiteral("local_risk_score")).toDouble());
+    object.insert(QStringLiteral("target_region_distance_mm"), snapshot.evaluationMetrics.value(QStringLiteral("target_region_distance_mm")).toDouble());
+    object.insert(QStringLiteral("target_region_angle_error_deg"), snapshot.evaluationMetrics.value(QStringLiteral("target_region_angle_error_deg")).toDouble());
+    object.insert(QStringLiteral("dominant_risk_source"), snapshot.evaluationMetrics.value(QStringLiteral("dominant_risk_source")).toString());
+    object.insert(QStringLiteral("re_register_recommended"), snapshot.evaluationMetrics.value(QStringLiteral("re_register_recommended")).toBool());
+    object.insert(QStringLiteral("tracking_degradation_detected"), snapshot.evaluationMetrics.value(QStringLiteral("tracking_degradation_detected")).toBool());
     object.insert(QStringLiteral("registration_metrics"), QJsonObject::fromVariantMap(snapshot.registrationMetrics));
     object.insert(QStringLiteral("navigation_metrics"), QJsonObject::fromVariantMap(snapshot.navigationMetrics));
     object.insert(QStringLiteral("evaluation_metrics"), QJsonObject::fromVariantMap(snapshot.evaluationMetrics));
@@ -312,12 +324,14 @@ bool NavigationEvaluationService::exportBatchSummaryCsv(const QStringList& caseI
         QStringLiteral(
             "case_id,registration_mode,navigation_mode,allow_navigation,fre,target_tre,coverage_score,"
             "tracking_jitter_mm,visible_frame_ratio,tracking_confidence_score,gate_reason_count,calibrated,"
-            "calibration_accuracy_mm")
+            "calibration_accuracy_mm,twin_confidence_score,local_risk_score,target_region_distance_mm,"
+            "target_region_angle_error_deg,dominant_risk_source,re_register_recommended,"
+            "tracking_degradation_detected")
     };
 
     for (const QString& caseId : caseIds) {
         const AnkleEvaluationSnapshot snapshot = loadEvaluationSnapshot(caseId);
-        lines.append(QStringLiteral("%1,%2,%3,%4,%5,%6,%7,%8,%9,%10,%11,%12,%13")
+        lines.append(QStringLiteral("%1,%2,%3,%4,%5,%6,%7,%8,%9,%10,%11,%12,%13,%14,%15,%16,%17,%18,%19,%20")
             .arg(snapshot.caseId)
             .arg(snapshot.registrationMode)
             .arg(snapshot.navigationMode)
@@ -330,7 +344,14 @@ bool NavigationEvaluationService::exportBatchSummaryCsv(const QStringList& caseI
             .arg(snapshot.navigationMetrics.value(QStringLiteral("tracking_confidence_score")).toDouble(), 0, 'f', 4)
             .arg(snapshot.evaluationMetrics.value(QStringLiteral("gate_reason_count")).toInt())
             .arg(snapshot.calibrated ? QStringLiteral("true") : QStringLiteral("false"))
-            .arg(snapshot.calibrationAccuracyMm, 0, 'f', 4));
+            .arg(snapshot.calibrationAccuracyMm, 0, 'f', 4)
+            .arg(snapshot.evaluationMetrics.value(QStringLiteral("twin_confidence_score")).toDouble(), 0, 'f', 4)
+            .arg(snapshot.evaluationMetrics.value(QStringLiteral("local_risk_score")).toDouble(), 0, 'f', 4)
+            .arg(snapshot.evaluationMetrics.value(QStringLiteral("target_region_distance_mm")).toDouble(), 0, 'f', 4)
+            .arg(snapshot.evaluationMetrics.value(QStringLiteral("target_region_angle_error_deg")).toDouble(), 0, 'f', 4)
+            .arg(snapshot.evaluationMetrics.value(QStringLiteral("dominant_risk_source")).toString())
+            .arg(snapshot.evaluationMetrics.value(QStringLiteral("re_register_recommended")).toBool() ? QStringLiteral("true") : QStringLiteral("false"))
+            .arg(snapshot.evaluationMetrics.value(QStringLiteral("tracking_degradation_detected")).toBool() ? QStringLiteral("true") : QStringLiteral("false")));
     }
 
     file.write(lines.join(QStringLiteral("\n")).toUtf8());

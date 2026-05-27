@@ -34,7 +34,6 @@ signals:
 private slots:
     void on_backButton_clicked();
     void on_enterDashboardButton_clicked();
-    void on_enterDashboardButtonSecondary_clicked();
 
     void on_addDoctorButton_clicked();
     void on_editDoctorButton_clicked();
@@ -55,6 +54,7 @@ private slots:
     void on_surgerySearchEdit_textChanged(const QString& text);
 
 private:
+    void handleEnterDashboardButtonSecondaryClicked();
     void setupTable();
     void setupPageCopy();
     void createOverviewCards(QVBoxLayout* mainLayout);

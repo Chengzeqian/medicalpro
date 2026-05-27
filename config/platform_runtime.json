@@ -14,6 +14,12 @@
     "surgery_id": "ankle-navigation-real-45971129749",
     "tibia_model_path": "D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/tibia.stl",
     "talus_model_path": "D:/Adata/ANSN/ASNS/Release/patient_data/45971129749/reconstructed_mesh_preview/talus.stl",
+    "primary_instrument_asset_id": "instrument:probe-main",
+    "primary_instrument_display_name": "probe-main",
+    "primary_instrument_model_path": "D:/Adata/ANSN/ASNS/plustookitModels/5.stl",
+    "primary_instrument_tracking_marker_id": "40",
+    "primary_instrument_geometry_file_path": "D:/Qtproject/medicalpro/geometry/geometry40.ini",
+    "primary_instrument_geometry_asset_id": "geometry:probe-main",
     "target_region_center": {
       "x": 46.4559,
       "y": -27.6488,

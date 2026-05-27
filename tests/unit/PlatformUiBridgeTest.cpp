@@ -103,6 +103,7 @@ private slots:
     void coreRuntimeProvider_builds_system_settings_snapshot_from_loaded_plugins();
     void coreRuntimeProvider_system_settings_prefers_loaded_plugins_over_started_plugins();
     void navigationServiceAccess_forwards_service_pointers_from_port();
+    void navigationServiceAccess_starts_instrument_management_plugin_on_demand();
     void navigationServiceAccess_starts_point_registration_plugin_on_demand();
     void navigationServiceAccess_re_emits_point_registration_plugin_load();
 };
@@ -195,6 +196,22 @@ void PlatformUiBridgeTest::navigationServiceAccess_forwards_service_pointers_fro
     QCOMPARE(access.segmentationService(), port.segmentationServiceValue);
     QCOMPARE(access.fourViewDisplayService(), port.fourViewServiceValue);
     QCOMPARE(access.opticalTrackingService(), port.opticalTrackingServiceValue);
+}
+
+void PlatformUiBridgeTest::navigationServiceAccess_starts_instrument_management_plugin_on_demand()
+{
+    FakeNavigationPageServicePort port;
+    port.frameworkReadyValue = true;
+    port.pluginStartedValue = false;
+    port.instrumentServiceValue = reinterpret_cast<InstrumentManagementService*>(quintptr(0x11));
+
+    NavigationPageServiceAccess access(&port);
+    const auto* service = access.instrumentManagementService();
+
+    QCOMPARE(service, port.instrumentServiceValue);
+    QVERIFY(port.startPluginCalled);
+    QCOMPARE(port.lastIsPluginStartedName, QStringLiteral("InstrumentManagement"));
+    QCOMPARE(port.startedPluginName, QStringLiteral("InstrumentManagement"));
 }
 
 void PlatformUiBridgeTest::navigationServiceAccess_starts_point_registration_plugin_on_demand()

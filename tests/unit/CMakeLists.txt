@@ -46,6 +46,10 @@ foreach(_medicalpro_itk_candidate ${_medicalpro_itk_test_runtime_candidates})
     endif()
 endforeach()
 
+if(DEFINED CUDAToolkit_BIN_DIR AND EXISTS "${CUDAToolkit_BIN_DIR}/cudart64_12.dll")
+    list(APPEND MEDICALPRO_FRAMEWORK_TEST_RUNTIME_DIRS "${CUDAToolkit_BIN_DIR}")
+endif()
+
 set(_medicalpro_crt_test_runtime_candidates)
 if(DEFINED ENV{VCToolsRedistDir})
     list(APPEND _medicalpro_crt_test_runtime_candidates
@@ -1287,6 +1291,7 @@ target_include_directories(navigation_workspace_snapshot_store_test PRIVATE
 
 target_link_libraries(navigation_workspace_snapshot_store_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
     Qt${QT_VERSION_MAJOR}::Test
 )
 
@@ -1297,7 +1302,7 @@ endif()
 add_test(
     NAME navigation_workspace_snapshot_store_test
     COMMAND ${CMAKE_COMMAND} -E env
-        "PATH=$<TARGET_FILE_DIR:navigation_workspace_snapshot_store_test>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        "PATH=$<TARGET_FILE_DIR:navigation_workspace_snapshot_store_test>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
         $<TARGET_FILE:navigation_workspace_snapshot_store_test>
 )
 
@@ -1408,6 +1413,40 @@ set_tests_properties(navigation_runtime_state_test PROPERTIES
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:navigation_runtime_state_test>"
 )
 
+add_executable(navigation_digital_twin_state_builder_test
+    NavigationDigitalTwinStateBuilderTest.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Navigation/navigation_digital_twin_state_builder.cpp
+)
+
+target_include_directories(navigation_digital_twin_state_builder_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_compile_definitions(navigation_digital_twin_state_builder_test PRIVATE
+    FRAMEWORK_LIBRARY
+)
+
+target_link_libraries(navigation_digital_twin_state_builder_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+)
+
+if(MSVC)
+    target_compile_options(navigation_digital_twin_state_builder_test PRIVATE /utf-8)
+endif()
+
+add_test(
+    NAME navigation_digital_twin_state_builder_test
+    COMMAND ${CMAKE_COMMAND} -E env
+        "PATH=$<TARGET_FILE_DIR:navigation_digital_twin_state_builder_test>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$ENV{PATH}"
+        $<TARGET_FILE:navigation_digital_twin_state_builder_test>
+)
+
+set_tests_properties(navigation_digital_twin_state_builder_test PROPERTIES
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:navigation_digital_twin_state_builder_test>"
+)
+
 add_executable(navigation_pose_stream_test
     NavigationPoseStreamTest.cpp
 )
@@ -1495,8 +1534,10 @@ add_test(
 )
 
 set_tests_properties(navigation_runtime_coordinator_contract_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_runtime_coordinator_contract_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$ENV{PATH}"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:navigation_runtime_coordinator_contract_test>"
 )
+
+medicalpro_set_framework_test_environment(navigation_runtime_coordinator_contract_test)
 
 add_executable(navigation_workflow_coordinator_test
     NavigationWorkflowCoordinatorTest.cpp
@@ -1616,8 +1657,10 @@ add_test(
 )
 
 set_tests_properties(navigation_vtk_bridge_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:navigation_vtk_bridge_test>\;$<TARGET_FILE_DIR:medicalpro>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:navigation_vtk_bridge_test>"
 )
+
+medicalpro_set_framework_test_environment(navigation_vtk_bridge_test)
 
 add_executable(ankle_case_workspace_repository_test
     AnkleCaseWorkspaceRepositoryTest.cpp
@@ -1952,6 +1995,30 @@ add_test(
     COMMAND point_registration_registration_core_integration_test
 )
 
+add_executable(point_registration_widget_contract_test
+    PointRegistrationWidgetContractTest.cpp
+)
+
+target_include_directories(point_registration_widget_contract_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(point_registration_widget_contract_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+    PointRegistrationPlatformModuleLib
+)
+
+add_test(
+    NAME point_registration_widget_contract_test
+    COMMAND point_registration_widget_contract_test
+)
+
+medicalpro_set_framework_test_environment(point_registration_widget_contract_test)
+
 set_tests_properties(point_registration_registration_core_integration_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:point_registration_registration_core_integration_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$<TARGET_FILE_DIR:VTK::CommonCore>\;$ENV{PATH}"
 )
@@ -1986,10 +2053,10 @@ endif()
 
 add_test(
     NAME registration_core_meshgpu_smoke_test
-    COMMAND ${CMAKE_COMMAND} -E env
-        "PATH=$<TARGET_FILE_DIR:registration_core_meshgpu_smoke_test>;$<TARGET_FILE_DIR:medicalpro>;$<TARGET_FILE_DIR:Framework>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>;$<TARGET_FILE_DIR:VTK::CommonCore>;$ENV{PATH}"
-        $<TARGET_FILE:registration_core_meshgpu_smoke_test>
+    COMMAND $<TARGET_FILE:registration_core_meshgpu_smoke_test>
 )
+
+medicalpro_set_framework_test_environment(registration_core_meshgpu_smoke_test)
 
 set_tests_properties(registration_core_meshgpu_smoke_test PROPERTIES
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:registration_core_meshgpu_smoke_test>"
@@ -2279,8 +2346,9 @@ add_test(
 )
 
 set_tests_properties(innovation_1_point_selection_experiment_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:innovation_1_point_selection_experiment_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:innovation_1_point_selection_experiment_test>"
 )
+medicalpro_set_framework_test_environment(innovation_1_point_selection_experiment_test)
 
 add_executable(innovation_2_registration_experiment_test
     Innovation2RegistrationExperimentTest.cpp
@@ -2302,8 +2370,9 @@ add_test(
 )
 
 set_tests_properties(innovation_2_registration_experiment_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:innovation_2_registration_experiment_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:innovation_2_registration_experiment_test>"
 )
+medicalpro_set_framework_test_environment(innovation_2_registration_experiment_test)
 
 add_executable(navigation_gate_strategy_test
     NavigationGateStrategyTest.cpp
@@ -2344,8 +2413,9 @@ add_test(
 )
 
 set_tests_properties(innovation_3_gate_experiment_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:innovation_3_gate_experiment_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:innovation_3_gate_experiment_test>"
 )
+medicalpro_set_framework_test_environment(innovation_3_gate_experiment_test)
 
 add_executable(innovation_experiment_batch_runner_test
     InnovationExperimentBatchRunnerTest.cpp
@@ -2367,8 +2437,9 @@ add_test(
 )
 
 set_tests_properties(innovation_experiment_batch_runner_test PROPERTIES
-    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:innovation_experiment_batch_runner_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:innovation_experiment_batch_runner_test>"
 )
+medicalpro_set_framework_test_environment(innovation_experiment_batch_runner_test)
 
 add_executable(optical_tracking_quality_snapshot_test
     OpticalTrackingQualitySnapshotTest.cpp
@@ -2452,6 +2523,31 @@ add_test(
 
 set_tests_properties(ankle_registration_baseline_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$<TARGET_FILE_DIR:VTK::CommonCore>\;$ENV{PATH}"
+)
+
+add_executable(ankle_registration_parallel_search_test
+    AnkleRegistrationParallelSearchTest.cpp
+)
+
+target_include_directories(ankle_registration_parallel_search_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(ankle_registration_parallel_search_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    RegistrationCorePlatformModuleLib
+)
+
+add_test(
+    NAME ankle_registration_parallel_search_test
+    COMMAND $<TARGET_FILE:ankle_registration_parallel_search_test>
+)
+
+set_tests_properties(ankle_registration_parallel_search_test PROPERTIES
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:ankle_registration_parallel_search_test>"
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:ankle_registration_parallel_search_test>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$ENV{PATH}"
 )
 
 add_executable(navigation_confidence_evaluator_test
@@ -2568,6 +2664,7 @@ set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS
     navigation_pose_stream_test
     navigation_transform_graph_test
     navigation_runtime_state_test
+    navigation_runtime_coordinator_contract_test
 )
 
 foreach(_medicalpro_framework_unit_test IN LISTS MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS)

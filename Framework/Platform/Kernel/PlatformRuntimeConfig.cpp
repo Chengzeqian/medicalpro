@@ -55,6 +55,18 @@ void readRealCaseWorkspaceSeed(const QJsonObject& root, PlatformRuntimeConfig& c
     config.realCaseWorkspaceSeed.surgeryId = object.value(QStringLiteral("surgery_id")).toString();
     config.realCaseWorkspaceSeed.tibiaModelPath = object.value(QStringLiteral("tibia_model_path")).toString();
     config.realCaseWorkspaceSeed.talusModelPath = object.value(QStringLiteral("talus_model_path")).toString();
+    config.realCaseWorkspaceSeed.primaryInstrumentAssetId =
+        object.value(QStringLiteral("primary_instrument_asset_id")).toString();
+    config.realCaseWorkspaceSeed.primaryInstrumentDisplayName =
+        object.value(QStringLiteral("primary_instrument_display_name")).toString();
+    config.realCaseWorkspaceSeed.primaryInstrumentModelPath =
+        object.value(QStringLiteral("primary_instrument_model_path")).toString();
+    config.realCaseWorkspaceSeed.primaryInstrumentTrackingMarkerId =
+        object.value(QStringLiteral("primary_instrument_tracking_marker_id")).toString();
+    config.realCaseWorkspaceSeed.primaryInstrumentGeometryFilePath =
+        object.value(QStringLiteral("primary_instrument_geometry_file_path")).toString();
+    config.realCaseWorkspaceSeed.primaryInstrumentGeometryAssetId =
+        object.value(QStringLiteral("primary_instrument_geometry_asset_id")).toString();
     config.realCaseWorkspaceSeed.targetRegionCenter =
         readVector3D(object.value(QStringLiteral("target_region_center")).toObject());
     config.realCaseWorkspaceSeed.targetRegionRadiusMm =

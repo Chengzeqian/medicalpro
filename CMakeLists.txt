@@ -209,8 +209,16 @@ set(FRAMEWORK_SOURCES
     Framework/Navigation/innovation_summary_csv_exporter.cpp
     Framework/Navigation/navigation_confidence_evaluator.h
     Framework/Navigation/navigation_confidence_evaluator.cpp
+    Framework/Navigation/navigation_digital_twin_state_builder.h
+    Framework/Navigation/navigation_digital_twin_state_builder.cpp
+    Framework/Navigation/navigation_pose_frame.h
+    Framework/Navigation/navigation_pose_frame.cpp
+    Framework/Navigation/navigation_pose_stream.h
+    Framework/Navigation/navigation_pose_stream.cpp
     Framework/Navigation/navigation_evaluation_service.h
     Framework/Navigation/navigation_evaluation_service.cpp
+    Framework/Navigation/navigation_transform_graph.h
+    Framework/Navigation/navigation_transform_graph.cpp
     Framework/Logger.h
     Framework/Platform/Contracts/PlatformRuntimeTypes.h
     Framework/Platform/Contracts/PlatformPluginDescriptor.h

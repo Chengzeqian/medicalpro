@@ -15,7 +15,9 @@ class NavigationEvaluationServiceTest : public QObject
 private slots:
     void exporter_writes_registration_navigation_and_csv_reports();
     void service_loads_evaluation_snapshot_with_metrics_evidence();
+    void service_round_trips_parallel_search_registration_metrics();
     void service_exports_case_summary_json_and_batch_summary_csv();
+    void service_round_trips_digital_twin_metrics_and_case_summary_fields();
     void service_discovers_exportable_case_ids_from_cases_root();
 };
 
@@ -181,6 +183,32 @@ void NavigationEvaluationServiceTest::service_loads_evaluation_snapshot_with_met
     QCOMPARE(snapshot.gateReasons.size(), 2);
 }
 
+void NavigationEvaluationServiceTest::service_round_trips_parallel_search_registration_metrics()
+{
+    QTemporaryDir tempRoot;
+    QVERIFY(tempRoot.isValid());
+
+    NavigationEvaluationService service(tempRoot.path());
+    AnkleRegistrationRecord registration;
+    registration.caseId = QStringLiteral("ankle-case-301");
+    registration.registrationMode = QStringLiteral("ankle_two_stage_constrained");
+    registration.fre = 0.74;
+    registration.targetTre = 1.18;
+    registration.coverageScore = 0.87;
+    registration.metrics.insert(QStringLiteral("candidate_count"), 64);
+    registration.metrics.insert(QStringLiteral("top_k_count"), 4);
+    registration.metrics.insert(QStringLiteral("coarse_search_ms"), 12.6);
+    registration.metrics.insert(QStringLiteral("best_candidate_rank"), 0);
+    registration.metrics.insert(QStringLiteral("multi_resolution_profile"), QStringLiteral("ankle_roi_three_level"));
+
+    QVERIFY(service.saveRegistrationRecord(registration));
+    const AnkleEvaluationSnapshot snapshot = service.loadEvaluationSnapshot(registration.caseId);
+
+    QCOMPARE(snapshot.registrationMetrics.value(QStringLiteral("candidate_count")).toInt(), 64);
+    QCOMPARE(snapshot.registrationMetrics.value(QStringLiteral("top_k_count")).toInt(), 4);
+    QCOMPARE(snapshot.registrationMetrics.value(QStringLiteral("best_candidate_rank")).toInt(), 0);
+}
+
 void NavigationEvaluationServiceTest::service_exports_case_summary_json_and_batch_summary_csv()
 {
     QTemporaryDir tempRoot;
@@ -194,6 +222,10 @@ void NavigationEvaluationServiceTest::service_exports_case_summary_json_and_batc
     registrationA.fre = 0.82;
     registrationA.targetTre = 1.36;
     registrationA.coverageScore = 0.91;
+    registrationA.metrics.insert(QStringLiteral("candidate_count"), 64);
+    registrationA.metrics.insert(QStringLiteral("top_k_count"), 4);
+    registrationA.metrics.insert(QStringLiteral("best_candidate_rank"), 0);
+    registrationA.metrics.insert(QStringLiteral("parallel_search_enabled"), true);
     registrationA.metrics.insert(QStringLiteral("target_region_radius_mm"), 18.5);
     registrationA.metrics.insert(QStringLiteral("constraint_region_count"), 3);
 
@@ -280,6 +312,10 @@ void NavigationEvaluationServiceTest::service_exports_case_summary_json_and_batc
     const QJsonObject summaryAObject = QJsonDocument::fromJson(summaryAFile.readAll()).object();
     QCOMPARE(summaryAObject.value(QStringLiteral("case_id")).toString(), QStringLiteral("ankle-case-101"));
     QCOMPARE(summaryAObject.value(QStringLiteral("allow_navigation")).toBool(), true);
+    QCOMPARE(summaryAObject.value(QStringLiteral("candidate_count")).toInt(), 64);
+    QCOMPARE(summaryAObject.value(QStringLiteral("top_k_count")).toInt(), 4);
+    QCOMPARE(summaryAObject.value(QStringLiteral("best_candidate_rank")).toInt(), 0);
+    QCOMPARE(summaryAObject.value(QStringLiteral("parallel_search_enabled")).toBool(), true);
     QCOMPARE(summaryAObject.value(QStringLiteral("constraint_region_count")).toInt(), 3);
     QCOMPARE(summaryAObject.value(QStringLiteral("tracking_jitter_mm")).toDouble(), 0.31);
     QCOMPARE(summaryAObject.value(QStringLiteral("gate_reason_count")).toInt(), 2);
@@ -292,6 +328,99 @@ void NavigationEvaluationServiceTest::service_exports_case_summary_json_and_batc
     QVERIFY(summaryCsvContent.contains(QStringLiteral("ankle-case-102,single_stage_landmark,replay,false")));
     QVERIFY(summaryCsvContent.contains(QStringLiteral(",0.8200,1.3600,0.9100,")));
     QVERIFY(summaryCsvContent.contains(QStringLiteral(",1.6400,0.7200,0.4100,1,false,1.8500")));
+}
+
+void NavigationEvaluationServiceTest::service_round_trips_digital_twin_metrics_and_case_summary_fields()
+{
+    QTemporaryDir tempRoot;
+    QVERIFY(tempRoot.isValid());
+
+    NavigationEvaluationService service(tempRoot.path());
+
+    AnkleRegistrationRecord registration;
+    registration.caseId = QStringLiteral("ankle-case-401");
+    registration.registrationMode = QStringLiteral("ankle_two_stage_constrained");
+    registration.fre = 0.68;
+    registration.targetTre = 1.12;
+    registration.coverageScore = 0.94;
+    registration.metrics.insert(QStringLiteral("candidate_count"), 96);
+    registration.metrics.insert(QStringLiteral("top_k_count"), 6);
+    registration.metrics.insert(QStringLiteral("parallel_search_enabled"), true);
+
+    AnkleNavigationRunRecord run;
+    run.caseId = registration.caseId;
+    run.navigationMode = QStringLiteral("live_tracking");
+    run.confidenceScore = 0.91;
+    run.warnings = QStringList{
+        QStringLiteral("monitor_registration_stability")
+    };
+    run.metrics.insert(QStringLiteral("tracking_jitter_mm"), 0.26);
+    run.metrics.insert(QStringLiteral("visible_frame_ratio"), 0.98);
+    run.metrics.insert(QStringLiteral("tracking_confidence_score"), 0.93);
+
+    AnkleEvaluationReport report;
+    report.caseId = registration.caseId;
+    report.translationErrorMm = 0.86;
+    report.rotationErrorDeg = 1.74;
+    report.allowNavigation = true;
+    report.confidenceScore = 0.91;
+    report.gateReasons = run.warnings;
+    report.calibrated = true;
+    report.calibrationAccuracyMm = 0.33;
+    report.metrics = run.metrics;
+    report.metrics.insert(QStringLiteral("gate_reason_count"), 1);
+    report.metrics.insert(QStringLiteral("twin_confidence_score"), 0.84);
+    report.metrics.insert(QStringLiteral("local_risk_score"), 0.27);
+    report.metrics.insert(QStringLiteral("target_region_distance_mm"), 1.85);
+    report.metrics.insert(QStringLiteral("target_region_angle_error_deg"), 3.6);
+    report.metrics.insert(QStringLiteral("dominant_risk_source"), QStringLiteral("tracking"));
+    report.metrics.insert(QStringLiteral("re_register_recommended"), false);
+    report.metrics.insert(QStringLiteral("tracking_degradation_detected"), false);
+
+    QVERIFY(service.saveRegistrationRecord(registration));
+    QVERIFY(service.saveNavigationRun(run));
+    QVERIFY(service.saveEvaluationReport(report));
+    QVERIFY(service.exportMetricsCsv(registration.caseId));
+    QVERIFY(service.exportCaseSummary(registration.caseId));
+    QVERIFY(service.exportBatchSummaryCsv(QStringList{ registration.caseId }));
+
+    const AnkleEvaluationSnapshot snapshot = service.loadEvaluationSnapshot(registration.caseId);
+    QCOMPARE(snapshot.evaluationMetrics.value(QStringLiteral("twin_confidence_score")).toDouble(), 0.84);
+    QCOMPARE(snapshot.evaluationMetrics.value(QStringLiteral("local_risk_score")).toDouble(), 0.27);
+    QCOMPARE(snapshot.evaluationMetrics.value(QStringLiteral("target_region_distance_mm")).toDouble(), 1.85);
+    QCOMPARE(snapshot.evaluationMetrics.value(QStringLiteral("target_region_angle_error_deg")).toDouble(), 3.6);
+    QCOMPARE(snapshot.evaluationMetrics.value(QStringLiteral("dominant_risk_source")).toString(), QStringLiteral("tracking"));
+    QCOMPARE(snapshot.evaluationMetrics.value(QStringLiteral("re_register_recommended")).toBool(), false);
+    QCOMPARE(snapshot.evaluationMetrics.value(QStringLiteral("tracking_degradation_detected")).toBool(), false);
+
+    QFile metricsCsvFile(tempRoot.path() + QStringLiteral("/ankle-case-401/evaluation/evaluation_metrics.csv"));
+    QVERIFY(metricsCsvFile.open(QIODevice::ReadOnly | QIODevice::Text));
+    const QString metricsCsvContent = QString::fromUtf8(metricsCsvFile.readAll());
+    QVERIFY(metricsCsvContent.contains(QStringLiteral("twin_confidence_score,0.8400")));
+    QVERIFY(metricsCsvContent.contains(QStringLiteral("local_risk_score,0.2700")));
+    QVERIFY(metricsCsvContent.contains(QStringLiteral("target_region_distance_mm,1.8500")));
+    QVERIFY(metricsCsvContent.contains(QStringLiteral("target_region_angle_error_deg,3.6000")));
+    QVERIFY(metricsCsvContent.contains(QStringLiteral("dominant_risk_source,\"tracking\"")));
+    QVERIFY(metricsCsvContent.contains(QStringLiteral("re_register_recommended,false")));
+    QVERIFY(metricsCsvContent.contains(QStringLiteral("tracking_degradation_detected,false")));
+
+    QFile summaryFile(tempRoot.path() + QStringLiteral("/ankle-case-401/evaluation/case_evaluation_summary.json"));
+    QVERIFY(summaryFile.open(QIODevice::ReadOnly | QIODevice::Text));
+    const QJsonObject summaryObject = QJsonDocument::fromJson(summaryFile.readAll()).object();
+    QCOMPARE(summaryObject.value(QStringLiteral("twin_confidence_score")).toDouble(), 0.84);
+    QCOMPARE(summaryObject.value(QStringLiteral("local_risk_score")).toDouble(), 0.27);
+    QCOMPARE(summaryObject.value(QStringLiteral("target_region_distance_mm")).toDouble(), 1.85);
+    QCOMPARE(summaryObject.value(QStringLiteral("target_region_angle_error_deg")).toDouble(), 3.6);
+    QCOMPARE(summaryObject.value(QStringLiteral("dominant_risk_source")).toString(), QStringLiteral("tracking"));
+    QCOMPARE(summaryObject.value(QStringLiteral("re_register_recommended")).toBool(), false);
+    QCOMPARE(summaryObject.value(QStringLiteral("tracking_degradation_detected")).toBool(), false);
+
+    QFile batchCsvFile(tempRoot.path() + QStringLiteral("/summaries/evaluation_case_summaries.csv"));
+    QVERIFY(batchCsvFile.open(QIODevice::ReadOnly | QIODevice::Text));
+    const QString batchCsvContent = QString::fromUtf8(batchCsvFile.readAll());
+    QVERIFY(batchCsvContent.contains(
+        QStringLiteral("twin_confidence_score,local_risk_score,target_region_distance_mm,target_region_angle_error_deg,dominant_risk_source,re_register_recommended,tracking_degradation_detected")));
+    QVERIFY(batchCsvContent.contains(QStringLiteral("ankle-case-401,ankle_two_stage_constrained,live_tracking,true,0.6800,1.1200,0.9400,0.2600,0.9800,0.9300,1,true,0.3300,0.8400,0.2700,1.8500,3.6000,tracking,false,false")));
 }
 
 void NavigationEvaluationServiceTest::service_discovers_exportable_case_ids_from_cases_root()

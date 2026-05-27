@@ -133,6 +133,9 @@ void ManagementPageNew::setupPageCopy()
     if (mainLayout->count() > 0 && mainLayout->itemAt(0)->layout()) {
         auto* headerItem = mainLayout->takeAt(0);
         auto* headerLayout = qobject_cast<QHBoxLayout*>(headerItem->layout());
+        if (headerItem) {
+            headerItem->setAlignment(Qt::Alignment());
+        }
         auto* headerFrame = new QFrame(this);
         headerFrame->setObjectName("managementHeaderFrame");
         headerFrame->setLayout(headerLayout);
@@ -165,7 +168,6 @@ void ManagementPageNew::setupPageCopy()
         }
 
         mainLayout->insertWidget(0, headerFrame);
-        delete headerItem;
     }
 
     createOverviewCards(mainLayout);
@@ -348,7 +350,7 @@ void ManagementPageNew::createFlowFrame(QVBoxLayout* mainLayout)
         m_enterDashboardButtonSecondary,
         &QPushButton::clicked,
         this,
-        &ManagementPageNew::on_enterDashboardButtonSecondary_clicked);
+        &ManagementPageNew::handleEnterDashboardButtonSecondaryClicked);
 
     flowLayout->addLayout(textLayout, 1);
     flowLayout->addWidget(m_enterDashboardButtonSecondary, 0, Qt::AlignVCenter);
@@ -530,7 +532,7 @@ void ManagementPageNew::on_enterDashboardButton_clicked()
     emit navigateTo(toInt(PageIndex::Dashboard));
 }
 
-void ManagementPageNew::on_enterDashboardButtonSecondary_clicked()
+void ManagementPageNew::handleEnterDashboardButtonSecondaryClicked()
 {
     on_enterDashboardButton_clicked();
 }
