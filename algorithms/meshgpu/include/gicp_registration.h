@@ -62,6 +62,10 @@ struct GICPParams {
     int switch_to_fine_at_iteration;   // -1 = never switch, N = switch at iteration N
     int fine_grid_level;               // Grid level to switch to
 
+    // Backend selection: when true and Open3D is built in, the inner ICP loop is
+    // delegated to Open3D Tensor ICP. Default false keeps the legacy GPU-GICP path.
+    bool use_tensor_backend;
+
     GICPParams() :
         max_iterations(50),
         convergence_threshold(1e-6f),
@@ -77,7 +81,8 @@ struct GICPParams {
         coverage_density_exponent(0.5f),
         initial_grid_level(-1),
         switch_to_fine_at_iteration(-1),
-        fine_grid_level(-1) {}
+        fine_grid_level(-1),
+        use_tensor_backend(false) {}
 };
 
 // GICP result

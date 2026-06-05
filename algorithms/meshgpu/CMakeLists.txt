@@ -44,6 +44,15 @@ set(MESHGPU_CORE_SOURCES
     src/incremental_registration.cu
 )
 
+option(MESHGPU_ENABLE_OPEN3D_BACKEND "Build Tensor ICP adapter backed by Open3D inside MeshGPULib" ON)
+
+set(MESHGPU_OPEN3D_BACKEND_SOURCES "")
+if(MESHGPU_ENABLE_OPEN3D_BACKEND)
+    list(APPEND MESHGPU_OPEN3D_BACKEND_SOURCES
+        src/tensor_icp_adapter.cu
+    )
+endif()
+
 set(MESHGPU_ASCEND_PLUGIN_SOURCES
     src/ascend_backend_stub.cpp
     src/ascend_algo_sample.cpp
@@ -65,8 +74,24 @@ set(MESHGPU_TOOL_SOURCES
 
 find_package(CUDAToolkit REQUIRED)
 
+set(MESHGPU_OPEN3D_BACKEND_AVAILABLE OFF)
+if(MESHGPU_ENABLE_OPEN3D_BACKEND)
+    if(MEDICALPRO_OPEN3D_ROOT AND EXISTS "${MEDICALPRO_OPEN3D_ROOT}/CMake/Open3DConfig.cmake")
+        set(Open3D_DIR "${MEDICALPRO_OPEN3D_ROOT}/CMake")
+    endif()
+    find_package(Open3D QUIET CONFIG)
+    if(Open3D_FOUND)
+        set(MESHGPU_OPEN3D_BACKEND_AVAILABLE ON)
+        message(STATUS "MeshGPU Tensor ICP backend enabled (Open3D ${Open3D_VERSION} from ${Open3D_DIR})")
+    else()
+        message(STATUS "MESHGPU_ENABLE_OPEN3D_BACKEND=ON but Open3D not found; Tensor ICP adapter will be skipped")
+        set(MESHGPU_OPEN3D_BACKEND_SOURCES "")
+    endif()
+endif()
+
 add_library(MeshGPULib SHARED
     ${MESHGPU_CORE_SOURCES}
+    ${MESHGPU_OPEN3D_BACKEND_SOURCES}
 )
 
 target_include_directories(MeshGPULib PUBLIC
@@ -82,6 +107,18 @@ target_compile_options(MeshGPULib PRIVATE
 target_link_libraries(MeshGPULib PUBLIC
     CUDA::cudart
 )
+
+if(MESHGPU_OPEN3D_BACKEND_AVAILABLE)
+    target_link_libraries(MeshGPULib PRIVATE Open3D::Open3D)
+    target_compile_definitions(MeshGPULib PRIVATE MESHGPU_HAS_OPEN3D_BACKEND=1)
+
+    add_custom_command(TARGET MeshGPULib POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${MEDICALPRO_OPEN3D_ROOT}/bin/Open3D.dll"
+            "${CMAKE_BINARY_DIR}/Release/Open3D.dll"
+        COMMENT "Syncing Open3D.dll runtime to unified output directory"
+    )
+endif()
 
 set_target_properties(MeshGPULib PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON

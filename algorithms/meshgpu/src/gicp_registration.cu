@@ -1,4 +1,5 @@
 #include "gicp_registration.h"
+#include "tensor_icp_adapter.h"
 #include <cstring>
 #include <algorithm>
 #include <cmath>
@@ -362,6 +363,21 @@ GICPResult GICPRegistration::align(const Matrix4x4& initial_transform, const GIC
     if (!initialized_) {
         std::cerr << "[GICPRegistration] Not initialized" << std::endl;
         return result;
+    }
+
+    if (params.use_tensor_backend) {
+        if (meshgpu_open3d_backend::isAvailable()) {
+            if (params.verbose) {
+                std::cout << "[GICPRegistration] Routing align() to Open3D Tensor ICP backend"
+                          << std::endl;
+            }
+            const MeshSoA* dev_mesh = target_mesh_->getDeviceMesh();
+            return meshgpu_open3d_backend::align(*dev_mesh, *source_cloud_,
+                                                 initial_transform, params);
+        }
+        std::cerr << "[GICPRegistration] use_tensor_backend=true but Open3D backend "
+                     "is not built in; falling back to legacy GPU-GICP path"
+                  << std::endl;
     }
 
     // Check if curvature weighting is enabled

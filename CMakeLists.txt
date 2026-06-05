@@ -22,6 +22,27 @@ set(MEDICALPRO_EIGEN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/eigen" CACHE P
 set(MEDICALPRO_ATRACSYS_SDK_DIR "" CACHE PATH
     "Path to the Atracsys fusionTrack SDK x64 directory")
 
+option(MEDICALPRO_ENABLE_OPEN3D "Enable Open3D Tensor ICP backend in MeshGPULib" ON)
+set(MEDICALPRO_OPEN3D_ROOT "" CACHE PATH
+    "Path to the Open3D devel SDK root (containing CMake/, include/, lib/, bin/)")
+
+if(MEDICALPRO_ENABLE_OPEN3D AND NOT EXISTS "${MEDICALPRO_OPEN3D_ROOT}/CMake/Open3DConfig.cmake")
+    set(MEDICALPRO_OPEN3D_CANDIDATES
+        "$ENV{MEDICALPRO_OPEN3D_ROOT}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Open3D"
+        "E:/ICPtry/Open3D"
+        "D:/Open3D"
+        "C:/Open3D"
+    )
+    foreach(MEDICALPRO_OPEN3D_CANDIDATE ${MEDICALPRO_OPEN3D_CANDIDATES})
+        if(EXISTS "${MEDICALPRO_OPEN3D_CANDIDATE}/CMake/Open3DConfig.cmake")
+            set(MEDICALPRO_OPEN3D_ROOT "${MEDICALPRO_OPEN3D_CANDIDATE}" CACHE PATH
+                "Path to the Open3D devel SDK root" FORCE)
+            break()
+        endif()
+    endforeach()
+endif()
+
 if(NOT EXISTS "${MEDICALPRO_ATRACSYS_SDK_DIR}/include/ftkInterface.h")
     set(MEDICALPRO_ATRACSYS_SDK_CANDIDATES
         "$ENV{MEDICALPRO_ATRACSYS_SDK_DIR}"

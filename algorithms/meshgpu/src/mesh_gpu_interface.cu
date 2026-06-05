@@ -13,6 +13,8 @@
 #include "ascend_backend_plugin.h"
 
 #include <cuda_runtime.h>
+#include <thrust/device_ptr.h>
+#include <thrust/scan.h>
 #include <algorithm>
 #include <iostream>
 #include <sstream>
@@ -1086,6 +1088,12 @@ RegistrationResult MeshGPUInterface::runRegistration(const Transform4x4& initial
         gicp_params.search_radius = params.search_radius;
         gicp_params.use_point_to_plane = params.use_point_to_plane;
         gicp_params.verbose = params.verbose;
+        // ENV bypass for W1-5b A/B comparison: MEDICALPRO_USE_TENSOR_ICP=1 routes
+        // the inner ICP loop to Open3D Tensor ICP. Once the comparison is done
+        // this should be replaced by a typed parameter on RegistrationParams.
+        if (const char* env = std::getenv("MEDICALPRO_USE_TENSOR_ICP")) {
+            if (env[0] == '1') gicp_params.use_tensor_backend = true;
+        }
 
         // Convert initial transform
         Matrix4x4 init_mat;
@@ -1116,6 +1124,95 @@ RegistrationResult MeshGPUInterface::runRegistration(const Transform4x4& initial
     }
 
     return result;
+}
+
+std::vector<RegistrationResult> MeshGPUInterface::refineTransformCandidates(
+    const std::vector<Transform4x4>& initial_transforms,
+    const RegistrationParams& params)
+{
+    std::vector<RegistrationResult> results;
+    results.reserve(initial_transforms.size());
+    if (initial_transforms.empty()) {
+        return results;
+    }
+
+    if (pImpl->backend_status_.selected == ComputeBackendKind::ASCEND) {
+        for (const Transform4x4& initial_transform : initial_transforms) {
+            results.push_back(runRegistration(initial_transform, params));
+        }
+        return results;
+    }
+
+    if (!pImpl->ensureCudaBackend("refineTransformCandidates")) {
+        return results;
+    }
+
+    if (!pImpl->mesh_) {
+        std::cerr << "No target mesh loaded" << std::endl;
+        return results;
+    }
+
+    if (!pImpl->source_cloud_ || (pImpl->source_cloud_->num_points == 0 && pImpl->source_points_.empty())) {
+        std::cerr << "No source points set" << std::endl;
+        return results;
+    }
+
+    try {
+        if (pImpl->gicp_) {
+            delete pImpl->gicp_;
+        }
+        pImpl->gicp_ = new GICPRegistration();
+
+        if (!pImpl->gicp_->initialize(pImpl->mesh_, pImpl->source_cloud_)) {
+            std::cerr << "Failed to initialize GICP" << std::endl;
+            return results;
+        }
+
+        GICPParams gicp_params;
+        gicp_params.max_iterations = params.max_iterations;
+        gicp_params.convergence_threshold = params.convergence_threshold;
+        gicp_params.distance_threshold = params.distance_threshold;
+        gicp_params.search_radius = params.search_radius;
+        gicp_params.use_point_to_plane = params.use_point_to_plane;
+        gicp_params.verbose = params.verbose;
+        gicp_params.curvature_weight_mode =
+            static_cast<::CurvatureWeightMode>(static_cast<int>(params.curvature_weight_mode));
+        gicp_params.curvature_weight_scale = params.curvature_weight_scale;
+        gicp_params.min_weight = params.min_weight;
+        gicp_params.max_weight = params.max_weight;
+        // ENV bypass: MEDICALPRO_USE_TENSOR_ICP=1 routes to Open3D Tensor ICP.
+        if (const char* env = std::getenv("MEDICALPRO_USE_TENSOR_ICP")) {
+            if (env[0] == '1') gicp_params.use_tensor_backend = true;
+        }
+
+        for (const Transform4x4& initial_transform : initial_transforms) {
+            Matrix4x4 init_mat;
+            for (int i = 0; i < 16; i++) {
+                init_mat.m[i] = initial_transform.data[i];
+            }
+
+            const GICPResult gicp_result = pImpl->gicp_->align(init_mat, gicp_params);
+
+            RegistrationResult result;
+            for (int i = 0; i < 16; i++) {
+                result.transform.data[i] = gicp_result.final_transform.m[i];
+            }
+            result.rmse = gicp_result.final_rmse;
+            result.iterations = gicp_result.iterations;
+            result.converged = gicp_result.converged;
+            result.rmse_history = gicp_result.rmse_history;
+            results.push_back(result);
+            pImpl->last_result_ = result;
+        }
+
+        std::cout << "[MeshGPUInterface] Batch refine completed: "
+                  << results.size() << " transforms" << std::endl;
+    } catch (const std::exception& e) {
+        results.clear();
+        std::cerr << "Exception during batch refine: " << e.what() << std::endl;
+    }
+
+    return results;
 }
 
 RegistrationResult MeshGPUInterface::getLastResult() const {
@@ -1510,6 +1607,372 @@ bool MeshGPUInterface::getHostMesh(std::vector<Point3D>& vertices, std::vector<N
     }
 
     return true;
+}
+
+ConstrainedMeshResult MeshGPUInterface::buildConstrainedTargetMesh(
+    const Point3D& target_region_center,
+    float target_region_radius_mm,
+    float membership_radius_mm,
+    const std::vector<Point3D>& constraint_points,
+    int minimum_point_count) const
+{
+    ConstrainedMeshResult result;
+    if (!pImpl->ensureCudaBackend("buildConstrainedTargetMesh")) {
+        return result;
+    }
+    if (!pImpl->mesh_ || pImpl->host_mesh_.num_vertices == 0 || pImpl->host_mesh_.num_faces == 0) {
+        return result;
+    }
+
+    MeshSoA* device_mesh = pImpl->mesh_->getDeviceMesh();
+    if (!device_mesh) {
+        return result;
+    }
+
+    unsigned char* d_vertex_mask = nullptr;
+    unsigned char* d_face_mask = nullptr;
+    uint32_t* d_vertex_counts = nullptr;
+    uint32_t* d_vertex_offsets = nullptr;
+    uint32_t* d_face_counts = nullptr;
+    uint32_t* d_face_offsets = nullptr;
+    int* d_vertex_mapping = nullptr;
+    int* d_selected_vertex_indices = nullptr;
+    int* d_selected_face_v0 = nullptr;
+    int* d_selected_face_v1 = nullptr;
+    int* d_selected_face_v2 = nullptr;
+    float* d_constraint_x = nullptr;
+    float* d_constraint_y = nullptr;
+    float* d_constraint_z = nullptr;
+
+    const auto cleanup = [&]() {
+        if (d_vertex_mask) {
+            cudaFree(d_vertex_mask);
+        }
+        if (d_face_mask) {
+            cudaFree(d_face_mask);
+        }
+        if (d_vertex_counts) {
+            cudaFree(d_vertex_counts);
+        }
+        if (d_vertex_offsets) {
+            cudaFree(d_vertex_offsets);
+        }
+        if (d_face_counts) {
+            cudaFree(d_face_counts);
+        }
+        if (d_face_offsets) {
+            cudaFree(d_face_offsets);
+        }
+        if (d_vertex_mapping) {
+            cudaFree(d_vertex_mapping);
+        }
+        if (d_selected_vertex_indices) {
+            cudaFree(d_selected_vertex_indices);
+        }
+        if (d_selected_face_v0) {
+            cudaFree(d_selected_face_v0);
+        }
+        if (d_selected_face_v1) {
+            cudaFree(d_selected_face_v1);
+        }
+        if (d_selected_face_v2) {
+            cudaFree(d_selected_face_v2);
+        }
+        if (d_constraint_x) {
+            cudaFree(d_constraint_x);
+        }
+        if (d_constraint_y) {
+            cudaFree(d_constraint_y);
+        }
+        if (d_constraint_z) {
+            cudaFree(d_constraint_z);
+        }
+    };
+    const auto failIfCudaError = [&](cudaError_t error) {
+        if (error == cudaSuccess) {
+            return false;
+        }
+        cleanup();
+        return true;
+    };
+
+    const uint32_t num_vertices = pImpl->host_mesh_.num_vertices;
+    const uint32_t num_faces = pImpl->host_mesh_.num_faces;
+    std::vector<unsigned char> h_vertex_mask(num_vertices, 0);
+
+    if (failIfCudaError(cudaMalloc(&d_vertex_mask, num_vertices * sizeof(unsigned char)))
+        || failIfCudaError(cudaMalloc(&d_face_mask, num_faces * sizeof(unsigned char)))
+        || failIfCudaError(cudaMalloc(&d_vertex_counts, num_vertices * sizeof(uint32_t)))
+        || failIfCudaError(cudaMalloc(&d_vertex_offsets, num_vertices * sizeof(uint32_t)))
+        || failIfCudaError(cudaMalloc(&d_face_counts, num_faces * sizeof(uint32_t)))
+        || failIfCudaError(cudaMalloc(&d_face_offsets, num_faces * sizeof(uint32_t)))
+        || failIfCudaError(cudaMalloc(&d_vertex_mapping, num_vertices * sizeof(int)))
+        || failIfCudaError(cudaMemset(d_vertex_mask, 0, num_vertices * sizeof(unsigned char)))
+        || failIfCudaError(cudaMemset(d_face_mask, 0, num_faces * sizeof(unsigned char)))
+        || failIfCudaError(cudaMemset(d_vertex_mapping, 0xFF, num_vertices * sizeof(int)))) {
+        return result;
+    }
+
+    std::vector<float> constraint_x(constraint_points.size(), 0.0f);
+    std::vector<float> constraint_y(constraint_points.size(), 0.0f);
+    std::vector<float> constraint_z(constraint_points.size(), 0.0f);
+    for (size_t index = 0; index < constraint_points.size(); ++index) {
+        constraint_x[index] = constraint_points[index].x;
+        constraint_y[index] = constraint_points[index].y;
+        constraint_z[index] = constraint_points[index].z;
+    }
+
+    if (!constraint_points.empty()) {
+        if (failIfCudaError(cudaMalloc(&d_constraint_x, constraint_points.size() * sizeof(float)))
+            || failIfCudaError(cudaMalloc(&d_constraint_y, constraint_points.size() * sizeof(float)))
+            || failIfCudaError(cudaMalloc(&d_constraint_z, constraint_points.size() * sizeof(float)))
+            || failIfCudaError(cudaMemcpy(
+                d_constraint_x,
+                constraint_x.data(),
+                constraint_points.size() * sizeof(float),
+                cudaMemcpyHostToDevice))
+            || failIfCudaError(cudaMemcpy(
+                d_constraint_y,
+                constraint_y.data(),
+                constraint_points.size() * sizeof(float),
+                cudaMemcpyHostToDevice))
+            || failIfCudaError(cudaMemcpy(
+                d_constraint_z,
+                constraint_z.data(),
+                constraint_points.size() * sizeof(float),
+                cudaMemcpyHostToDevice))) {
+            return result;
+        }
+    }
+
+    launchSelectVerticesByConstraints(
+        device_mesh->vertices_x,
+        device_mesh->vertices_y,
+        device_mesh->vertices_z,
+        d_vertex_mask,
+        target_region_center.x,
+        target_region_center.y,
+        target_region_center.z,
+        target_region_radius_mm > 0.0f ? target_region_radius_mm * target_region_radius_mm : -1.0f,
+        d_constraint_x,
+        d_constraint_y,
+        d_constraint_z,
+        static_cast<uint32_t>(constraint_points.size()),
+        membership_radius_mm > 0.0f ? membership_radius_mm * membership_radius_mm : -1.0f,
+        num_vertices);
+
+    if (failIfCudaError(cudaMemcpy(
+            h_vertex_mask.data(),
+            d_vertex_mask,
+            num_vertices * sizeof(unsigned char),
+            cudaMemcpyDeviceToHost))) {
+        return result;
+    }
+
+    std::vector<int> selected_indices;
+    selected_indices.reserve(num_vertices);
+    std::vector<std::pair<float, int>> ranked_indices;
+    ranked_indices.reserve(num_vertices);
+    for (uint32_t index = 0; index < num_vertices; ++index) {
+        const float dx = pImpl->host_mesh_.vertices_x[index] - target_region_center.x;
+        const float dy = pImpl->host_mesh_.vertices_y[index] - target_region_center.y;
+        const float dz = pImpl->host_mesh_.vertices_z[index] - target_region_center.z;
+        ranked_indices.emplace_back(dx * dx + dy * dy + dz * dz, static_cast<int>(index));
+        if (h_vertex_mask[index]) {
+            selected_indices.push_back(static_cast<int>(index));
+        }
+    }
+
+    if (static_cast<int>(selected_indices.size()) < minimum_point_count) {
+        std::sort(ranked_indices.begin(), ranked_indices.end(), [](const auto& left, const auto& right) {
+            return left.first < right.first;
+        });
+        for (const auto& ranked_entry : ranked_indices) {
+            const int candidate_index = ranked_entry.second;
+            if (!h_vertex_mask[static_cast<size_t>(candidate_index)]) {
+                h_vertex_mask[static_cast<size_t>(candidate_index)] = 1;
+                selected_indices.push_back(candidate_index);
+            }
+            if (static_cast<int>(selected_indices.size()) >= minimum_point_count) {
+                break;
+            }
+        }
+    }
+
+    if (static_cast<int>(selected_indices.size()) < minimum_point_count) {
+        cleanup();
+        return result;
+    }
+
+    if (failIfCudaError(cudaMemcpy(
+            d_vertex_mask,
+            h_vertex_mask.data(),
+            num_vertices * sizeof(unsigned char),
+            cudaMemcpyHostToDevice))) {
+        return result;
+    }
+
+    launchMaskToCounts(d_vertex_mask, d_vertex_counts, num_vertices);
+    thrust::exclusive_scan(
+        thrust::device_pointer_cast(d_vertex_counts),
+        thrust::device_pointer_cast(d_vertex_counts + num_vertices),
+        thrust::device_pointer_cast(d_vertex_offsets));
+
+    uint32_t last_vertex_offset = 0;
+    uint32_t last_vertex_count = 0;
+    if (failIfCudaError(cudaMemcpy(
+            &last_vertex_offset,
+            d_vertex_offsets + (num_vertices - 1),
+            sizeof(uint32_t),
+            cudaMemcpyDeviceToHost))
+        || failIfCudaError(cudaMemcpy(
+            &last_vertex_count,
+            d_vertex_counts + (num_vertices - 1),
+            sizeof(uint32_t),
+            cudaMemcpyDeviceToHost))) {
+        return result;
+    }
+
+    const uint32_t selected_vertex_count = last_vertex_offset + last_vertex_count;
+    if (selected_vertex_count == 0) {
+        cleanup();
+        return result;
+    }
+
+    if (failIfCudaError(cudaMalloc(&d_selected_vertex_indices, selected_vertex_count * sizeof(int)))) {
+        return result;
+    }
+
+    launchScatterSelectedVertexIndices(
+        d_vertex_mask,
+        d_vertex_offsets,
+        d_vertex_mapping,
+        d_selected_vertex_indices,
+        num_vertices);
+
+    launchSelectFacesByVertexMask(
+        device_mesh->faces_v0,
+        device_mesh->faces_v1,
+        device_mesh->faces_v2,
+        d_vertex_mask,
+        d_face_mask,
+        num_faces);
+
+    launchMaskToCounts(d_face_mask, d_face_counts, num_faces);
+    thrust::exclusive_scan(
+        thrust::device_pointer_cast(d_face_counts),
+        thrust::device_pointer_cast(d_face_counts + num_faces),
+        thrust::device_pointer_cast(d_face_offsets));
+
+    uint32_t last_face_offset = 0;
+    uint32_t last_face_count = 0;
+    if (failIfCudaError(cudaMemcpy(
+            &last_face_offset,
+            d_face_offsets + (num_faces - 1),
+            sizeof(uint32_t),
+            cudaMemcpyDeviceToHost))
+        || failIfCudaError(cudaMemcpy(
+            &last_face_count,
+            d_face_counts + (num_faces - 1),
+            sizeof(uint32_t),
+            cudaMemcpyDeviceToHost))) {
+        return result;
+    }
+
+    const uint32_t selected_face_count = last_face_offset + last_face_count;
+    if (selected_face_count == 0) {
+        cleanup();
+        return result;
+    }
+
+    if (failIfCudaError(cudaMalloc(&d_selected_face_v0, selected_face_count * sizeof(int)))
+        || failIfCudaError(cudaMalloc(&d_selected_face_v1, selected_face_count * sizeof(int)))
+        || failIfCudaError(cudaMalloc(&d_selected_face_v2, selected_face_count * sizeof(int)))) {
+        return result;
+    }
+
+    launchScatterSelectedFaces(
+        d_face_mask,
+        d_face_offsets,
+        device_mesh->faces_v0,
+        device_mesh->faces_v1,
+        device_mesh->faces_v2,
+        d_vertex_mapping,
+        d_selected_face_v0,
+        d_selected_face_v1,
+        d_selected_face_v2,
+        num_faces);
+
+    std::vector<int> h_selected_vertex_indices(selected_vertex_count, -1);
+    std::vector<int> h_selected_face_v0(selected_face_count, -1);
+    std::vector<int> h_selected_face_v1(selected_face_count, -1);
+    std::vector<int> h_selected_face_v2(selected_face_count, -1);
+    if (failIfCudaError(cudaMemcpy(
+            h_selected_vertex_indices.data(),
+            d_selected_vertex_indices,
+            selected_vertex_count * sizeof(int),
+            cudaMemcpyDeviceToHost))
+        || failIfCudaError(cudaMemcpy(
+            h_selected_face_v0.data(),
+            d_selected_face_v0,
+            selected_face_count * sizeof(int),
+            cudaMemcpyDeviceToHost))
+        || failIfCudaError(cudaMemcpy(
+            h_selected_face_v1.data(),
+            d_selected_face_v1,
+            selected_face_count * sizeof(int),
+            cudaMemcpyDeviceToHost))
+        || failIfCudaError(cudaMemcpy(
+            h_selected_face_v2.data(),
+            d_selected_face_v2,
+            selected_face_count * sizeof(int),
+            cudaMemcpyDeviceToHost))) {
+        return result;
+    }
+
+    result.vertices.reserve(selected_vertex_count);
+    result.normals.reserve(selected_vertex_count);
+    result.original_vertex_indices.reserve(selected_vertex_count);
+    for (uint32_t compact_index = 0; compact_index < selected_vertex_count; ++compact_index) {
+        const int original_index = h_selected_vertex_indices[compact_index];
+        if (original_index < 0 || original_index >= static_cast<int>(num_vertices)) {
+            cleanup();
+            return mesh_gpu::ConstrainedMeshResult {};
+        }
+
+        result.vertices.emplace_back(
+            pImpl->host_mesh_.vertices_x[static_cast<uint32_t>(original_index)],
+            pImpl->host_mesh_.vertices_y[static_cast<uint32_t>(original_index)],
+            pImpl->host_mesh_.vertices_z[static_cast<uint32_t>(original_index)]);
+        result.normals.emplace_back(
+            pImpl->host_mesh_.normals_x ? pImpl->host_mesh_.normals_x[static_cast<uint32_t>(original_index)] : 0.0f,
+            pImpl->host_mesh_.normals_y ? pImpl->host_mesh_.normals_y[static_cast<uint32_t>(original_index)] : 0.0f,
+            pImpl->host_mesh_.normals_z ? pImpl->host_mesh_.normals_z[static_cast<uint32_t>(original_index)] : 1.0f);
+        result.original_vertex_indices.push_back(original_index);
+    }
+
+    result.triangles.reserve(selected_face_count);
+    for (uint32_t compact_index = 0; compact_index < selected_face_count; ++compact_index) {
+        const int mapped_v0 = h_selected_face_v0[compact_index];
+        const int mapped_v1 = h_selected_face_v1[compact_index];
+        const int mapped_v2 = h_selected_face_v2[compact_index];
+        if (mapped_v0 < 0
+            || mapped_v1 < 0
+            || mapped_v2 < 0
+            || mapped_v0 >= static_cast<int>(selected_vertex_count)
+            || mapped_v1 >= static_cast<int>(selected_vertex_count)
+            || mapped_v2 >= static_cast<int>(selected_vertex_count)) {
+            cleanup();
+            return mesh_gpu::ConstrainedMeshResult {};
+        }
+
+        result.triangles.push_back({ mapped_v0, mapped_v1, mapped_v2 });
+    }
+
+    result.success =
+        static_cast<int>(result.vertices.size()) >= minimum_point_count && !result.triangles.empty();
+    cleanup();
+    return result;
 }
 
 bool MeshGPUInterface::getSourcePointCloud(std::vector<Point3D>& points) const {
@@ -2143,6 +2606,26 @@ std::vector<TransformCandidateScore> MeshGPUInterface::scoreTransformCandidates(
 
     float* d_matrices = nullptr;
     int* d_scores = nullptr;
+    float* d_normal_scores = nullptr;
+    float* d_curvature_scores = nullptr;
+    const auto cleanupCandidateScoreBuffers = [&]() {
+        if (d_curvature_scores) {
+            cudaFree(d_curvature_scores);
+            d_curvature_scores = nullptr;
+        }
+        if (d_normal_scores) {
+            cudaFree(d_normal_scores);
+            d_normal_scores = nullptr;
+        }
+        if (d_scores) {
+            cudaFree(d_scores);
+            d_scores = nullptr;
+        }
+        if (d_matrices) {
+            cudaFree(d_matrices);
+            d_matrices = nullptr;
+        }
+    };
 
     try {
         const uint32_t num_candidates = static_cast<uint32_t>(candidates.size());
@@ -2157,6 +2640,7 @@ std::vector<TransformCandidateScore> MeshGPUInterface::scoreTransformCandidates(
 
         const size_t matrices_bytes = static_cast<size_t>(num_candidates) * 16u * sizeof(float);
         const size_t scores_bytes = static_cast<size_t>(num_candidates) * sizeof(int);
+        const size_t geometry_scores_bytes = static_cast<size_t>(num_candidates) * sizeof(float);
 
         cudaError_t err = cudaMalloc(&d_matrices, matrices_bytes);
         if (err != cudaSuccess) {
@@ -2169,7 +2653,23 @@ std::vector<TransformCandidateScore> MeshGPUInterface::scoreTransformCandidates(
         if (err != cudaSuccess) {
             std::cerr << "[MeshGPUInterface] cudaMalloc(d_scores) failed: "
                       << cudaGetErrorString(err) << std::endl;
-            cudaFree(d_matrices);
+            cleanupCandidateScoreBuffers();
+            return results;
+        }
+
+        err = cudaMalloc(&d_normal_scores, geometry_scores_bytes);
+        if (err != cudaSuccess) {
+            std::cerr << "[MeshGPUInterface] cudaMalloc(d_normal_scores) failed: "
+                      << cudaGetErrorString(err) << std::endl;
+            cleanupCandidateScoreBuffers();
+            return results;
+        }
+
+        err = cudaMalloc(&d_curvature_scores, geometry_scores_bytes);
+        if (err != cudaSuccess) {
+            std::cerr << "[MeshGPUInterface] cudaMalloc(d_curvature_scores) failed: "
+                      << cudaGetErrorString(err) << std::endl;
+            cleanupCandidateScoreBuffers();
             return results;
         }
 
@@ -2177,8 +2677,7 @@ std::vector<TransformCandidateScore> MeshGPUInterface::scoreTransformCandidates(
         if (err != cudaSuccess) {
             std::cerr << "[MeshGPUInterface] cudaMemcpy(candidate matrices) failed: "
                       << cudaGetErrorString(err) << std::endl;
-            cudaFree(d_scores);
-            cudaFree(d_matrices);
+            cleanupCandidateScoreBuffers();
             return results;
         }
 
@@ -2186,8 +2685,23 @@ std::vector<TransformCandidateScore> MeshGPUInterface::scoreTransformCandidates(
         if (err != cudaSuccess) {
             std::cerr << "[MeshGPUInterface] cudaMemset(candidate scores) failed: "
                       << cudaGetErrorString(err) << std::endl;
-            cudaFree(d_scores);
-            cudaFree(d_matrices);
+            cleanupCandidateScoreBuffers();
+            return results;
+        }
+
+        err = cudaMemset(d_normal_scores, 0, geometry_scores_bytes);
+        if (err != cudaSuccess) {
+            std::cerr << "[MeshGPUInterface] cudaMemset(candidate normal scores) failed: "
+                      << cudaGetErrorString(err) << std::endl;
+            cleanupCandidateScoreBuffers();
+            return results;
+        }
+
+        err = cudaMemset(d_curvature_scores, 0, geometry_scores_bytes);
+        if (err != cudaSuccess) {
+            std::cerr << "[MeshGPUInterface] cudaMemset(candidate curvature scores) failed: "
+                      << cudaGetErrorString(err) << std::endl;
+            cleanupCandidateScoreBuffers();
             return results;
         }
 
@@ -2215,7 +2729,8 @@ std::vector<TransformCandidateScore> MeshGPUInterface::scoreTransformCandidates(
             d_vertex_indices = pImpl->mesh_->getGridVertexIndices();
         }
 
-        launchRotationDistanceEnergyKernel(
+        MeshSoA* device_mesh = pImpl->mesh_->getDeviceMesh();
+        launchTransformCandidateGeometryScoreKernel(
             pImpl->source_cloud_->points_x,
             pImpl->source_cloud_->points_y,
             pImpl->source_cloud_->points_z,
@@ -2228,19 +2743,50 @@ std::vector<TransformCandidateScore> MeshGPUInterface::scoreTransformCandidates(
             d_cell_counts,
             d_cell_starts,
             d_vertex_indices,
-            pImpl->mesh_->getVerticesX(),
-            pImpl->mesh_->getVerticesY(),
-            pImpl->mesh_->getVerticesZ(),
+            device_mesh->vertices_x,
+            device_mesh->vertices_y,
+            device_mesh->vertices_z,
+            device_mesh->normals_x,
+            device_mesh->normals_y,
+            device_mesh->normals_z,
+            device_mesh->curvature,
             cutoff_mm,
-            d_scores);
+            d_scores,
+            d_normal_scores,
+            d_curvature_scores);
 
         std::vector<int> h_scores(num_candidates, 0);
         err = cudaMemcpy(h_scores.data(), d_scores, scores_bytes, cudaMemcpyDeviceToHost);
         if (err != cudaSuccess) {
             std::cerr << "[MeshGPUInterface] cudaMemcpy(candidate scores <- device) failed: "
                       << cudaGetErrorString(err) << std::endl;
-            cudaFree(d_scores);
-            cudaFree(d_matrices);
+            cleanupCandidateScoreBuffers();
+            return results;
+        }
+
+        std::vector<float> h_normal_scores(num_candidates, 0.0f);
+        err = cudaMemcpy(
+            h_normal_scores.data(),
+            d_normal_scores,
+            geometry_scores_bytes,
+            cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            std::cerr << "[MeshGPUInterface] cudaMemcpy(candidate normal scores <- device) failed: "
+                      << cudaGetErrorString(err) << std::endl;
+            cleanupCandidateScoreBuffers();
+            return results;
+        }
+
+        std::vector<float> h_curvature_scores(num_candidates, 0.0f);
+        err = cudaMemcpy(
+            h_curvature_scores.data(),
+            d_curvature_scores,
+            geometry_scores_bytes,
+            cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            std::cerr << "[MeshGPUInterface] cudaMemcpy(candidate curvature scores <- device) failed: "
+                      << cudaGetErrorString(err) << std::endl;
+            cleanupCandidateScoreBuffers();
             return results;
         }
 
@@ -2254,6 +2800,9 @@ std::vector<TransformCandidateScore> MeshGPUInterface::scoreTransformCandidates(
                 -static_cast<double>(score.score) /
                     (static_cast<double>(num_points) * 1000.0));
             score.mean_dist_mm = static_cast<float>(std::sqrt(mean_dist_sq));
+            score.normal_consistency_score = std::max(0.0f, std::min(1.0f, h_normal_scores[i]));
+            score.curvature_score = std::max(0.0f, std::min(1.0f, h_curvature_scores[i]));
+            score.geometry_score_available = true;
             score.success = true;
             results.push_back(score);
         }
@@ -2266,14 +2815,19 @@ std::vector<TransformCandidateScore> MeshGPUInterface::scoreTransformCandidates(
                       return a.candidate_index < b.candidate_index;
                   });
 
-        cudaFree(d_scores);
-        cudaFree(d_matrices);
+        cleanupCandidateScoreBuffers();
 
         std::cout << "[MeshGPUInterface] Candidate GPU scoring completed: "
                   << num_candidates << " transforms, cutoff=" << cutoff_mm << "mm" << std::endl;
     } catch (const std::exception& e) {
         if (d_scores) {
             cudaFree(d_scores);
+        }
+        if (d_normal_scores) {
+            cudaFree(d_normal_scores);
+        }
+        if (d_curvature_scores) {
+            cudaFree(d_curvature_scores);
         }
         if (d_matrices) {
             cudaFree(d_matrices);
@@ -2333,11 +2887,156 @@ public:
             runtimeScore.candidateIndex = score.candidate_index;
             runtimeScore.score = score.score;
             runtimeScore.meanDistanceMm = score.mean_dist_mm;
+            runtimeScore.normalConsistencyScore = score.normal_consistency_score;
+            runtimeScore.curvatureScore = score.curvature_score;
+            runtimeScore.geometryScoreAvailable = score.geometry_score_available;
             runtimeScore.success = score.success;
             runtimeScores.push_back(runtimeScore);
         }
 
         return runtimeScores;
+    }
+
+    std::vector<mesh_gpu::RuntimeRefineCandidateResult> refineTransformCandidates(
+        const std::vector<mesh_gpu::RuntimeRefineCandidateRequest>& candidates,
+        const mesh_gpu::RegistrationParams& params) override {
+        std::vector<mesh_gpu::RuntimeRefineCandidateResult> runtimeResults;
+        runtimeResults.reserve(candidates.size());
+
+        std::vector<mesh_gpu::Transform4x4> initialTransforms;
+        initialTransforms.reserve(candidates.size());
+        for (const auto& candidate : candidates) {
+            initialTransforms.push_back(candidate.initialTransform);
+        }
+
+        const auto results = impl_.refineTransformCandidates(initialTransforms, params);
+        for (size_t resultIndex = 0; resultIndex < results.size(); ++resultIndex) {
+            const auto& result = results[resultIndex];
+            const auto& candidate = candidates[resultIndex];
+
+            mesh_gpu::RuntimeRefineCandidateResult runtimeResult;
+            runtimeResult.candidateIndex = candidate.candidateIndex;
+            runtimeResult.transform = result.transform;
+            runtimeResult.rmse = result.rmse;
+            runtimeResult.iterations = result.iterations;
+            runtimeResult.converged = result.converged;
+            runtimeResult.success = result.converged;
+            runtimeResults.push_back(runtimeResult);
+        }
+
+        return runtimeResults;
+    }
+
+    mesh_gpu::RuntimeConstraintFilterResult filterSourcePointsByConstraints(
+        const std::vector<mesh_gpu::Point3D>& points,
+        const mesh_gpu::Point3D& targetRegionCenter,
+        float targetRegionRadiusMm,
+        float membershipRadiusMm,
+        const std::vector<mesh_gpu::Point3D>& constraintPoints,
+        int minimumPointCount) override {
+        mesh_gpu::RuntimeConstraintFilterResult result;
+        if (points.empty()) {
+            return result;
+        }
+
+        const float radiusSquared = targetRegionRadiusMm > 0.0f ? targetRegionRadiusMm * targetRegionRadiusMm : -1.0f;
+        const float membershipSquared = membershipRadiusMm > 0.0f ? membershipRadiusMm * membershipRadiusMm : -1.0f;
+
+        auto matchesConstraint = [&](const mesh_gpu::Point3D& point) {
+            if (radiusSquared > 0.0f) {
+                const float dx = point.x - targetRegionCenter.x;
+                const float dy = point.y - targetRegionCenter.y;
+                const float dz = point.z - targetRegionCenter.z;
+                const float distanceSquared = dx * dx + dy * dy + dz * dz;
+                if (distanceSquared <= radiusSquared) {
+                    return true;
+                }
+            }
+
+            if (constraintPoints.empty() || membershipSquared <= 0.0f) {
+                return false;
+            }
+
+            for (const auto& constraintPoint : constraintPoints) {
+                const float dx = point.x - constraintPoint.x;
+                const float dy = point.y - constraintPoint.y;
+                const float dz = point.z - constraintPoint.z;
+                const float distanceSquared = dx * dx + dy * dy + dz * dz;
+                if (distanceSquared <= membershipSquared) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        std::vector<std::pair<float, int>> rankedIndices;
+        rankedIndices.reserve(points.size());
+
+        for (int index = 0; index < static_cast<int>(points.size()); ++index) {
+            const auto& point = points[static_cast<size_t>(index)];
+            const float dx = point.x - targetRegionCenter.x;
+            const float dy = point.y - targetRegionCenter.y;
+            const float dz = point.z - targetRegionCenter.z;
+            rankedIndices.emplace_back(dx * dx + dy * dy + dz * dz, index);
+
+            if (matchesConstraint(point)) {
+                result.selectedIndices.push_back(index);
+            }
+        }
+
+        if (static_cast<int>(result.selectedIndices.size()) < minimumPointCount) {
+            std::sort(rankedIndices.begin(), rankedIndices.end(), [](const auto& left, const auto& right) {
+                return left.first < right.first;
+            });
+            for (const auto& rankedEntry : rankedIndices) {
+                if (std::find(result.selectedIndices.begin(), result.selectedIndices.end(), rankedEntry.second)
+                    == result.selectedIndices.end()) {
+                    result.selectedIndices.push_back(rankedEntry.second);
+                }
+                if (static_cast<int>(result.selectedIndices.size()) >= minimumPointCount) {
+                    break;
+                }
+            }
+        }
+
+        result.success = static_cast<int>(result.selectedIndices.size()) >= minimumPointCount;
+        return result;
+    }
+
+    mesh_gpu::RuntimeConstraintFilterResult filterTargetPointsByConstraints(
+        const mesh_gpu::Point3D& targetRegionCenter,
+        float targetRegionRadiusMm,
+        float membershipRadiusMm,
+        const std::vector<mesh_gpu::Point3D>& constraintPoints,
+        int minimumPointCount) override {
+        std::vector<mesh_gpu::Point3D> vertices;
+        std::vector<mesh_gpu::Normal3D> normals;
+        if (!impl_.getHostMesh(vertices, normals)) {
+            return mesh_gpu::RuntimeConstraintFilterResult {};
+        }
+
+        return filterSourcePointsByConstraints(
+            vertices,
+            targetRegionCenter,
+            targetRegionRadiusMm,
+            membershipRadiusMm,
+            constraintPoints,
+            minimumPointCount);
+    }
+
+    mesh_gpu::ConstrainedMeshResult buildConstrainedTargetMesh(
+        const mesh_gpu::Point3D& targetRegionCenter,
+        float targetRegionRadiusMm,
+        float membershipRadiusMm,
+        const std::vector<mesh_gpu::Point3D>& constraintPoints,
+        int minimumPointCount) override {
+        return impl_.buildConstrainedTargetMesh(
+            targetRegionCenter,
+            targetRegionRadiusMm,
+            membershipRadiusMm,
+            constraintPoints,
+            minimumPointCount);
     }
 
 private:
