@@ -1,0 +1,6 @@
+scenario,direct_ms,parallel_ms,speedup_x,direct_paired_mm,parallel_paired_mm,direct_rmse_mm,parallel_rmse_mm,parallel_search_ms,parallel_source,parallel_scored_candidates,parallel_refine_candidates,initial_paired_mm,initial_admission_action,initial_admission_reason,initial_admission_recovery,direct_success,parallel_success
+baseline,425,391,1.087,3.6574,3.4209,0.5938,0.6328,391,parallel_batch_refine,1,1,3.3708,refine,robust_initial_residual_requires_refine,,true,true
+medium_noise,383,437,0.876,3.5846,3.5813,0.6822,0.6710,437,parallel_batch_refine,1,1,3.4249,refine,robust_initial_residual_requires_refine,,true,true
+high_noise,386,402,0.960,4.1740,3.6554,0.8204,0.8062,402,parallel_batch_refine,1,1,3.6344,refine,robust_initial_residual_requires_refine,,true,true
+outlier_points,376,393,0.957,4.5613,4.6807,0.7317,0.7368,393,parallel_batch_refine,1,1,4.6290,refine,robust_initial_residual_requires_refine,,true,true
+large_initial_offset,385,0,0.000,9.5015,-1.0000,0.8627,11.2411,0,parallel_initial_admission_rejected,0,0,11.2411,reject,robust_initial_residual_exceeds_recovery_threshold,resample_probe_points_or_check_probe_calibration,true,false
