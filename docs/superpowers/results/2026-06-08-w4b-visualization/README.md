@@ -1,70 +1,50 @@
-# W4-B 配准前/后可视化（双后端 HTML view 已就绪，截图待补）
+# W4-B 配准前/后可视化（已发现 bug，blocked）
 
-**状态**：双后端可视化数据已并排归档，截图待用户手动补充。
+**状态**：blocked。`advanced_icp_real_bone_registration_visualization_exports_before_after_clouds`
+测试导出的 `parallel_final_transform_matrix` 与 `initial_transform_matrix` 完全相同——
+`service.performICPRegistrationAdvanced()` 在该测试参数下**根本没跑 GICP**，
+直接返回了初值。两个后端跑出来视觉上一模一样，不能用作 Figure 5 对比图。
 
-## 已并排归档的双视图
+## 已验证事实
 
-```
-2026-06-08-w4b-visualization/
-├── baseline_view/    ← 旧 GPU-GICP 后端跑出的 3D view
-│   ├── registration_before_after_view.html
-│   ├── source_raw.csv
-│   ├── source_initial_transformed.csv
-│   ├── source_parallel_final_transformed.csv
-│   ├── target_surface_sample.csv
-│   ├── target_probe.csv
-│   ├── initial_transform_matrix.csv
-│   ├── parallel_final_transform_matrix.csv
-│   ├── metrics.csv
-│   └── registration_metadata.csv
-└── tensor_view/      ← Open3D Tensor ICP 后端跑出的同场景 3D view
-    └── （同样 10 个文件）
-```
+1. baseline 和 tensor 跑出来的 `metrics.csv` 数值完全一致
+2. baseline 和 tensor 跑出来的 `parallel_final_transform_matrix.csv` 矩阵完全一致
+3. 加大扰动 (2.4mm, 3.5°) → (5.5mm, 7°) 后 paired_residual 从 3.37 → 6.95mm，
+   但 `parallel_final` 仍 = `initial` = 6.95mm，说明 service 在该路径下不进入 GICP
+4. W2 stress matrix 数据真实可信（不同后端 RMSE 真有差异），与本测试无关
 
-两个视图来自**完全相同的真骨场景**（240 src / 107k tgt 约束子网格），唯一区别是配准求解器后端。
+## 推测的根因（未验证）
 
-## 截图步骤（用户操作，5-10 分钟）
+`RegistrationServiceImpl::performICPRegistrationAdvanced` 在
+`enablePairedResidualGuard=true` + admission gate 触发 reject/fast_path 时
+不 fallback 到 direct GICP path，直接返回输入的 initial 矩阵。
+真正修需要进 service 内部调试 admission 决策链 + reject 后的 fallback 行为，
+工作量超出 W4-B 一图截图的范围。
 
-1. **浏览器打开两个 HTML**（双标签页方便对比）：
-   - `baseline_view/registration_before_after_view.html`
-   - `tensor_view/registration_before_after_view.html`
+## 论文 Figure 5 替代方案
 
-2. **每个 HTML 都是 3 panel 横排**：Before（原始）/ Initial（初值变换后）/ Final（配准后）。
-   鼠标拖动每个 canvas 调整视角，**让踝关节关键面露出**（建议俯视角度，便于看到源点云贴合度）。
+不依赖此测试，改从 W4-A stress matrix 数据手工生成 Figure 5：
+- `docs/superpowers/results/2026-06-08-w4a-extended-stress/baseline_extended.csv`
+- `docs/superpowers/results/2026-06-08-w4a-extended-stress/tensor_extended.csv`
 
-3. **建议截 4 张图**（论文 Figure 5 候选）：
-   - `figure5_baseline_3panel.png`：baseline_view 完整 3 panel
-   - `figure5_tensor_3panel.png`：tensor_view 完整 3 panel
-   - `figure5_baseline_final_zoom.png`：baseline_view 的 Final panel 局部放大
-   - `figure5_tensor_final_zoom.png`：tensor_view 的 Final panel 局部放大
+这两份 CSV 的 `direct_paired_mm` / `direct_rmse_mm` 列在多个扰动场景下
+**确有差异**（W3-C/W4-A 文档表格已经验证）。可用 matplotlib/plotly 把
+其中一个真实有差异的 case（如 `combined_extreme`：baseline 0.81mm vs tensor 0.56mm）
+源点云画成 3D 散点图，作为 Figure 5。
 
-4. **存档**：截图放到本目录下的 `screenshots/` 子文件夹，commit 进 git。
-
-## 论文叙事价值
-
-- Figure 5：直观展示配准前后源点云对齐程度
-- 双后端 final panel 的肉眼对比：Tensor 的源点贴合度更紧（与 RMSE 0.40 vs 0.59 mm 的数字证据呼应）
-- 配 Table 1+3 数据，从数字到视觉的双证据
-
-## 复现命令
+## 下次调研入口（如果要修 visualization 测试）
 
 ```bash
-# 跑 baseline 视图
-cd build_x64/Release
-./registration_core_meshgpu_smoke_test.exe advanced_icp_real_bone_registration_visualization_exports_before_after_clouds
-cp -r summaries/real_bone_registration_visualization \
-  ../../../docs/superpowers/results/2026-06-08-w4b-visualization/baseline_view
-
-# 跑 tensor 视图
-MEDICALPRO_USE_TENSOR_ICP=1 ./registration_core_meshgpu_smoke_test.exe advanced_icp_real_bone_registration_visualization_exports_before_after_clouds
-cp -r summaries/real_bone_registration_visualization \
-  ../../../docs/superpowers/results/2026-06-08-w4b-visualization/tensor_view
+# 在 RegistrationServiceImpl 中查看 admission decision 后的处理
+grep -n "fast_path\|admission_action\|action ==" Plugins/RegistrationCore/RegistrationServiceImpl.cpp
 ```
 
-## 关键数据点（来自双视图的 metrics.csv）
+关键代码点：[RegistrationServiceImpl.cpp:2698](../../../Plugins/RegistrationCore/RegistrationServiceImpl.cpp#L2698)
+判断 `initialAdmissionDecision.action == "fast_path"` 时直接走捷径，
+但 reject 路径下的 fallback 行为需要调试日志才能确定。
 
-| 视图 | 源点 | 目标采样 | initial_paired (mm) | final_paired (mm) | 备注 |
-|---|---:|---:|---:|---:|---|
-| baseline | 240 | 5000 | 3.37 | （见 baseline_view/metrics.csv） | |
-| tensor | 240 | 5000 | 3.37 | （见 tensor_view/metrics.csv） | |
+## 历史记录
 
+- 早期 commit `5800c99`：写了截图操作指南，假设可视化测试会输出真实差异化结果
+- 接续 commit（本次 revert）：发现两个后端输出完全相同，删除误导性归档
+- 这个 README 是 W4-B 的最终状态：blocked，记录已知问题
