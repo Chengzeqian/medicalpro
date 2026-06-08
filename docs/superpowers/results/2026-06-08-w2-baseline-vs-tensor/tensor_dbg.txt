@@ -1,0 +1,1151 @@
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 24
+  Target vertices: 24
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.09ms upload=0.06ms icp=8.06ms total=8.22ms iters=2 rmse=0.0000 fitness=1.0000
+[MeshGPUInterface] Registration completed: 2 iterations, RMSE=0, converged=yes
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 12 vertices, 2 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 6
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 12
+  Faces: 2
+  BBox: [-7.5, -14, 9] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 1 = 475 cells
+[MeshGPU] Grid built: 4/475 cells occupied (0.842105%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 12
+  Target vertices: 12
+[GICPRegistration] Initialized successfully
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[MeshGPUInterface] Registration completed: 0 iterations, RMSE=30, converged=no
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=3mm)...
+[MeshGPU] Grid dimensions: 7 x 9 x 5 = 315 cells
+[MeshGPU] Grid built: 8/315 cells occupied (2.53968%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1.5mm)...
+[MeshGPU] Grid dimensions: 13 x 17 x 9 = 1989 cells
+[MeshGPU] Grid built: 8/1989 cells occupied (0.402212%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+[GICPRegistration] Initializing...
+  Source points: 24
+  Target vertices: 24
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.28ms upload=0.03ms icp=1.71ms total=2.02ms iters=1 rmse=0.0000 fitness=1.0000
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.16ms upload=0.02ms icp=1.73ms total=1.90ms iters=2 rmse=0.0000 fitness=1.0000
+[MeshGPUInterface] Batch refine completed: 2 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 24
+  Target vertices: 24
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.09ms upload=0.03ms icp=1.61ms total=1.73ms iters=1 rmse=0.0000 fitness=1.0000
+[MeshGPUInterface] Registration completed: 1 iterations, RMSE=0, converged=yes
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=3mm)...
+[MeshGPU] Grid dimensions: 7 x 9 x 5 = 315 cells
+[MeshGPU] Grid built: 8/315 cells occupied (2.53968%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1.5mm)...
+[MeshGPU] Grid dimensions: 13 x 17 x 9 = 1989 cells
+[MeshGPU] Grid built: 8/1989 cells occupied (0.402212%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+[GICPRegistration] Initializing...
+  Source points: 24
+  Target vertices: 24
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.09ms upload=0.03ms icp=1.58ms total=1.71ms iters=1 rmse=0.0000 fitness=1.0000
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.17ms upload=0.03ms icp=2.21ms total=2.41ms iters=2 rmse=0.0000 fitness=1.0000
+[MeshGPUInterface] Batch refine completed: 2 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-9, -12, -6] - [9, 12, 6]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 24
+  Target vertices: 24
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.09ms upload=0.03ms icp=2.08ms total=2.21ms iters=2 rmse=0.0000 fitness=1.0000
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.17ms upload=0.02ms icp=1.40ms total=1.59ms iters=1 rmse=0.0000 fitness=1.0000
+[MeshGPUInterface] Batch refine completed: 2 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=3mm)...
+[MeshGPU] Grid dimensions: 7 x 9 x 5 = 315 cells
+[MeshGPU] Grid built: 8/315 cells occupied (2.53968%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1.5mm)...
+[MeshGPU] Grid dimensions: 13 x 17 x 9 = 1989 cells
+[MeshGPU] Grid built: 8/1989 cells occupied (0.402212%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+[GICPRegistration] Initializing...
+  Source points: 24
+  Target vertices: 24
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.26ms upload=0.03ms icp=1.54ms total=1.83ms iters=1 rmse=0.0000 fitness=1.0000
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.14ms upload=0.02ms icp=1.75ms total=1.92ms iters=2 rmse=0.0000 fitness=1.0000
+[MeshGPUInterface] Batch refine completed: 2 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=3mm)...
+[MeshGPU] Grid dimensions: 7 x 9 x 5 = 315 cells
+[MeshGPU] Grid built: 8/315 cells occupied (2.53968%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1.5mm)...
+[MeshGPU] Grid dimensions: 13 x 17 x 9 = 1989 cells
+[MeshGPU] Grid built: 8/1989 cells occupied (0.402212%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+[GICPRegistration] Initializing...
+  Source points: 24
+  Target vertices: 24
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.15ms upload=0.04ms icp=1.54ms total=1.74ms iters=1 rmse=0.0000 fitness=1.0000
+[TensorICP] device=CPU:0 tgt=24 src=24 download=0.15ms upload=0.02ms icp=1.95ms total=2.12ms iters=2 rmse=0.0000 fitness=1.0000
+[MeshGPUInterface] Batch refine completed: 2 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 12 vertices, 2 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 6
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 12
+  Faces: 2
+  BBox: [-7.5, -14, 9] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=3mm)...
+[MeshGPU] Grid dimensions: 7 x 9 x 1 = 63 cells
+[MeshGPU] Grid built: 4/63 cells occupied (6.34921%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 12 vertices, 2 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 6
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 12
+  Faces: 2
+  BBox: [-7.5, -14, 9] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1.5mm)...
+[MeshGPU] Grid dimensions: 13 x 17 x 1 = 221 cells
+[MeshGPU] Grid built: 4/221 cells occupied (1.80995%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 12 vertices, 2 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 6
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 12
+  Faces: 2
+  BBox: [-7.5, -14, 9] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 1 = 475 cells
+[MeshGPU] Grid built: 4/475 cells occupied (0.842105%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 4 transforms, cutoff=12mm
+[GICPRegistration] Initializing...
+  Source points: 12
+  Target vertices: 12
+[GICPRegistration] Initialized successfully
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[MeshGPUInterface] Batch refine completed: 2 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 12 vertices, 2 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 6
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 12
+  Faces: 2
+  BBox: [-7.5, -14, 9] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 1 = 475 cells
+[MeshGPU] Grid built: 4/475 cells occupied (0.842105%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 12
+  Target vertices: 12
+[GICPRegistration] Initialized successfully
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[MeshGPUInterface] Registration completed: 0 iterations, RMSE=30, converged=no
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 12 vertices, 2 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 6
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 12
+  Faces: 2
+  BBox: [-7.5, -14, 9] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=3mm)...
+[MeshGPU] Grid dimensions: 7 x 9 x 1 = 63 cells
+[MeshGPU] Grid built: 4/63 cells occupied (6.34921%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 32 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 12 vertices, 2 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 6
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 12
+  Faces: 2
+  BBox: [-7.5, -14, 9] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1.5mm)...
+[MeshGPU] Grid dimensions: 13 x 17 x 1 = 221 cells
+[MeshGPU] Grid built: 4/221 cells occupied (1.80995%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 8 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 12 vertices, 2 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 6
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 12
+  Faces: 2
+  BBox: [-7.5, -14, 9] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 1 = 475 cells
+[MeshGPU] Grid built: 4/475 cells occupied (0.842105%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 8 transforms, cutoff=12mm
+[GICPRegistration] Initializing...
+  Source points: 12
+  Target vertices: 12
+[GICPRegistration] Initialized successfully
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[MeshGPUInterface] Batch refine completed: 2 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 12 vertices, 2 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 6
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 12
+  Faces: 2
+  BBox: [-7.5, -14, 9] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 1 = 475 cells
+[MeshGPU] Grid built: 4/475 cells occupied (0.842105%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 12
+  Target vertices: 12
+[GICPRegistration] Initialized successfully
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[MeshGPUInterface] Registration completed: 0 iterations, RMSE=30, converged=no
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=3mm)...
+[MeshGPU] Grid dimensions: 7 x 9 x 5 = 315 cells
+[MeshGPU] Grid built: 8/315 cells occupied (2.53968%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 32 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1.5mm)...
+[MeshGPU] Grid dimensions: 13 x 17 x 9 = 1989 cells
+[MeshGPU] Grid built: 8/1989 cells occupied (0.402212%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 8 transforms, cutoff=12mm
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 8 transforms, cutoff=12mm
+[GICPRegistration] Initializing...
+  Source points: 15
+  Target vertices: 24
+[GICPRegistration] Initialized successfully
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[MeshGPUInterface] Batch refine completed: 4 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-7.5, -14, -3] - [10.5, 10, 9]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 15
+  Target vertices: 24
+[GICPRegistration] Initialized successfully
+[Open3D Error] (void __cdecl open3d::core::OPEN3D_LAPACK_CHECK(__int64,const class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &)) D:\a\Open3D\Open3D\cpp\open3d/core/linalg/LinalgUtils.h:40: gels failed in SolveCPU: singular condition detected.
+
+[Open3D Error] (void __cdecl open3d::t::pipelines::kernel::DecodeAndSolve6x6(const class open3d::core::Tensor &,class open3d::core::Tensor &,float &,int &)) D:\a\Open3D\Open3D\cpp\open3d\t\pipelines\kernel\TransformationConverter.cpp:176: Singular 6x6 linear system detected, tracking failed.
+
+[MeshGPUInterface] Registration completed: 0 iterations, RMSE=12, converged=no
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 107757 vertices, 214716 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 644148
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 107757
+  Faces: 214716
+  BBox: [20.8009, -53.5335, -35.382] - [70.7228, 3.04466, 16.722]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 51 x 58 x 54 = 159732 cells
+[MeshGPU] Grid built: 19144/159732 cells occupied (11.9851%)
+[MeshGPU] Max vertices per cell: 25
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 240
+  Target vertices: 107757
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=107757 src=240 download=1.43ms upload=0.48ms icp=90.69ms total=92.60ms iters=18 rmse=0.4018 fitness=1.0000
+[MeshGPUInterface] Registration completed: 18 iterations, RMSE=0.401832, converged=yes
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 107757 vertices, 214716 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 644148
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 107757
+  Faces: 214716
+  BBox: [20.8009, -53.5335, -35.382] - [70.7228, 3.04466, 16.722]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 51 x 58 x 54 = 159732 cells
+[MeshGPU] Grid built: 19144/159732 cells occupied (11.9851%)
+[MeshGPU] Max vertices per cell: 25
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 240
+  Target vertices: 107757
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=107757 src=240 download=1.28ms upload=0.47ms icp=87.51ms total=89.26ms iters=18 rmse=0.4018 fitness=1.0000
+[MeshGPUInterface] Registration completed: 18 iterations, RMSE=0.401833, converged=yes
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 107757 vertices, 214716 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 644148
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 107757
+  Faces: 214716
+  BBox: [20.8009, -53.5335, -35.382] - [70.7228, 3.04466, 16.722]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 51 x 58 x 54 = 159732 cells
+[MeshGPU] Grid built: 19144/159732 cells occupied (11.9851%)
+[MeshGPU] Max vertices per cell: 25
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 240
+  Target vertices: 107757
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=107757 src=240 download=1.21ms upload=0.50ms icp=92.40ms total=94.11ms iters=18 rmse=0.4023 fitness=1.0000
+[MeshGPUInterface] Batch refine completed: 1 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 107757 vertices, 214716 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 644148
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 107757
+  Faces: 214716
+  BBox: [20.8009, -53.5335, -35.382] - [70.7228, 3.04466, 16.722]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 51 x 58 x 54 = 159732 cells
+[MeshGPU] Grid built: 19144/159732 cells occupied (11.9851%)
+[MeshGPU] Max vertices per cell: 25
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 240
+  Target vertices: 107757
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=107757 src=240 download=1.15ms upload=0.49ms icp=86.15ms total=87.80ms iters=18 rmse=0.4806 fitness=1.0000
+[MeshGPUInterface] Registration completed: 18 iterations, RMSE=0.480608, converged=yes
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 107757 vertices, 214716 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 644148
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 107757
+  Faces: 214716
+  BBox: [20.8009, -53.5335, -35.382] - [70.7228, 3.04466, 16.722]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 51 x 58 x 54 = 159732 cells
+[MeshGPU] Grid built: 19144/159732 cells occupied (11.9851%)
+[MeshGPU] Max vertices per cell: 25
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 240
+  Target vertices: 107757
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=107757 src=240 download=1.18ms upload=0.50ms icp=87.05ms total=88.74ms iters=15 rmse=0.4821 fitness=1.0000
+[MeshGPUInterface] Batch refine completed: 1 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 107757 vertices, 214716 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 644148
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 107757
+  Faces: 214716
+  BBox: [20.8009, -53.5335, -35.382] - [70.7228, 3.04466, 16.722]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 51 x 58 x 54 = 159732 cells
+[MeshGPU] Grid built: 19144/159732 cells occupied (11.9851%)
+[MeshGPU] Max vertices per cell: 25
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 240
+  Target vertices: 107757
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=107757 src=240 download=1.42ms upload=0.47ms icp=87.39ms total=89.29ms iters=18 rmse=0.6318 fitness=1.0000
+[MeshGPUInterface] Registration completed: 18 iterations, RMSE=0.631848, converged=yes
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 107757 vertices, 214716 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 644148
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 107757
+  Faces: 214716
+  BBox: [20.8009, -53.5335, -35.382] - [70.7228, 3.04466, 16.722]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 51 x 58 x 54 = 159732 cells
+[MeshGPU] Grid built: 19144/159732 cells occupied (11.9851%)
+[MeshGPU] Max vertices per cell: 25
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 240
+  Target vertices: 107757
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=107757 src=240 download=1.38ms upload=0.48ms icp=87.48ms total=89.35ms iters=18 rmse=0.6318 fitness=1.0000
+[MeshGPUInterface] Batch refine completed: 1 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 107757 vertices, 214716 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 644148
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 107757
+  Faces: 214716
+  BBox: [20.8009, -53.5335, -35.382] - [70.7228, 3.04466, 16.722]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 51 x 58 x 54 = 159732 cells
+[MeshGPU] Grid built: 19144/159732 cells occupied (11.9851%)
+[MeshGPU] Max vertices per cell: 25
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 240
+  Target vertices: 107757
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=107757 src=240 download=1.81ms upload=0.58ms icp=93.31ms total=95.70ms iters=18 rmse=0.5391 fitness=1.0000
+[MeshGPUInterface] Registration completed: 18 iterations, RMSE=0.53909, converged=yes
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 107757 vertices, 214716 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 644148
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 107757
+  Faces: 214716
+  BBox: [20.8009, -53.5335, -35.382] - [70.7228, 3.04466, 16.722]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 51 x 58 x 54 = 159732 cells
+[MeshGPU] Grid built: 19144/159732 cells occupied (11.9851%)
+[MeshGPU] Max vertices per cell: 25
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 240
+  Target vertices: 107757
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=107757 src=240 download=1.54ms upload=0.49ms icp=87.22ms total=89.25ms iters=18 rmse=0.5391 fitness=1.0000
+[MeshGPUInterface] Batch refine completed: 1 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 107757 vertices, 214716 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 644148
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 107757
+  Faces: 214716
+  BBox: [20.8009, -53.5335, -35.382] - [70.7228, 3.04466, 16.722]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 51 x 58 x 54 = 159732 cells
+[MeshGPU] Grid built: 19144/159732 cells occupied (11.9851%)
+[MeshGPU] Max vertices per cell: 25
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 240
+  Target vertices: 107757
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=107757 src=240 download=1.22ms upload=0.50ms icp=90.39ms total=92.12ms iters=18 rmse=0.5127 fitness=1.0000
+[MeshGPUInterface] Registration completed: 18 iterations, RMSE=0.5127, converged=yes
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 107757 vertices, 214716 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 644148
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 107757
+  Faces: 214716
+  BBox: [20.8009, -53.5335, -35.382] - [70.7228, 3.04466, 16.722]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 51 x 58 x 54 = 159732 cells
+[MeshGPU] Grid built: 19144/159732 cells occupied (11.9851%)
+[MeshGPU] Max vertices per cell: 25
+[MeshGPU] Sorted vertex list built for distance queries.
+[GICPRegistration] Initializing...
+  Source points: 240
+  Target vertices: 107757
+[GICPRegistration] Initialized successfully
+[TensorICP] device=CPU:0 tgt=107757 src=240 download=1.49ms upload=0.57ms icp=90.51ms total=92.58ms iters=18 rmse=0.4018 fitness=1.0000
+[MeshGPUInterface] Batch refine completed: 1 transforms
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-9, -12, -6] - [9, 12, 6]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[MeshGPUInterface] Candidate GPU scoring completed: 2 transforms, cutoff=20mm
+[SmokeTest] runtime_constraint_filter_returns_selected_indices: start
+[SmokeTest] runtime_constraint_filter_returns_selected_indices: call returned 1 4
+[SmokeTest] runtime_constraint_filter_returns_selected_indices: end
+[SmokeTest] runtime_target_constraint_filter_returns_selected_indices: start
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-9, -12, -6] - [9, 12, 6]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[SmokeTest] runtime_target_constraint_filter_returns_selected_indices: call returned 1 12
+[SmokeTest] runtime_target_constraint_filter_returns_selected_indices: end
+[SmokeTest] runtime_constrained_target_mesh_returns_compact_mesh: start
+
+========================================
+[MeshGPU] Initializing...
+========================================
+[MeshGPU] Uploaded to device: 24 vertices, 12 faces
+[MeshGPU] Computing face normals...
+[MeshGPU] Computing vertex normals...
+[MeshGPU] Building vertex-face adjacency...
+[MeshGPU] Adjacency list size: 36
+[MeshGPU] Computing curvature...
+========================================
+[MeshGPU] Initialization complete!
+  Vertices: 24
+  Faces: 12
+  BBox: [-9, -12, -6] - [9, 12, 6]
+========================================
+
+[MeshGPU] Building grid index (cell_size=1mm)...
+[MeshGPU] Grid dimensions: 19 x 25 x 13 = 6175 cells
+[MeshGPU] Grid built: 8/6175 cells occupied (0.129555%)
+[MeshGPU] Max vertices per cell: 3
+[MeshGPU] Sorted vertex list built for distance queries.
+[SmokeTest] runtime_constrained_target_mesh_returns_compact_mesh: call returned 1 12 2
+[SmokeTest] runtime_constrained_target_mesh_returns_compact_mesh: end
