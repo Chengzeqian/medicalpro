@@ -6,6 +6,9 @@
 #ifdef MESHGPU_HAS_OPEN3D_BACKEND
 #include <cuda_runtime.h>
 
+#include <chrono>
+#include <cstdio>
+
 #include <open3d/core/Tensor.h>
 #include <open3d/core/Device.h>
 #include <open3d/core/Dtype.h>
@@ -102,6 +105,9 @@ GICPResult align(const MeshSoA& target_mesh_device,
                  const SourcePointCloud& source_cloud_device,
                  const Matrix4x4& initial_transform,
                  const GICPParams& params) {
+    using clk = std::chrono::high_resolution_clock;
+    const auto t0 = clk::now();
+
     GICPResult result;
     result.converged = false;
     result.iterations = 0;
@@ -144,6 +150,7 @@ GICPResult align(const MeshSoA& target_mesh_device,
     }
 
     // --- Stage 2: Build Open3D Tensor PointClouds on CUDA:0
+    const auto t_after_download = clk::now();
     o3c::Device device("CUDA:0");
     bool device_ok = false;
     try {
@@ -161,6 +168,7 @@ GICPResult align(const MeshSoA& target_mesh_device,
         src_xyz, src_has_normals ? &src_n_xyz : nullptr, device);
 
     // --- Stage 3: Configure ICP
+    const auto t_after_upload = clk::now();
     o3c::Tensor init_t = o3c::eigen_converter::EigenMatrixToTensor(
         toEigen(initial_transform));
     init_t = init_t.To(device, o3c::Float64);
@@ -190,6 +198,7 @@ GICPResult align(const MeshSoA& target_mesh_device,
         result.rmse_history.push_back(params.distance_threshold);
         return result;
     }
+    const auto t_after_icp = clk::now();
 
     // --- Stage 5: Translate result back
     Eigen::Matrix4d final_e =
@@ -200,6 +209,23 @@ GICPResult align(const MeshSoA& target_mesh_device,
     result.iterations = static_cast<int>(o3r.num_iterations_);
     result.converged = (o3r.fitness_ > 0.0);
     result.rmse_history.push_back(result.final_rmse);
+
+    const auto t_end = clk::now();
+    auto ms = [](clk::time_point a, clk::time_point b) {
+        return std::chrono::duration_cast<std::chrono::microseconds>(b - a).count() / 1000.0;
+    };
+    std::printf("[TensorICP] device=%s tgt=%u src=%u download=%.2fms upload=%.2fms "
+                "icp=%.2fms total=%.2fms iters=%d rmse=%.4f fitness=%.4f\n",
+                device_ok ? "CUDA:0" : "CPU:0",
+                target_mesh_device.num_vertices,
+                source_cloud_device.num_points,
+                ms(t0, t_after_download),
+                ms(t_after_download, t_after_upload),
+                ms(t_after_upload, t_after_icp),
+                ms(t0, t_end),
+                result.iterations,
+                static_cast<double>(result.final_rmse),
+                o3r.fitness_);
     return result;
 }
 
