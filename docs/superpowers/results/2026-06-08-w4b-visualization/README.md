@@ -1,61 +1,70 @@
-# W4-B 配准前/后可视化（截图待补）
+# W4-B 配准前/后可视化（双后端 HTML view 已就绪，截图待补）
 
-**状态**：数据已就绪，截图待用户手动补充。
+**状态**：双后端可视化数据已并排归档，截图待用户手动补充。
 
-## 已有产物
-
-测试 `advanced_icp_real_bone_registration_visualization_exports_before_after_clouds`
-导出在：
+## 已并排归档的双视图
 
 ```
-build_x64/Release/summaries/real_bone_registration_visualization/
-├── registration_before_after_view.html  ← 可直接浏览器打开的 3D view
-├── source_raw.csv                        ← 配准前源点云
-├── source_initial_transformed.csv        ← 初值变换后
-├── source_parallel_final_transformed.csv ← 配准最终结果
-├── target_surface_sample.csv             ← 目标表面采样
-├── target_probe.csv                      ← 目标 probe 点
-├── initial_transform_matrix.csv
-├── parallel_final_transform_matrix.csv
-├── metrics.csv
-└── registration_metadata.csv
+2026-06-08-w4b-visualization/
+├── baseline_view/    ← 旧 GPU-GICP 后端跑出的 3D view
+│   ├── registration_before_after_view.html
+│   ├── source_raw.csv
+│   ├── source_initial_transformed.csv
+│   ├── source_parallel_final_transformed.csv
+│   ├── target_surface_sample.csv
+│   ├── target_probe.csv
+│   ├── initial_transform_matrix.csv
+│   ├── parallel_final_transform_matrix.csv
+│   ├── metrics.csv
+│   └── registration_metadata.csv
+└── tensor_view/      ← Open3D Tensor ICP 后端跑出的同场景 3D view
+    └── （同样 10 个文件）
 ```
 
-## 截图步骤（用户操作）
+两个视图来自**完全相同的真骨场景**（240 src / 107k tgt 约束子网格），唯一区别是配准求解器后端。
 
-1. **跑双后端各一次以获取最新数据**：
-   ```bash
-   cd build_x64/Release
-   ./registration_core_meshgpu_smoke_test.exe advanced_icp_real_bone_registration_visualization_exports_before_after_clouds
-   # 截 baseline 截图
-   MEDICALPRO_USE_TENSOR_ICP=1 ./registration_core_meshgpu_smoke_test.exe advanced_icp_real_bone_registration_visualization_exports_before_after_clouds
-   # 截 tensor 截图
-   ```
+## 截图步骤（用户操作，5-10 分钟）
 
-2. **打开 HTML view**：
-   - 浏览器打开 `summaries/real_bone_registration_visualization/registration_before_after_view.html`
-   - 3 个 panel：Before（raw source vs target）/ Initial（初值变换后）/ Final（配准后）
-   - 鼠标拖动各个 canvas 调整视角，露出踝关节关键面
-   - 浏览器截图（Win+Shift+S）保存 PNG
+1. **浏览器打开两个 HTML**（双标签页方便对比）：
+   - `baseline_view/registration_before_after_view.html`
+   - `tensor_view/registration_before_after_view.html`
 
-3. **建议截图组合（论文 Figure 5 候选）**：
-   - 大图：3 panel 横排，Final panel 重点
-   - 小图：单独 Final panel 的 baseline vs tensor 对比（两次跑分别截）
-   - 命名：`figure5_before_initial_final.png`、`figure5_baseline_vs_tensor_final.png`
+2. **每个 HTML 都是 3 panel 横排**：Before（原始）/ Initial（初值变换后）/ Final（配准后）。
+   鼠标拖动每个 canvas 调整视角，**让踝关节关键面露出**（建议俯视角度，便于看到源点云贴合度）。
 
-4. **存档位置**：把截图放进
-   `docs/superpowers/results/2026-06-08-w4b-visualization/` 并 commit
+3. **建议截 4 张图**（论文 Figure 5 候选）：
+   - `figure5_baseline_3panel.png`：baseline_view 完整 3 panel
+   - `figure5_tensor_3panel.png`：tensor_view 完整 3 panel
+   - `figure5_baseline_final_zoom.png`：baseline_view 的 Final panel 局部放大
+   - `figure5_tensor_final_zoom.png`：tensor_view 的 Final panel 局部放大
+
+4. **存档**：截图放到本目录下的 `screenshots/` 子文件夹，commit 进 git。
 
 ## 论文叙事价值
 
 - Figure 5：直观展示配准前后源点云对齐程度
-- 对照截图：肉眼可见的 Tensor ICP 改进（特别是边缘点贴合度）
-- 配 Table 1+3 RMSE 数据，从数字到视觉的双证据
+- 双后端 final panel 的肉眼对比：Tensor 的源点贴合度更紧（与 RMSE 0.40 vs 0.59 mm 的数字证据呼应）
+- 配 Table 1+3 数据，从数字到视觉的双证据
 
-## 复现命令一行
+## 复现命令
 
 ```bash
-cd build_x64/Release && \
-  ./registration_core_meshgpu_smoke_test.exe advanced_icp_real_bone_registration_visualization_exports_before_after_clouds && \
-  start summaries/real_bone_registration_visualization/registration_before_after_view.html
+# 跑 baseline 视图
+cd build_x64/Release
+./registration_core_meshgpu_smoke_test.exe advanced_icp_real_bone_registration_visualization_exports_before_after_clouds
+cp -r summaries/real_bone_registration_visualization \
+  ../../../docs/superpowers/results/2026-06-08-w4b-visualization/baseline_view
+
+# 跑 tensor 视图
+MEDICALPRO_USE_TENSOR_ICP=1 ./registration_core_meshgpu_smoke_test.exe advanced_icp_real_bone_registration_visualization_exports_before_after_clouds
+cp -r summaries/real_bone_registration_visualization \
+  ../../../docs/superpowers/results/2026-06-08-w4b-visualization/tensor_view
 ```
+
+## 关键数据点（来自双视图的 metrics.csv）
+
+| 视图 | 源点 | 目标采样 | initial_paired (mm) | final_paired (mm) | 备注 |
+|---|---:|---:|---:|---:|---|
+| baseline | 240 | 5000 | 3.37 | （见 baseline_view/metrics.csv） | |
+| tensor | 240 | 5000 | 3.37 | （见 tensor_view/metrics.csv） | |
+
