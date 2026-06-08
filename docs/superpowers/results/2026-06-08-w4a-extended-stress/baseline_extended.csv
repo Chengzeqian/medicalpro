@@ -1,0 +1,12 @@
+scenario,direct_ms,parallel_ms,speedup_x,direct_paired_mm,parallel_paired_mm,direct_rmse_mm,parallel_rmse_mm,parallel_search_ms,parallel_source,parallel_scored_candidates,parallel_refine_candidates,initial_paired_mm,initial_admission_action,initial_admission_reason,initial_admission_recovery,direct_success,parallel_success
+baseline,411,400,1.028,3.6791,3.6173,0.6189,0.5877,400,parallel_batch_refine,1,1,3.3708,refine,robust_initial_residual_requires_refine,,true,true
+medium_noise,391,432,0.905,3.6251,3.6436,0.6575,0.6937,432,parallel_batch_refine,1,1,3.4249,refine,robust_initial_residual_requires_refine,,true,true
+high_noise,384,396,0.970,4.2116,4.2663,0.8072,0.7802,396,parallel_batch_refine,1,1,3.6344,refine,robust_initial_residual_requires_refine,,true,true
+outlier_points,396,397,0.997,4.3934,5.0580,0.7439,0.6116,397,parallel_batch_refine,1,1,4.6290,refine,robust_initial_residual_requires_refine,,true,true
+large_initial_offset,385,0,0.000,8.4707,-1.0000,0.7201,11.2411,0,parallel_initial_admission_rejected,0,0,11.2411,reject,robust_initial_residual_exceeds_recovery_threshold,resample_probe_points_or_check_probe_calibration,true,false
+rotation_5deg_y,382,418,0.914,4.1405,3.8270,0.7168,0.5699,418,parallel_batch_refine,74,4,4.4744,refine,robust_initial_residual_requires_refine,,true,true
+rotation_10deg_y,385,0,0.000,8.6308,-1.0000,0.7487,9.1169,0,parallel_initial_admission_rejected,0,0,9.1169,reject,robust_initial_residual_exceeds_recovery_threshold,resample_probe_points_or_check_probe_calibration,true,false
+rotation_20deg_y,391,0,0.000,18.1303,-1.0000,0.9518,19.1100,0,parallel_initial_admission_rejected,0,0,19.1100,reject,robust_initial_residual_exceeds_recovery_threshold,resample_probe_points_or_check_probe_calibration,true,false
+large_translation_20mm,376,0,0.000,17.2489,-1.0000,0.7916,19.1133,0,parallel_initial_admission_rejected,0,0,19.1133,reject,robust_initial_residual_exceeds_recovery_threshold,resample_probe_points_or_check_probe_calibration,true,false
+large_translation_30mm,374,0,0.000,29.0604,-1.0000,0.0000,29.0604,0,parallel_initial_admission_rejected,0,0,29.0604,reject,robust_initial_residual_exceeds_recovery_threshold,resample_probe_points_or_check_probe_calibration,true,false
+combined_extreme,380,0,0.000,14.6947,-1.0000,0.8100,17.1970,0,parallel_initial_admission_rejected,0,0,17.1970,reject,robust_initial_residual_exceeds_recovery_threshold,resample_probe_points_or_check_probe_calibration,true,false
