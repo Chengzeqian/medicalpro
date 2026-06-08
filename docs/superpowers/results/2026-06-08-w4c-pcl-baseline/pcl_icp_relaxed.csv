@@ -1,0 +1,2 @@
+backend,src_points,tgt_points,iterations,rmse_mm,total_ms,converged
+pcl_icp_cpu,240,166374,30,27.3186,72.572,true
