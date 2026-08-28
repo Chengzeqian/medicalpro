@@ -104,3 +104,21 @@ CMakeLists.txt.user*
 /ICPtry/
 /Regi/
 /ThirdParty.zip
+
+# Local runtime outputs
+/*_out.txt
+/*_output.txt
+/*_stdout.txt
+/*_stderr.txt
+/contract_out.txt
+/ankle_contract_out.txt
+
+# Local runtime data
+/data/*.db
+/summaries/*.csv
+
+# Local experiment geometry configs
+/geometry/*.ini
+
+# Local generated thumbnails
+/data/instrumentThumbnails/

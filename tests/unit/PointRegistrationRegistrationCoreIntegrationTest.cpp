@@ -590,5 +590,5 @@ void PointRegistrationRegistrationCoreIntegrationTest::failed_reregistration_cle
     QVERIFY(service.getTransformMatrix().isIdentity());
 }
 
-QTEST_MAIN(PointRegistrationRegistrationCoreIntegrationTest)
+QTEST_APPLESS_MAIN(PointRegistrationRegistrationCoreIntegrationTest)
 #include "PointRegistrationRegistrationCoreIntegrationTest.moc"

@@ -232,3 +232,48 @@ extern "C" void launchSinglePointQuery(
     float* out_curvatures,
     float* out_distance
 );
+
+extern "C" void launchSelectVerticesByConstraints(
+    const float* vertices_x, const float* vertices_y, const float* vertices_z,
+    unsigned char* vertex_mask,
+    float target_center_x, float target_center_y, float target_center_z,
+    float target_radius_squared,
+    const float* constraint_x, const float* constraint_y, const float* constraint_z,
+    uint32_t constraint_count,
+    float membership_radius_squared,
+    uint32_t num_vertices
+);
+
+extern "C" void launchSelectFacesByVertexMask(
+    const uint32_t* faces_v0, const uint32_t* faces_v1, const uint32_t* faces_v2,
+    const unsigned char* vertex_mask,
+    unsigned char* face_mask,
+    uint32_t num_faces
+);
+
+extern "C" void launchMaskToCounts(
+    const unsigned char* mask,
+    uint32_t* counts,
+    uint32_t count
+);
+
+extern "C" void launchScatterSelectedVertexIndices(
+    const unsigned char* vertex_mask,
+    const uint32_t* vertex_offsets,
+    int* vertex_mapping,
+    int* selected_vertex_indices,
+    uint32_t num_vertices
+);
+
+extern "C" void launchScatterSelectedFaces(
+    const unsigned char* face_mask,
+    const uint32_t* face_offsets,
+    const uint32_t* faces_v0,
+    const uint32_t* faces_v1,
+    const uint32_t* faces_v2,
+    const int* vertex_mapping,
+    int* selected_face_v0,
+    int* selected_face_v1,
+    int* selected_face_v2,
+    uint32_t num_faces
+);

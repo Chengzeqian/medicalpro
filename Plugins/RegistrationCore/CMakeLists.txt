@@ -26,6 +26,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
         RegistrationServiceImpl.cpp
         ankle_registration_utils.cpp
         ankle_registration_parallel_search.cpp
+        robust_initial_transform.cpp
         registration_core_module.cpp
     )
 
@@ -34,6 +35,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
         RegistrationServiceImpl.h
         ankle_registration_utils.h
         ankle_registration_parallel_search.h
+        robust_initial_transform.h
         registration_core_module.h
     )
 

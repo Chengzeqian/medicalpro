@@ -223,4 +223,30 @@ extern "C" {
         float cutoff_mm,
         int* scores
     );
+
+    void launchTransformCandidateGeometryScoreKernel(
+        const float* source_x,
+        const float* source_y,
+        const float* source_z,
+        uint32_t num_points,
+        const float* transform_matrices,
+        uint32_t num_transforms,
+        float3 grid_min,
+        float grid_cell_size,
+        int3 grid_dims,
+        const uint32_t* grid_cell_counts,
+        const uint32_t* grid_cell_starts,
+        const uint32_t* grid_vertex_indices,
+        const float* target_x,
+        const float* target_y,
+        const float* target_z,
+        const float* target_normals_x,
+        const float* target_normals_y,
+        const float* target_normals_z,
+        const float* target_curvature,
+        float cutoff_mm,
+        int* scores,
+        float* normal_consistency_scores,
+        float* curvature_scores
+    );
 }

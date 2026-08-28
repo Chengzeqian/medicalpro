@@ -1995,6 +1995,8 @@ add_test(
     COMMAND point_registration_registration_core_integration_test
 )
 
+medicalpro_sync_framework_runtime(point_registration_registration_core_integration_test)
+
 add_executable(point_registration_widget_contract_test
     PointRegistrationWidgetContractTest.cpp
 )
@@ -2022,6 +2024,37 @@ medicalpro_set_framework_test_environment(point_registration_widget_contract_tes
 set_tests_properties(point_registration_registration_core_integration_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:point_registration_registration_core_integration_test>\;$<TARGET_FILE_DIR:Framework>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$<TARGET_FILE_DIR:VTK::CommonCore>\;$ENV{PATH}"
 )
+
+add_executable(point_registration_robust_initial_integration_test
+    PointRegistrationRobustInitialIntegrationTest.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/OpticalTracking/OpticalTrackingService.h
+)
+
+target_include_directories(point_registration_robust_initial_integration_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(point_registration_robust_initial_integration_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Test
+    Framework
+    PointRegistrationPlatformModuleLib
+)
+
+add_test(
+    NAME point_registration_robust_initial_integration_test
+    COMMAND $<TARGET_FILE:point_registration_robust_initial_integration_test>
+)
+
+medicalpro_sync_framework_runtime(point_registration_robust_initial_integration_test)
+
+set_tests_properties(point_registration_robust_initial_integration_test PROPERTIES
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:Framework>"
+)
+
+medicalpro_set_framework_test_environment(point_registration_robust_initial_integration_test)
 
 add_executable(registration_core_meshgpu_smoke_test
     RegistrationCoreMeshGpuSmokeTest.cpp
@@ -2060,6 +2093,44 @@ medicalpro_set_framework_test_environment(registration_core_meshgpu_smoke_test)
 
 set_tests_properties(registration_core_meshgpu_smoke_test PROPERTIES
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:registration_core_meshgpu_smoke_test>"
+)
+
+add_executable(registration_core_meshgpu_compatibility_test
+    RegistrationCoreMeshGpuCompatibilityTest.cpp
+    ${CMAKE_SOURCE_DIR}/Framework/Platform/Kernel/platform_service_registry.cpp
+)
+
+set_target_properties(registration_core_meshgpu_compatibility_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/MinSizeRel"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/RelWithDebInfo"
+)
+
+target_include_directories(registration_core_meshgpu_compatibility_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(registration_core_meshgpu_compatibility_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    RegistrationCorePlatformModuleLib
+)
+
+if(TARGET MeshGPULib)
+    add_dependencies(registration_core_meshgpu_compatibility_test MeshGPULib)
+endif()
+
+add_test(
+    NAME registration_core_meshgpu_compatibility_test
+    COMMAND $<TARGET_FILE:registration_core_meshgpu_compatibility_test>
+)
+
+medicalpro_set_framework_test_environment(registration_core_meshgpu_compatibility_test)
+
+set_tests_properties(registration_core_meshgpu_compatibility_test PROPERTIES
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:registration_core_meshgpu_compatibility_test>"
 )
 
 add_executable(probe_calibration_runtime_smoke_test
@@ -2550,6 +2621,31 @@ set_tests_properties(ankle_registration_parallel_search_test PROPERTIES
     ENVIRONMENT "PATH=$<TARGET_FILE_DIR:ankle_registration_parallel_search_test>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$ENV{PATH}"
 )
 
+add_executable(robust_initial_transform_test
+    RobustInitialTransformTest.cpp
+)
+
+target_include_directories(robust_initial_transform_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(robust_initial_transform_test PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Test
+    RegistrationCorePlatformModuleLib
+)
+
+add_test(
+    NAME robust_initial_transform_test
+    COMMAND $<TARGET_FILE:robust_initial_transform_test>
+)
+
+set_tests_properties(robust_initial_transform_test PROPERTIES
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:robust_initial_transform_test>"
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:robust_initial_transform_test>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Widgets>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Gui>\;$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>\;$<TARGET_FILE_DIR:VTK::CommonCore>\;$ENV{PATH}"
+)
+
 add_executable(navigation_confidence_evaluator_test
     NavigationConfidenceEvaluatorTest.cpp
 )
@@ -2658,6 +2754,7 @@ set(MEDICALPRO_FRAMEWORK_UNIT_TEST_TARGETS
     innovation_3_gate_experiment_test
     innovation_experiment_batch_runner_test
     registration_core_meshgpu_smoke_test
+    registration_core_meshgpu_compatibility_test
     real_case_asset_bootstrapper_test
     real_case_workspace_seed_coordinator_test
     case_workspace_package_service_test

@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.24)
+project(cuda_probe LANGUAGES CXX CUDA)
+find_package(CUDAToolkit REQUIRED)
+add_library(probe STATIC probe.cu)
+message(STATUS "TOOLKIT_VERSION=${CUDAToolkit_VERSION}")
+message(STATUS "CUDA_COMPILER=${CMAKE_CUDA_COMPILER}")

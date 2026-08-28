@@ -764,3 +764,219 @@ extern "C" void launchBuildCellStartsAndScatter(
     CUDA_CHECK(cudaDeviceSynchronize());
     cudaFree(d_write_offset);
 }
+
+__global__ void selectVerticesByConstraintsKernel(
+    const float* __restrict__ vertices_x,
+    const float* __restrict__ vertices_y,
+    const float* __restrict__ vertices_z,
+    unsigned char* __restrict__ vertex_mask,
+    float target_center_x,
+    float target_center_y,
+    float target_center_z,
+    float target_radius_squared,
+    const float* __restrict__ constraint_x,
+    const float* __restrict__ constraint_y,
+    const float* __restrict__ constraint_z,
+    uint32_t constraint_count,
+    float membership_radius_squared,
+    uint32_t num_vertices
+) {
+    const uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_vertices) return;
+
+    const float dx = vertices_x[idx] - target_center_x;
+    const float dy = vertices_y[idx] - target_center_y;
+    const float dz = vertices_z[idx] - target_center_z;
+    const float distance_squared = dx * dx + dy * dy + dz * dz;
+
+    unsigned char matched =
+        target_radius_squared > 0.0f && distance_squared <= target_radius_squared ? 1 : 0;
+
+    if (!matched && membership_radius_squared > 0.0f) {
+        for (uint32_t constraint_index = 0; constraint_index < constraint_count; ++constraint_index) {
+            const float cdx = vertices_x[idx] - constraint_x[constraint_index];
+            const float cdy = vertices_y[idx] - constraint_y[constraint_index];
+            const float cdz = vertices_z[idx] - constraint_z[constraint_index];
+            const float constraint_distance_squared = cdx * cdx + cdy * cdy + cdz * cdz;
+            if (constraint_distance_squared <= membership_radius_squared) {
+                matched = 1;
+                break;
+            }
+        }
+    }
+
+    vertex_mask[idx] = matched;
+}
+
+extern "C" void launchSelectVerticesByConstraints(
+    const float* vertices_x, const float* vertices_y, const float* vertices_z,
+    unsigned char* vertex_mask,
+    float target_center_x, float target_center_y, float target_center_z,
+    float target_radius_squared,
+    const float* constraint_x, const float* constraint_y, const float* constraint_z,
+    uint32_t constraint_count,
+    float membership_radius_squared,
+    uint32_t num_vertices
+) {
+    const int num_blocks = (num_vertices + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    selectVerticesByConstraintsKernel<<<num_blocks, BLOCK_SIZE>>>(
+        vertices_x,
+        vertices_y,
+        vertices_z,
+        vertex_mask,
+        target_center_x,
+        target_center_y,
+        target_center_z,
+        target_radius_squared,
+        constraint_x,
+        constraint_y,
+        constraint_z,
+        constraint_count,
+        membership_radius_squared,
+        num_vertices
+    );
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+__global__ void selectFacesByVertexMaskKernel(
+    const uint32_t* __restrict__ faces_v0,
+    const uint32_t* __restrict__ faces_v1,
+    const uint32_t* __restrict__ faces_v2,
+    const unsigned char* __restrict__ vertex_mask,
+    unsigned char* __restrict__ face_mask,
+    uint32_t num_faces
+) {
+    const uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_faces) return;
+
+    const uint32_t v0 = faces_v0[idx];
+    const uint32_t v1 = faces_v1[idx];
+    const uint32_t v2 = faces_v2[idx];
+    face_mask[idx] =
+        vertex_mask[v0] && vertex_mask[v1] && vertex_mask[v2] ? static_cast<unsigned char>(1) : 0;
+}
+
+extern "C" void launchSelectFacesByVertexMask(
+    const uint32_t* faces_v0, const uint32_t* faces_v1, const uint32_t* faces_v2,
+    const unsigned char* vertex_mask,
+    unsigned char* face_mask,
+    uint32_t num_faces
+) {
+    const int num_blocks = (num_faces + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    selectFacesByVertexMaskKernel<<<num_blocks, BLOCK_SIZE>>>(
+        faces_v0,
+        faces_v1,
+        faces_v2,
+        vertex_mask,
+        face_mask,
+        num_faces
+    );
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+__global__ void maskToCountsKernel(
+    const unsigned char* __restrict__ mask,
+    uint32_t* __restrict__ counts,
+    uint32_t count
+) {
+    const uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= count) return;
+    counts[idx] = mask[idx] ? 1u : 0u;
+}
+
+extern "C" void launchMaskToCounts(
+    const unsigned char* mask,
+    uint32_t* counts,
+    uint32_t count
+) {
+    const int num_blocks = (count + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    maskToCountsKernel<<<num_blocks, BLOCK_SIZE>>>(mask, counts, count);
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+__global__ void scatterSelectedVertexIndicesKernel(
+    const unsigned char* __restrict__ vertex_mask,
+    const uint32_t* __restrict__ vertex_offsets,
+    int* __restrict__ vertex_mapping,
+    int* __restrict__ selected_vertex_indices,
+    uint32_t num_vertices
+) {
+    const uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_vertices) return;
+
+    if (!vertex_mask[idx]) {
+        vertex_mapping[idx] = -1;
+        return;
+    }
+
+    const uint32_t compact_index = vertex_offsets[idx];
+    vertex_mapping[idx] = static_cast<int>(compact_index);
+    selected_vertex_indices[compact_index] = static_cast<int>(idx);
+}
+
+extern "C" void launchScatterSelectedVertexIndices(
+    const unsigned char* vertex_mask,
+    const uint32_t* vertex_offsets,
+    int* vertex_mapping,
+    int* selected_vertex_indices,
+    uint32_t num_vertices
+) {
+    const int num_blocks = (num_vertices + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    scatterSelectedVertexIndicesKernel<<<num_blocks, BLOCK_SIZE>>>(
+        vertex_mask,
+        vertex_offsets,
+        vertex_mapping,
+        selected_vertex_indices,
+        num_vertices
+    );
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+__global__ void scatterSelectedFacesKernel(
+    const unsigned char* __restrict__ face_mask,
+    const uint32_t* __restrict__ face_offsets,
+    const uint32_t* __restrict__ faces_v0,
+    const uint32_t* __restrict__ faces_v1,
+    const uint32_t* __restrict__ faces_v2,
+    const int* __restrict__ vertex_mapping,
+    int* __restrict__ selected_face_v0,
+    int* __restrict__ selected_face_v1,
+    int* __restrict__ selected_face_v2,
+    uint32_t num_faces
+) {
+    const uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_faces || !face_mask[idx]) return;
+
+    const uint32_t compact_index = face_offsets[idx];
+    selected_face_v0[compact_index] = vertex_mapping[faces_v0[idx]];
+    selected_face_v1[compact_index] = vertex_mapping[faces_v1[idx]];
+    selected_face_v2[compact_index] = vertex_mapping[faces_v2[idx]];
+}
+
+extern "C" void launchScatterSelectedFaces(
+    const unsigned char* face_mask,
+    const uint32_t* face_offsets,
+    const uint32_t* faces_v0,
+    const uint32_t* faces_v1,
+    const uint32_t* faces_v2,
+    const int* vertex_mapping,
+    int* selected_face_v0,
+    int* selected_face_v1,
+    int* selected_face_v2,
+    uint32_t num_faces
+) {
+    const int num_blocks = (num_faces + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    scatterSelectedFacesKernel<<<num_blocks, BLOCK_SIZE>>>(
+        face_mask,
+        face_offsets,
+        faces_v0,
+        faces_v1,
+        faces_v2,
+        vertex_mapping,
+        selected_face_v0,
+        selected_face_v1,
+        selected_face_v2,
+        num_faces
+    );
+    CUDA_CHECK(cudaDeviceSynchronize());
+}

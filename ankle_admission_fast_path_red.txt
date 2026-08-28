@@ -1,0 +1,10 @@
+********* Start testing of AnkleRegistrationParallelSearchTest *********
+Config: Using QtTest library 5.15.2, Qt 5.15.2 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2019), windows 10
+PASS   : AnkleRegistrationParallelSearchTest::initTestCase()
+FAIL!  : AnkleRegistrationParallelSearchTest::initial_admission_requires_refine_when_robust_residual_is_above_fast_path_limit() Compared values are not the same
+   Actual   (decision.action)         : "fast_path"
+   Expected (QStringLiteral("refine")): "refine"
+D:\Qtproject\medicalpro\tests\unit\AnkleRegistrationParallelSearchTest.cpp(484) : failure location
+PASS   : AnkleRegistrationParallelSearchTest::cleanupTestCase()
+Totals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 1ms
+********* Finished testing of AnkleRegistrationParallelSearchTest *********

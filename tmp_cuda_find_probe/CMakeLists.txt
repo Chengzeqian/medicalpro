@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+set(CUDAToolkit_ROOT "$env:CUDA_ROOT")
+find_package(CUDAToolkit REQUIRED)
+message(STATUS "TOOLKIT_VERSION=${CUDAToolkit_VERSION}")
+message(STATUS "TOOLKIT_BIN=${CUDAToolkit_BIN_DIR}")
+message(STATUS "TOOLKIT_NVCC=${CUDAToolkit_NVCC_EXECUTABLE}")

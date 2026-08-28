@@ -90,7 +90,7 @@ struct PointRegistrationExecutionOptions {
     int topKCandidateCount = 4;
     bool enableParallelInitialSearch = true;
     bool enableConstraintParallelFilter = true;
-    QString multiResolutionProfileId = QStringLiteral("ankle_roi_three_level");
+    QString multiResolutionProfileId = QStringLiteral("ankle_roi_two_level");
     bool exportDetailedMetrics = false;
 };
 

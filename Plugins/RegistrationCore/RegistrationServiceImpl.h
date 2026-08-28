@@ -16,6 +16,7 @@ class PlatformServiceRegistry;
 // MeshGPU DLL forward declarations
 namespace mesh_gpu {
     class MeshGPURuntimeApi;
+    class MeshGPUInterface;
     struct RegistrationParams;
     struct Transform4x4;
     struct RuntimeRegistrationResult;
@@ -155,6 +156,10 @@ private:
     static vtkSmartPointer<vtkMatrix4x4> meshGPUTransformToVTK(const float* data16);
     QList<CandidateEvaluationResult> evaluateCandidateTransformsGpu(
         const QList<CandidateInitialTransform>& candidates,
+        const QList<QVector3D>& activeSourcePoints,
+        const QList<QVector3D>& constraintPoints,
+        const QVector3D& targetRegionCenter,
+        double targetRegionRadiusMm,
         const QVariantMap& parameters);
     QVariantMap buildParallelSearchReport(
         const QList<CandidateInitialTransform>& candidateTransforms,
@@ -163,7 +168,11 @@ private:
         qint64 coarseSearchMs,
         bool constraintParallelFilterEnabled,
         qint64 roiFilterMs,
-        int multiResolutionLevelCount) const;
+        int multiResolutionLevelCount,
+        int refineCandidateCount = 0,
+        qint64 refineMs = 0,
+        int bestCandidateRank = -1,
+        const QVariantMap& batchRefineMetrics = QVariantMap()) const;
     static QMatrix4x4 vtkMatrix4x4ToQMatrix(vtkMatrix4x4* matrix);
     static vtkSmartPointer<vtkMatrix4x4> qMatrix4x4ToVtkMatrix(const QMatrix4x4& matrix);
     static mesh_gpu::Transform4x4 qMatrixToMeshGpuTransform(const QMatrix4x4& matrix);
@@ -171,12 +180,16 @@ private:
     // MeshGPU DLL function pointer types
     using CreateMeshGPUFn = mesh_gpu::MeshGPURuntimeApi* (*)();
     using DestroyMeshGPUFn = void (*)(mesh_gpu::MeshGPURuntimeApi*);
+    using CreateLegacyMeshGPUFn = mesh_gpu::MeshGPUInterface* (*)();
+    using DestroyLegacyMeshGPUFn = void (*)(mesh_gpu::MeshGPUInterface*);
 
     QLibrary m_meshGPULib;
     CreateMeshGPUFn m_createMeshGPU = nullptr;
     DestroyMeshGPUFn m_destroyMeshGPU = nullptr;
     mesh_gpu::MeshGPURuntimeApi* m_meshGPU = nullptr;
     bool m_meshGPULoaded = false;
+    bool m_meshGPULegacyRuntime = false;
+    bool m_meshGPUCandidateScoringAvailable = false;
 
     // Internal helpers
     QString generateRegistrationId(const QString& prefix = "reg");

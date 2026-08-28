@@ -1,0 +1,21 @@
+********* Start testing of RegistrationCoreMeshGpuSmokeTest *********
+Config: Using QtTest library 5.15.2, Qt 5.15.2 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2019), windows 10
+PASS   : RegistrationCoreMeshGpuSmokeTest::initTestCase()
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] Initialized
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] Attempting MeshGPU DLL load from: "D:/Qtproject/medicalpro/build_x64/Release/MeshGPULib.dll"
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] MeshGPU DLL loaded from: "D:/Qtproject/medicalpro/build_x64/Release/MeshGPULib.dll"
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] Advanced ICP requested GPU refinement: sourcePoints= 24 targetPoints= 24 registrationId= "meshgpu_multires_roi"
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] Dispatching GPU-GICP: registrationId= "meshgpu_multires_roi" hasInitialTransform= true useRotationSearch= false distanceThreshold= 30 maxIterations= 10
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] GPU-GICP stage: begin registrationId= "meshgpu_multires_roi"
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] GPU-GICP stage: target mesh already cached
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] GPU-GICP stage: constrained target mesh activated selectedPoints= 12 selectedTriangles= 2
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] GPU-GICP stage: setSourcePointCloud(call) sourcePoints= 12
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] GPU-GICP stage: setSourcePointCloud(done)
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] GPU-GICP stage: runRegistration(call)
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] GPU-GICP stage: registration(done) rmse= 0 iterations= 0 converged= true
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] Saved registration record: "meshgpu_multires_roi"
+QDEBUG : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics() [RegistrationService] GPU-GICP completed: ID= "meshgpu_multires_roi" RMSE= 0 mm Iterations= 0 Time= 1 ms Converged= true
+PASS   : RegistrationCoreMeshGpuSmokeTest::advanced_icp_parallel_search_records_multi_resolution_and_constraint_filter_metrics()
+PASS   : RegistrationCoreMeshGpuSmokeTest::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 99ms
+********* Finished testing of RegistrationCoreMeshGpuSmokeTest *********

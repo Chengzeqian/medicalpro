@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+project(cuda_probe LANGUAGES CXX)
+find_package(CUDAToolkit REQUIRED)
+message(STATUS "TOOLKIT_VERSION=${CUDAToolkit_VERSION}")
+message(STATUS "TOOLKIT_BIN=${CUDAToolkit_BIN_DIR}")
+message(STATUS "TOOLKIT_NVCC=${CUDAToolkit_NVCC_EXECUTABLE}")

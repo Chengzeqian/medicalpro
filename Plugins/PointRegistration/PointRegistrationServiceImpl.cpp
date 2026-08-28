@@ -1,6 +1,8 @@
 ﻿#include "PointRegistrationServiceImpl.h"
 #include "Plugins/RegistrationCore/ankle_registration_utils.h"
+#include "Plugins/RegistrationCore/robust_initial_transform.h"
 #include "Framework/Platform/Kernel/platform_service_registry.h"
+#include "Plugins/OpticalTracking/OpticalTrackingService.h"
 #include "Plugins/RegistrationCore/RegistrationService.h"
 #include "widgets/PointRegistrationWidget.h"
 #include "internal/PointRegistrationVTKWidget.h"
@@ -136,6 +138,19 @@ QMatrix4x4 vtkMatrixToQMatrix(vtkMatrix4x4* matrix)
     return qtMatrix;
 }
 
+void copyQMatrixToVtkMatrix(const QMatrix4x4& source, vtkMatrix4x4* target)
+{
+    if (!target) {
+        return;
+    }
+
+    for (int row = 0; row < 4; ++row) {
+        for (int column = 0; column < 4; ++column) {
+            target->SetElement(row, column, source(row, column));
+        }
+    }
+}
+
 QVariantList vtkMatrixToVariantList(vtkMatrix4x4* matrix)
 {
     QVariantList values;
@@ -178,6 +193,18 @@ QVariantList vectorListToVariantList(const QList<QVector3D>& points)
     values.reserve(points.size());
     for (const QVector3D& point : points) {
         values.append(vectorToVariantList(point));
+    }
+    return values;
+}
+
+QVariantList vectorListToFlatVariantList(const QList<QVector3D>& points)
+{
+    QVariantList values;
+    values.reserve(points.size() * 3);
+    for (const QVector3D& point : points) {
+        values.append(point.x());
+        values.append(point.y());
+        values.append(point.z());
     }
     return values;
 }
@@ -287,6 +314,94 @@ QList<int> selectConstraintRefinePairIndices(
     }
 
     return selectedIndices;
+}
+
+bool trackingStatusFlag(const QVariantMap& status, const QString& key, bool defaultValue)
+{
+    if (status.contains(key)) {
+        return status.value(key).toBool();
+    }
+    return defaultValue;
+}
+
+double trackingStatusDouble(const QVariantMap& status, const QString& key, double defaultValue)
+{
+    if (status.contains(key)) {
+        return status.value(key).toDouble();
+    }
+    return defaultValue;
+}
+
+double trackingQualityRatio(const QVariantMap& status)
+{
+    if (status.contains(QStringLiteral("qualityScore"))) {
+        return qBound(0.0, status.value(QStringLiteral("qualityScore")).toDouble() / 100.0, 1.0);
+    }
+    return qBound(0.0, trackingStatusDouble(status, QStringLiteral("quality"), 0.0), 1.0);
+}
+
+double trackingErrorMmFromStatus(const QVariantMap& status)
+{
+    if (status.contains(QStringLiteral("trackingErrorMm"))) {
+        return status.value(QStringLiteral("trackingErrorMm")).toDouble();
+    }
+    if (status.contains(QStringLiteral("tracking_error_mm"))) {
+        return status.value(QStringLiteral("tracking_error_mm")).toDouble();
+    }
+    return trackingStatusDouble(status, QStringLiteral("calibrationAccuracy"), 0.0);
+}
+
+bool trackingStatusCanSample(const QVariantMap& status)
+{
+    const bool visible = trackingStatusFlag(status, QStringLiteral("visible"), false);
+    const bool calibrated = trackingStatusFlag(status, QStringLiteral("calibrated"), false);
+    return visible && calibrated && trackingQualityRatio(status) >= 0.70;
+}
+
+ProbeTipFrameSample makeProbeTipFrameSample(
+    const QVariantMap& status,
+    const QList<double>& position,
+    double timestampMs)
+{
+    ProbeTipFrameSample sample;
+    sample.timestampMs = timestampMs;
+    sample.trackingErrorMm = trackingErrorMmFromStatus(status);
+
+    if (!trackingStatusCanSample(status) || position.size() < 3) {
+        sample.valid = false;
+        return sample;
+    }
+
+    sample.valid = true;
+    sample.tipPositionMm = QVector3D(
+        static_cast<float>(position.at(0)),
+        static_cast<float>(position.at(1)),
+        static_cast<float>(position.at(2)));
+    return sample;
+}
+
+StableProbePointResult collectStableOpticalProbePoint(
+    OpticalTrackingService* trackingService,
+    const QString& sessionId,
+    const QString& probeToolId)
+{
+    StableProbePointOptions options;
+    options.minimumAcceptedFrames = 5;
+    options.maxTrackingErrorMm = 0.50;
+    options.maxJitterRmsMm = 0.35;
+
+    QList<ProbeTipFrameSample> samples;
+    samples.reserve(6);
+    for (int frameIndex = 0; frameIndex < 6; ++frameIndex) {
+        const QVariantMap status = trackingService->getToolStatus(sessionId, probeToolId);
+        const QList<double> position = trackingService->getToolPosition(sessionId, probeToolId);
+        samples.append(makeProbeTipFrameSample(
+            status,
+            position,
+            static_cast<double>(QDateTime::currentMSecsSinceEpoch())));
+    }
+
+    return collectStableProbePoint(samples, options);
 }
 
 }
@@ -546,6 +661,13 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
 
     const WeightedRigidRegistrationResult coarseResult =
         AnkleRegistrationUtils::solveWeightedRigid(coarseSourcePoints, coarseTargetPoints, coarseWeights);
+    RobustInitialTransformOptions robustInitialOptions;
+    robustInitialOptions.inlierResidualThresholdMm = 5.0;
+    robustInitialOptions.minimumInlierCount = 3;
+    const RobustInitialTransformResult robustInitial =
+        estimateRobustInitialTransform(coarseSourcePoints, coarseTargetPoints, robustInitialOptions);
+    const bool useRobustInitial =
+        robustInitial.success && m_transformMode == TransformMode::RigidBody;
 
     const QList<int> constrainedPairIndices =
         registrationMethodId == QStringLiteral("ankle_two_stage_constrained")
@@ -598,6 +720,9 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
 
     auto finalMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
     finalMatrix->DeepCopy(m_landmarkTransform->GetMatrix());
+    if (useRobustInitial) {
+        copyQMatrixToVtkMatrix(robustInitial.transform, finalMatrix);
+    }
     QString refineMethod = refineMethodForRegistrationMethod(registrationMethodId);
     bool delegatedGpuRefine = false;
     QVariantMap refineMetadata;
@@ -636,6 +761,20 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
             parameters.insert(QStringLiteral("constrainedPointCount"), refineTargetPoints.size());
             parameters.insert(QStringLiteral("constraintRefineUsed"), useConstraintRefinePoints);
             parameters.insert(QStringLiteral("constraintRegionCount"), m_planningConstraintRegions.size());
+            parameters.insert(
+                QStringLiteral("initialTransformSource"),
+                useRobustInitial ? QStringLiteral("probe_guided_robust") : QStringLiteral("weighted_landmark"));
+            parameters.insert(QStringLiteral("robustInitialAvailable"), robustInitial.success);
+            parameters.insert(QStringLiteral("robustInitialConfidence"), robustInitial.confidence);
+            parameters.insert(QStringLiteral("robustInitialInlierCount"), robustInitial.inlierCount);
+            parameters.insert(QStringLiteral("robustInitialOutlierCount"), robustInitial.rejectedOutlierCount);
+            parameters.insert(QStringLiteral("robustInitialRmsMm"), robustInitial.inlierRmsMm);
+            parameters.insert(QStringLiteral("robustInitialReason"), robustInitial.reason);
+            parameters.insert(QStringLiteral("pairedResidualSourcePoints"), vectorListToVariantList(coarseSourcePoints));
+            parameters.insert(QStringLiteral("pairedResidualTargetPoints"), vectorListToVariantList(coarseTargetPoints));
+            parameters.insert(QStringLiteral("pairedResidualSourcePointsFlat"), vectorListToFlatVariantList(coarseSourcePoints));
+            parameters.insert(QStringLiteral("pairedResidualTargetPointsFlat"), vectorListToFlatVariantList(coarseTargetPoints));
+            parameters.insert(QStringLiteral("enablePairedResidualGuard"), true);
             parameters.insert(
                 QStringLiteral("constraintRegionKeys"),
                 m_planningConstraintRegions.keys().join(QStringLiteral("|")));
@@ -752,6 +891,14 @@ PointRegistrationResult PointRegistrationServiceImpl::executeRegistration()
     }
     result.metrics.insert(QStringLiteral("registration_mode"), registrationMethodId);
     result.metrics.insert(QStringLiteral("coarse_method"), QStringLiteral("weighted_landmark"));
+    result.metrics.insert(
+        QStringLiteral("initial_method"),
+        useRobustInitial ? QStringLiteral("probe_guided_robust") : QStringLiteral("weighted_landmark"));
+    result.metrics.insert(QStringLiteral("initial_confidence"), robustInitial.confidence);
+    result.metrics.insert(QStringLiteral("initial_inlier_count"), robustInitial.inlierCount);
+    result.metrics.insert(QStringLiteral("initial_outlier_count"), robustInitial.rejectedOutlierCount);
+    result.metrics.insert(QStringLiteral("initial_rms_mm"), robustInitial.inlierRmsMm);
+    result.metrics.insert(QStringLiteral("initial_quality_reason"), robustInitial.reason);
     result.metrics.insert(QStringLiteral("refine_method"), refineMethod);
     result.metrics.insert(QStringLiteral("delegated_gpu_refine"), delegatedGpuRefine);
     result.metrics.insert(QStringLiteral("coarse_rms"), coarseResult.weightedRmsError);
@@ -1167,10 +1314,33 @@ bool PointRegistrationServiceImpl::captureProbePoint(int pointIndex)
             break;
 
         case ProbePointSource::OpticalTracking:
-            // 光学跟踪模式：从跟踪服务获取当前位置
-            probePosition = getCurrentProbePosition();
+            if (!m_trackingService) {
+                m_lastError = QString::fromUtf8("光学跟踪服务未设置");
+                return false;
+            }
+            if (m_trackingSessionId.isEmpty() || m_probeToolId.isEmpty()) {
+                m_lastError = QString::fromUtf8("光学跟踪会话或探针工具未设置");
+                return false;
+            }
+            {
+                const StableProbePointResult stablePoint =
+                    collectStableOpticalProbePoint(m_trackingService, m_trackingSessionId, m_probeToolId);
+                if (!stablePoint.accepted) {
+                    m_lastError = QString::fromUtf8("光学探针稳定采点失败: %1").arg(stablePoint.reason);
+                    return false;
+                }
+                probePosition = stablePoint.pointMm;
+                m_currentProbePosition = probePosition;
+                logMessage(
+                    "INFO",
+                    QString::fromUtf8("光学探针稳定采点: frames=%1, rejected=%2, jitter=%3mm, confidence=%4")
+                        .arg(stablePoint.acceptedFrameCount)
+                        .arg(stablePoint.rejectedFrameCount)
+                        .arg(stablePoint.jitterRmsMm, 0, 'f', 3)
+                        .arg(stablePoint.confidence, 0, 'f', 3));
+            }
             if (probePosition.isNull()) {
-                m_lastError = QString::fromUtf8("无法获取探针当前位置");
+                m_lastError = QString::fromUtf8("光学探针稳定采点结果为空");
                 return false;
             }
             setTargetPosition(pointIndex, probePosition);
@@ -1202,11 +1372,19 @@ void PointRegistrationServiceImpl::setTrackingSession(const QString& sessionId,
 QVector3D PointRegistrationServiceImpl::getCurrentProbePosition() const
 {
     if (m_probePointSource == ProbePointSource::OpticalTracking) {
-        // TODO: 从 OpticalTrackingService 获取实时位置
-        // if (m_trackingService) {
-        //     return m_trackingService->getToolPosition(m_probeToolId);
-        // }
-        return QVector3D();
+        if (!m_trackingService || m_trackingSessionId.isEmpty() || m_probeToolId.isEmpty()) {
+            return QVector3D();
+        }
+
+        const QVariantMap status = m_trackingService->getToolStatus(m_trackingSessionId, m_probeToolId);
+        const QList<double> position = m_trackingService->getToolPosition(m_trackingSessionId, m_probeToolId);
+        if (!trackingStatusCanSample(status) || position.size() < 3) {
+            return QVector3D();
+        }
+        return QVector3D(
+            static_cast<float>(position.at(0)),
+            static_cast<float>(position.at(1)),
+            static_cast<float>(position.at(2)));
     }
 
     return m_currentProbePosition;

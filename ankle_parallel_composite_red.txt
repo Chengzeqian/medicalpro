@@ -1,0 +1,12 @@
+********* Start testing of AnkleRegistrationParallelSearchTest *********
+Config: Using QtTest library 5.15.2, Qt 5.15.2 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2019), windows 10
+PASS   : AnkleRegistrationParallelSearchTest::initTestCase()
+FAIL!  : AnkleRegistrationParallelSearchTest::parallel_search_prefers_roi_stable_candidate_over_slightly_lower_distance() Compared values are not the same
+   Actual   (topK.at(0).candidateId)                : "candidate_distance_only"
+   Expected (QStringLiteral("candidate_roi_stable")): "candidate_roi_stable"
+D:\Qtproject\medicalpro\tests\unit\AnkleRegistrationParallelSearchTest.cpp(199) : failure location
+FAIL!  : AnkleRegistrationParallelSearchTest::parallel_search_converts_candidate_evaluation_to_variant_map() 'map.contains(QStringLiteral("selection_score"))' returned FALSE. ()
+D:\Qtproject\medicalpro\tests\unit\AnkleRegistrationParallelSearchTest.cpp(362) : failure location
+PASS   : AnkleRegistrationParallelSearchTest::cleanupTestCase()
+Totals: 2 passed, 2 failed, 0 skipped, 0 blacklisted, 1ms
+********* Finished testing of AnkleRegistrationParallelSearchTest *********

@@ -1,0 +1,560 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineSystem.cmake:205 (message)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      The system is: Windows - 10.0.26200 - AMD64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      用于 x64 的 Microsoft (R) C/C++ 优化编译器 19.44.35207.1 版
+      版权所有(C) Microsoft Corporation。保留所有权利。
+      
+      CMakeCXXCompilerId.cpp
+      Microsoft (R) Incremental Linker Version 14.44.35207.1
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+      
+      /out:CMakeCXXCompilerId.exe 
+      CMakeCXXCompilerId.obj 
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.exe"
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.obj"
+      
+      The CXX compiler identification is MSVC, found in:
+        D:/Qtproject/medicalpro/tmp_cuda_ninja_probe_vsenv/build/CMakeFiles/3.29.9/CompilerIdCXX/CMakeCXXCompilerId.exe
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:1216 (message)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:250 (CMAKE_DETERMINE_MSVC_SHOWINCLUDES_PREFIX)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Detecting CXX compiler /showIncludes prefix:
+        main.c
+        注意: 包含文件:  D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\ShowIncludes\\foo.h
+        
+      Found prefix "注意: 包含文件:  "
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:1165 (message)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCUDACompiler.cmake:75 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Checking whether the CUDA compiler is NVIDIA using "" matched "nvcc: NVIDIA \\(R\\) Cuda compiler driver":
+      nvcc: NVIDIA (R) Cuda compiler driver
+      Copyright (c) 2005-2024 NVIDIA Corporation
+      Built on Thu_Mar_28_02:30:10_Pacific_Daylight_Time_2024
+      Cuda compilation tools, release 12.4, V12.4.131
+      Build cuda_12.4.r12.4/compiler.34097967_0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:53 (__determine_compiler_id_test)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCUDACompiler.cmake:131 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CUDA compiler identification source file "CMakeCUDACompilerId.cu" succeeded.
+      Compiler: D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/nvcc.exe 
+      Build flags: 
+      Id flags: --keep;--keep-dir;tmp;-ccbin=D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe -v
+      
+      The output was:
+      0
+      
+      D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA>call "D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../../VC/Auxiliary/Build/vcvars64.bat" 
+      **********************************************************************
+      ** Visual Studio 2022 Developer Command Prompt v17.14.2
+      ** Copyright (c) 2022 Microsoft Corporation
+      **********************************************************************
+      [vcvarsall.bat] Environment initialized for: 'x64'
+      #$ D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../../VC/Auxiliary/Build/vcvars64.bat
+      #$ ALLUSERSPROFILE=C:\\ProgramData
+      #$ API_TIMEOUT_MS=3000000
+      #$ APPDATA=C:\\Users\\cheng\\AppData\\Roaming
+      #$ CHROME_CRASHPAD_PIPE_NAME=\\\\.\\pipe\\crashpad_9572_LAQNLLBOBZZPEEJM
+      #$ CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+      #$ CODEX_INTERNAL_ORIGINATOR_OVERRIDE=codex_vscode
+      #$ CODEX_THREAD_ID=019e6f45-5545-7fe3-beca-26d4f9d7fca1
+      #$ CommandPromptType=Native
+      #$ CommonProgramFiles=C:\\Program Files\\Common Files
+      #$ CommonProgramFiles(x86)=C:\\Program Files (x86)\\Common Files
+      #$ CommonProgramW6432=C:\\Program Files\\Common Files
+      #$ COMPUTERNAME=THEDEVICE
+      #$ ComSpec=C:\\Windows\\system32\\cmd.exe
+      #$ CRS_OAI_KEY=sk-2db4a782238e12d4b2e45a9e0e2f6db333ce8d8914d05fb09f007fd63677bdaf
+      #$ CUDACXX=D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable\\bin\\nvcc.exe
+      #$ CUDAToolkit_ROOT=D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable
+      #$ CUDA_PATH=D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable
+      #$ CUDA_PATH_V12_1=C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1
+      #$ DataGrip=D:\\Program Files\\JetBrains\\DataGrip 2025.1.3\\bin;
+      #$ DEBUG=release
+      #$ DevEnvDir=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\
+      #$ DriverData=C:\\Windows\\System32\\Drivers\\DriverData
+      #$ EFC_12692_1262719628=1
+      #$ EFC_12692_1592913036=1
+      #$ EFC_12692_2283032206=1
+      #$ EFC_12692_2775293581=1
+      #$ EFC_12692_3789132940=1
+      #$ ELECTRON_RUN_AS_NODE=1
+      #$ ExtensionSdkDir=C:\\Program Files (x86)\\Microsoft SDKs\\Windows Kits\\10\\ExtensionSDKs
+      #$ EXTERNAL_INCLUDE=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\include;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\ATLMFC\\include;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\VS\\include;D:\\Windows Kits\\10\\include\\10.0.26100.0\\ucrt;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\um;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\shared;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\winrt;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\cppwinrt;C:\\Program Files (x86)\\Windows Kits\\NETFXSDK\\4.8\\include\\um;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\include;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\ATLMFC\\include;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\VS\\include;D:\\Windows Kits\\10\\include\\10.0.26100.0\\ucrt;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\um;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\shared;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\winrt;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\cppwinrt;C:\\Program Files (x86)\\Windows Kits\\NETFXSDK\\4.8\\include\\um
+      #$ FPS_BROWSER_APP_PROFILE_STRING=Internet Explorer
+      #$ FPS_BROWSER_USER_PROFILE_STRING=Default
+      #$ Framework40Version=v4.0
+      #$ FrameworkDir=C:\\Windows\\Microsoft.NET\\Framework64\\
+      #$ FrameworkDir64=C:\\Windows\\Microsoft.NET\\Framework64\\
+      #$ FrameworkVersion=v4.0.30319
+      #$ FrameworkVersion64=v4.0.30319
+      #$ FSHARPINSTALLDIR=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools
+      #$ HOMEDRIVE=C:
+      #$ HOMEPATH=\\Users\\cheng
+      #$ HTMLHelpDir=C:\\Program Files (x86)\\HTML Help Workshop
+      #$ IFCPATH=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\ifc\\x64
+      #$ IGCCSVC_DB=AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAA6ws0hSuBLU2yRMaoaEJfbAQAAAACAAAAAAAQZgAAAAEAACAAAABxzcCpkK1Us2cBsP39xiLyIDnlycGRbSADf5QVJkAWAwAAAAAOgAAAAAIAACAAAACtupQf292k3ALAR3lZ40cURCxRABH2IrSOjLIgVlGzcWAAAADBPPW6n5f1LBLzGqCraeaQWtinH2VuWXK9TyEPH9fKSg6W1W/1ShetpcgNzhdJhAnazStRonXUt9h58hwz/My2FuMm/pVhaXaT20vhq74joE9tNuOI8e+bb6M68NFiw4ZAAAAASs8CueAJhjif3HoU3HA+gxdLWPMlxFmozZJf06dcMSQwWpJ/pZTs8uc123tF1UNdGWmWRaua+vidBZviJ4I83w==
+      #$ INCLUDE=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\include;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\ATLMFC\\include;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\VS\\include;D:\\Windows Kits\\10\\include\\10.0.26100.0\\ucrt;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\um;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\shared;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\winrt;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\cppwinrt;C:\\Program Files (x86)\\Windows Kits\\NETFXSDK\\4.8\\include\\um;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\include;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\ATLMFC\\include;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\VS\\include;D:\\Windows Kits\\10\\include\\10.0.26100.0\\ucrt;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\um;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\shared;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\winrt;D:\\Windows Kits\\10\\\\include\\10.0.26100.0\\\\cppwinrt;C:\\Program Files (x86)\\Windows Kits\\NETFXSDK\\4.8\\include\\um
+      #$ IntelliJ IDEA Community Edition=E:\\IntelliJ IDEA Community Edition 2024.3.5\\bin;
+      #$ JAVA_HOME=D:\\Program Files\\Java\\jdk-17
+      #$ LIB=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\ATLMFC\\lib\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\lib\\x64;C:\\Program Files (x86)\\Windows Kits\\NETFXSDK\\4.8\\lib\\um\\x64;D:\\Windows Kits\\10\\lib\\10.0.26100.0\\ucrt\\x64;D:\\Windows Kits\\10\\\\lib\\10.0.26100.0\\\\um\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\ATLMFC\\lib\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\lib\\x64;C:\\Program Files (x86)\\Windows Kits\\NETFXSDK\\4.8\\lib\\um\\x64;D:\\Windows Kits\\10\\lib\\10.0.26100.0\\ucrt\\x64;D:\\Windows Kits\\10\\\\lib\\10.0.26100.0\\\\um\\x64
+      #$ LIBPATH=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\ATLMFC\\lib\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\lib\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\lib\\x86\\store\\references;D:\\Windows Kits\\10\\UnionMetadata\\10.0.26100.0;D:\\Windows Kits\\10\\References\\10.0.26100.0;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\ATLMFC\\lib\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\lib\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\lib\\x86\\store\\references;D:\\Windows Kits\\10\\UnionMetadata\\10.0.26100.0;D:\\Windows Kits\\10\\References\\10.0.26100.0;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319
+      #$ LOCALAPPDATA=C:\\Users\\cheng\\AppData\\Local
+      #$ LOGONSERVER=\\\\THEDEVICE
+      #$ NETFXSDKDir=C:\\Program Files (x86)\\Windows Kits\\NETFXSDK\\4.8\\
+      #$ NUMBER_OF_PROCESSORS=32
+      #$ OneDrive=C:\\Users\\cheng\\OneDrive
+      #$ OPENNI2_INCLUDE64=E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\OpenNI2\\Include\\
+      #$ OPENNI2_LIB64=E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\OpenNI2\\Lib\\
+      #$ OPENNI2_REDIST64=E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\OpenNI2\\Redist\\
+      #$ OS=Windows_NT
+      #$ PATH=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\VCPackages;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TeamFoundation\\Team Explorer;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\bin\\Roslyn;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\\\x64;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\;C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64\\;C:\\Program Files (x86)\\HTML Help Workshop;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\DiagnosticsHub\\Collector;D:\\Windows Kits\\10\\bin\\10.0.26100.0\\\\x64;D:\\Windows Kits\\10\\bin\\\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\\\MSBuild\\Current\\Bin\\amd64;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\;D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\VCPackages;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TeamFoundation\\Team Explorer;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\bin\\Roslyn;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\\\x64;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\;C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64\\;C:\\Program Files (x86)\\HTML Help Workshop;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\DiagnosticsHub\\Collector;D:\\Windows Kits\\10\\bin\\10.0.26100.0\\\\x64;D:\\Windows Kits\\10\\bin\\\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\\\MSBuild\\Current\\Bin\\amd64;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\;C:\\Users\\cheng\\.codex\\tmp\\arg0\\codex-arg05vlvbk;D:\\Program Files (x86)\\VMware\\VMware Workstation\\bin\\;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\bin;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\libnvvp;d:\\cursor\\resources\\app\\bin;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR;C:\\Program Files\\dotnet\\;C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\;D:\\Git\\cmd;D:\\Windows Kits\\10\\bin;D:\\Program Files\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages\\microsoft.windows.sdk.buildtools\\10.0.19041.8\\bin;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\;D:\\Program Files\\doxygen\\bin;D:\\Windows Kits\\10\\Windows Performance Toolkit\\;D:\\Qt\\5.15.2\\msvc2019_64\\lib\\cmake\\Qt5;C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin;D:\\Qt\\5.15.2\\msvc2019_64;D:\\Qt\\5.15.2\\msvc2019_64\\bin;D:\\Qt\\5.15.2\\msvc2019_64\\include;C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2023.1.0\\;C:\\Program Files\\nodejs\\;D:\\Program Files\\CMake1\\bin;D:\\Git\\usr\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\VTK\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\OpenNI2\\Tools;D:\\Program Files\\MiKTeX\\miktex\\bin\\x64\\;C:\\Program Files\\Pandoc\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\;C:\\Users\\cheng\\AppData\\Local\\Microsoft\\WindowsApps;E:\\IntelliJ IDEA Community Edition 2024.3.5\\bin;;D:\\Program Files\\Java\\jdk-17\\bin;D:\\MITK v2024.12\\bin;D:\\cursor\\resources\\app\\bin;C:\\Users\\cheng\\.dotnet\\tools;D:\\Microsoft VS Code\\bin;D:\\Qt6.9\\5.15.2\\msvc2019_64\\bin;D:\\Program Files\\JetBrains\\DataGrip 2025.1.3\\bin;;C:\\Users\\cheng\\AppData\\Local\\GitHubDesktop\\bin;C:\\Users\\cheng\\AppData\\Roaming\\npm;c:\\Users\\cheng\\.vscode\\extensions\\openai.chatgpt-26.519.32039-win32-x64\\bin\\windows-x86_64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\Ninja;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\Linux\\bin\\ConnectionManagerExe;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\Ninja;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\Linux\\bin\\ConnectionManagerExe;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg
+      #$ PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL
+      #$ PCL_ROOT=E:\\ICPtry\\PCL\\PCL 1.12.1
+      #$ Platform=x64
+      #$ PROCESSOR_ARCHITECTURE=AMD64
+      #$ PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+      #$ PROCESSOR_LEVEL=6
+      #$ PROCESSOR_REVISION=b701
+      #$ ProgramData=C:\\ProgramData
+      #$ ProgramFiles=C:\\Program Files
+      #$ ProgramFiles(x86)=C:\\Program Files (x86)
+      #$ ProgramW6432=C:\\Program Files
+      #$ PROMPT=$P$G
+      #$ PSModulePath=C:\\Users\\cheng\\Documents\\WindowsPowerShell\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules
+      #$ PUBLIC=C:\\Users\\Public
+      #$ QtMsBuild=C:\\Users\\cheng\\AppData\\Local\\QtMsBuild
+      #$ RUST_LOG=warn
+      #$ SESSIONNAME=Console
+      #$ SystemDrive=C:
+      #$ SystemRoot=C:\\Windows
+      #$ TADSIM=D:\\zhijiafangzhen\\tadsim\\resources\\app
+      #$ TADSIM_DATA=C:\\Users\\cheng\\AppData\\Roaming\\tadsim
+      #$ UCRTVersion=10.0.26100.0
+      #$ UniversalCRTSdkDir=D:\\Windows Kits\\10\\
+      #$ USERDOMAIN=THEDEVICE
+      #$ USERDOMAIN_ROAMINGPROFILE=THEDEVICE
+      #$ USERNAME=cheng
+      #$ USERPROFILE=C:\\Users\\cheng
+      #$ VCIDEInstallDir=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\
+      #$ VCINSTALLDIR=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\
+      #$ VCPKG_ROOT=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg
+      #$ VCToolsInstallDir=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\
+      #$ VCToolsRedistDir=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Redist\\MSVC\\14.44.35112\\
+      #$ VCToolsVersion=14.44.35207
+      #$ VisualStudioVersion=17.0
+      #$ VS170COMNTOOLS=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\
+      #$ VSCMD_ARG_app_plat=Desktop
+      #$ VSCMD_ARG_HOST_ARCH=x64
+      #$ VSCMD_ARG_TGT_ARCH=x64
+      #$ VSCMD_VER=17.14.2
+      #$ VSCODE_CODE_CACHE_PATH=C:\\Users\\cheng\\AppData\\Roaming\\Code\\CachedData\\974500e64f0d1cfdf7c9821a2a51c2cb3bf0e561
+      #$ VSCODE_CRASH_REPORTER_PROCESS_TYPE=extensionHost
+      #$ VSCODE_CWD=D:\\Microsoft VS Code
+      #$ VSCODE_ESM_ENTRYPOINT=vs/workbench/api/node/extensionHostProcess
+      #$ VSCODE_HANDLES_UNCAUGHT_ERRORS=true
+      #$ VSCODE_IPC_HOOK=\\\\.\\pipe\\f28526e9-1.119.1-main-sock
+      #$ VSCODE_NLS_CONFIG={"userLocale":"zh-cn","osLocale":"zh-cn","resolvedLanguage":"zh-cn","defaultMessagesFile":"D:\\\\Microsoft VS Code\\\\974500e64f\\\\resources\\\\app\\\\out\\\\nls.messages.json","languagePack":{"translationsConfigFile":"C:\\\\Users\\\\cheng\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\8a51db726da852292d1c80f7afa92629.zh-cn\\\\tcf.json","messagesFile":"C:\\\\Users\\\\cheng\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\8a51db726da852292d1c80f7afa92629.zh-cn\\\\974500e64f0d1cfdf7c9821a2a51c2cb3bf0e561\\\\nls.messages.json","corruptMarkerFile":"C:\\\\Users\\\\cheng\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\8a51db726da852292d1c80f7afa92629.zh-cn\\\\corrupted.info"},"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"8a51db726da852292d1c80f7afa92629.zh-cn","_languagePackSupport":true,"_translationsConfigFile":"C:\\\\Users\\\\cheng\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\8a51db726da852292d1c80f7afa92629.zh-cn\\\\tcf.json","_cacheRoot":"C:\\\\Users\\\\cheng\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\8a51db726da852292d1c80f7afa92629.zh-cn","_resolvedLanguagePackCoreLocation":"C:\\\\Users\\\\cheng\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\8a51db726da852292d1c80f7afa92629.zh-cn\\\\974500e64f0d1cfdf7c9821a2a51c2cb3bf0e561","_corruptedFile":"C:\\\\Users\\\\cheng\\\\AppData\\\\Roaming\\\\Code\\\\clp\\\\8a51db726da852292d1c80f7afa92629.zh-cn\\\\corrupted.info"}
+      #$ VSCODE_PID=9572
+      #$ vsconsoleoutput=1
+      #$ VSINSTALLDIR=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\
+      #$ VSSDK150INSTALL=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VSSDK
+      #$ VSSDKINSTALL=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VSSDK
+      #$ windir=C:\\Windows
+      #$ WindowsLibPath=D:\\Windows Kits\\10\\UnionMetadata\\10.0.26100.0;D:\\Windows Kits\\10\\References\\10.0.26100.0
+      #$ WindowsSdkBinPath=D:\\Windows Kits\\10\\bin\\
+      #$ WindowsSdkDir=D:\\Windows Kits\\10\\
+      #$ WindowsSDKLibVersion=10.0.26100.0\\
+      #$ WindowsSdkVerBinPath=D:\\Windows Kits\\10\\bin\\10.0.26100.0\\
+      #$ WindowsSDKVersion=10.0.26100.0\\
+      #$ WindowsSDK_ExecutablePath_x64=C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64\\
+      #$ WindowsSDK_ExecutablePath_x86=C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\
+      #$ ZES_ENABLE_SYSMAN=1
+      #$ __DOTNET_ADD_64BIT=1
+      #$ __DOTNET_PREFERRED_BITNESS=64
+      #$ __VSCMD_PREINIT_PATH=C:\\Users\\cheng\\.codex\\tmp\\arg0\\codex-arg05vlvbk;D:\\Program Files (x86)\\VMware\\VMware Workstation\\bin\\;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\bin;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\libnvvp;d:\\cursor\\resources\\app\\bin;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR;C:\\Program Files\\dotnet\\;C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\;D:\\Git\\cmd;D:\\Windows Kits\\10\\bin;D:\\Program Files\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages\\microsoft.windows.sdk.buildtools\\10.0.19041.8\\bin;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\;D:\\Program Files\\doxygen\\bin;D:\\Windows Kits\\10\\Windows Performance Toolkit\\;D:\\Qt\\5.15.2\\msvc2019_64\\lib\\cmake\\Qt5;C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin;D:\\Qt\\5.15.2\\msvc2019_64;D:\\Qt\\5.15.2\\msvc2019_64\\bin;D:\\Qt\\5.15.2\\msvc2019_64\\include;C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2023.1.0\\;C:\\Program Files\\nodejs\\;D:\\Program Files\\CMake1\\bin;D:\\Git\\usr\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\VTK\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\OpenNI2\\Tools;D:\\Program Files\\MiKTeX\\miktex\\bin\\x64\\;C:\\Program Files\\Pandoc\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\;C:\\Users\\cheng\\AppData\\Local\\Microsoft\\WindowsApps;E:\\IntelliJ IDEA Community Edition 2024.3.5\\bin;;D:\\Program Files\\Java\\jdk-17\\bin;D:\\MITK v2024.12\\bin;D:\\cursor\\resources\\app\\bin;C:\\Users\\cheng\\.dotnet\\tools;D:\\Microsoft VS Code\\bin;D:\\Qt6.9\\5.15.2\\msvc2019_64\\bin;D:\\Program Files\\JetBrains\\DataGrip 2025.1.3\\bin;;C:\\Users\\cheng\\AppData\\Local\\GitHubDesktop\\bin;C:\\Users\\cheng\\AppData\\Roaming\\npm;c:\\Users\\cheng\\.vscode\\extensions\\openai.chatgpt-26.519.32039-win32-x64\\bin\\windows-x86_64
+      #$ __VSCMD_PREINIT_VCToolsVersion=14.44.35207
+      #$ __VSCMD_PREINIT_VS170COMNTOOLS=D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\
+      #$ PATH=D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\VCPackages;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TeamFoundation\\Team Explorer;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\bin\\Roslyn;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\\\x64;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\;C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64\\;C:\\Program Files (x86)\\HTML Help Workshop;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\DiagnosticsHub\\Collector;D:\\Windows Kits\\10\\bin\\10.0.26100.0\\\\x64;D:\\Windows Kits\\10\\bin\\\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\\\MSBuild\\Current\\Bin\\amd64;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\;D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\VCPackages;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TeamFoundation\\Team Explorer;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\bin\\Roslyn;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\\\x64;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\;C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64\\;C:\\Program Files (x86)\\HTML Help Workshop;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\DiagnosticsHub\\Collector;D:\\Windows Kits\\10\\bin\\10.0.26100.0\\\\x64;D:\\Windows Kits\\10\\bin\\\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\\\MSBuild\\Current\\Bin\\amd64;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\;C:\\Users\\cheng\\.codex\\tmp\\arg0\\codex-arg05vlvbk;D:\\Program Files (x86)\\VMware\\VMware Workstation\\bin\\;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\bin;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\libnvvp;d:\\cursor\\resources\\app\\bin;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR;C:\\Program Files\\dotnet\\;C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\;D:\\Git\\cmd;D:\\Windows Kits\\10\\bin;D:\\Program Files\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages\\microsoft.windows.sdk.buildtools\\10.0.19041.8\\bin;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\;D:\\Program Files\\doxygen\\bin;D:\\Windows Kits\\10\\Windows Performance Toolkit\\;D:\\Qt\\5.15.2\\msvc2019_64\\lib\\cmake\\Qt5;C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin;D:\\Qt\\5.15.2\\msvc2019_64;D:\\Qt\\5.15.2\\msvc2019_64\\bin;D:\\Qt\\5.15.2\\msvc2019_64\\include;C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2023.1.0\\;C:\\Program Files\\nodejs\\;D:\\Program Files\\CMake1\\bin;D:\\Git\\usr\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\VTK\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\OpenNI2\\Tools;D:\\Program Files\\MiKTeX\\miktex\\bin\\x64\\;C:\\Program Files\\Pandoc\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\;C:\\Users\\cheng\\AppData\\Local\\Microsoft\\WindowsApps;E:\\IntelliJ IDEA Community Edition 2024.3.5\\bin;;D:\\Program Files\\Java\\jdk-17\\bin;D:\\MITK v2024.12\\bin;D:\\cursor\\resources\\app\\bin;C:\\Users\\cheng\\.dotnet\\tools;D:\\Microsoft VS Code\\bin;D:\\Qt6.9\\5.15.2\\msvc2019_64\\bin;D:\\Program Files\\JetBrains\\DataGrip 2025.1.3\\bin;;C:\\Users\\cheng\\AppData\\Local\\GitHubDesktop\\bin;C:\\Users\\cheng\\AppData\\Roaming\\npm;c:\\Users\\cheng\\.vscode\\extensions\\openai.chatgpt-26.519.32039-win32-x64\\bin\\windows-x86_64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\Ninja;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\Linux\\bin\\ConnectionManagerExe;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\Ninja;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\Linux\\bin\\ConnectionManagerExe;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg
+      #$ _NVVM_BRANCH_=nvvm
+      #$ _NVVM_BRANCH_SUFFIX_=
+      #$ _SPACE_= 
+      #$ _CUDART_=cudart
+      #$ _HERE_=D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin
+      #$ _THERE_=D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin
+      #$ _TARGET_SIZE_=
+      #$ _TARGET_DIR_=
+      #$ _TARGET_SIZE_=64
+      #$ _WIN_PLATFORM_=x64
+      #$ TOP=D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/..
+      #$ NVVMIR_LIBRARY_DIR=D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../nvvm/libdevice
+      #$ PATH=D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../nvvm/bin;D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin;D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib;D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\VCPackages;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TeamFoundation\\Team Explorer;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\bin\\Roslyn;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\\\x64;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\;C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64\\;C:\\Program Files (x86)\\HTML Help Workshop;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\DiagnosticsHub\\Collector;D:\\Windows Kits\\10\\bin\\10.0.26100.0\\\\x64;D:\\Windows Kits\\10\\bin\\\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\\\MSBuild\\Current\\Bin\\amd64;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\;D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\VCPackages;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TeamFoundation\\Team Explorer;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\bin\\Roslyn;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\\\x64;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\;C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64\\;C:\\Program Files (x86)\\HTML Help Workshop;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\DiagnosticsHub\\Collector;D:\\Windows Kits\\10\\bin\\10.0.26100.0\\\\x64;D:\\Windows Kits\\10\\bin\\\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\\\MSBuild\\Current\\Bin\\amd64;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\;C:\\Users\\cheng\\.codex\\tmp\\arg0\\codex-arg05vlvbk;D:\\Program Files (x86)\\VMware\\VMware Workstation\\bin\\;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\bin;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\libnvvp;d:\\cursor\\resources\\app\\bin;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR;C:\\Program Files\\dotnet\\;C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\;D:\\Git\\cmd;D:\\Windows Kits\\10\\bin;D:\\Program Files\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages\\microsoft.windows.sdk.buildtools\\10.0.19041.8\\bin;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\;D:\\Program Files\\doxygen\\bin;D:\\Windows Kits\\10\\Windows Performance Toolkit\\;D:\\Qt\\5.15.2\\msvc2019_64\\lib\\cmake\\Qt5;C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin;D:\\Qt\\5.15.2\\msvc2019_64;D:\\Qt\\5.15.2\\msvc2019_64\\bin;D:\\Qt\\5.15.2\\msvc2019_64\\include;C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2023.1.0\\;C:\\Program Files\\nodejs\\;D:\\Program Files\\CMake1\\bin;D:\\Git\\usr\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\VTK\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\OpenNI2\\Tools;D:\\Program Files\\MiKTeX\\miktex\\bin\\x64\\;C:\\Program Files\\Pandoc\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\;C:\\Users\\cheng\\AppData\\Local\\Microsoft\\WindowsApps;E:\\IntelliJ IDEA Community Edition 2024.3.5\\bin;;D:\\Program Files\\Java\\jdk-17\\bin;D:\\MITK v2024.12\\bin;D:\\cursor\\resources\\app\\bin;C:\\Users\\cheng\\.dotnet\\tools;D:\\Microsoft VS Code\\bin;D:\\Qt6.9\\5.15.2\\msvc2019_64\\bin;D:\\Program Files\\JetBrains\\DataGrip 2025.1.3\\bin;;C:\\Users\\cheng\\AppData\\Local\\GitHubDesktop\\bin;C:\\Users\\cheng\\AppData\\Roaming\\npm;c:\\Users\\cheng\\.vscode\\extensions\\openai.chatgpt-26.519.32039-win32-x64\\bin\\windows-x86_64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\Ninja;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\Linux\\bin\\ConnectionManagerExe;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\Ninja;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\Linux\\bin\\ConnectionManagerExe;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg
+      #$ INCLUDES="-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"  
+      #$ LIBRARIES=  "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"
+      #$ CUDAFE_FLAGS=
+      #$ PTXAS_FLAGS=
+      #$ erase tmp/a_dlink.reg.c
+      CMakeCUDACompilerId.cu
+      #$ resource file tmp/CMakeCUDACompilerId.cpp4.ii.res: [-D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -E -TP -EHsc -D__CUDACC__ -D__NVCC__  "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"    -D__CUDACC_VER_MAJOR__=12 -D__CUDACC_VER_MINOR__=4 -D__CUDACC_VER_BUILD__=131 -D__CUDA_API_VER_MAJOR__=12 -D__CUDA_API_VER_MINOR__=4 -D__NVCC_DIAG_PRAGMA_SUPPORT__=1 -FI "cuda_runtime.h" "CMakeCUDACompilerId.cu" ]
+      #$ cl.exe @"tmp/CMakeCUDACompilerId.cpp4.ii.res" > "tmp/CMakeCUDACompilerId.cpp4.ii" 
+      CMakeCUDACompilerId.cu
+      #$ cudafe++ --ms_c++14 --microsoft_version=1944 --msvc_target_version=1944 --compiler_bindir "D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../.." --sdk_dir "D:/Windows Kits/10/" --display_error_number --orig_src_file_name "CMakeCUDACompilerId.cu" --orig_src_path_name "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\CMakeCUDACompilerId.cu" --allow_managed --m64 --parse_templates --gen_c_file_name "tmp/CMakeCUDACompilerId.cudafe1.cpp" --stub_file_name "CMakeCUDACompilerId.cudafe1.stub.c" --gen_module_id_file --module_id_file_name "tmp/CMakeCUDACompilerId.module_id" "tmp/CMakeCUDACompilerId.cpp4.ii" 
+      #$ resource file tmp/CMakeCUDACompilerId.cpp1.ii.res: [-D__CUDA_ARCH__=520 -D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -E -TP  -DCUDA_DOUBLE_MATH_FUNCTIONS -EHsc -D__CUDACC__ -D__NVCC__  "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"    -D__CUDACC_VER_MAJOR__=12 -D__CUDACC_VER_MINOR__=4 -D__CUDACC_VER_BUILD__=131 -D__CUDA_API_VER_MAJOR__=12 -D__CUDA_API_VER_MINOR__=4 -D__NVCC_DIAG_PRAGMA_SUPPORT__=1 -FI "cuda_runtime.h" "CMakeCUDACompilerId.cu" ]
+      #$ cl.exe @"tmp/CMakeCUDACompilerId.cpp1.ii.res" > "tmp/CMakeCUDACompilerId.cpp1.ii" 
+      CMakeCUDACompilerId.cu
+      #$ cicc --ms_c++14 --microsoft_version=1944 --msvc_target_version=1944 --compiler_bindir "D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../.." --sdk_dir "D:/Windows Kits/10/" --display_error_number --orig_src_file_name "CMakeCUDACompilerId.cu" --orig_src_path_name "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\CMakeCUDACompilerId.cu" --allow_managed  -arch compute_52 -m64 --no-version-ident -ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 --include_file_name "CMakeCUDACompilerId.fatbin.c" -tused --module_id_file_name "tmp/CMakeCUDACompilerId.module_id" --gen_c_file_name "tmp/CMakeCUDACompilerId.cudafe1.c" --stub_file_name "tmp/CMakeCUDACompilerId.cudafe1.stub.c" --gen_device_file_name "tmp/CMakeCUDACompilerId.cudafe1.gpu"  "tmp/CMakeCUDACompilerId.cpp1.ii" -o "tmp/CMakeCUDACompilerId.ptx"
+      #$ ptxas -arch=sm_52 -m64 "tmp/CMakeCUDACompilerId.ptx"  -o "tmp/CMakeCUDACompilerId.sm_52.cubin" 
+      #$ fatbinary --create="tmp/CMakeCUDACompilerId.fatbin" -64 --cicc-cmdline="-ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 " "--image3=kind=elf,sm=52,file=tmp/CMakeCUDACompilerId.sm_52.cubin" "--image3=kind=ptx,sm=52,file=tmp/CMakeCUDACompilerId.ptx" --embedded-fatbin="tmp/CMakeCUDACompilerId.fatbin.c" 
+      #$ resource file tmp/CMakeCUDACompilerId.obj.res: [-D__CUDA_ARCH__=520 -D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -c -TP  -DCUDA_DOUBLE_MATH_FUNCTIONS -EHsc "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"   "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.cudafe1.cpp" ]
+      #$ cl.exe @"tmp/CMakeCUDACompilerId.obj.res" -Fo"tmp/CMakeCUDACompilerId.obj" 
+      CMakeCUDACompilerId.cudafe1.cpp
+      #$ resource file tmp/a_dlink.sm_52.cubin.optf: [-m64 --arch=sm_52 --register-link-binaries="tmp/a_dlink.reg.c"    "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64" -cpu-arch=X86_64 "tmp/CMakeCUDACompilerId.obj"  cudadevrt.lib  -o "tmp/a_dlink.sm_52.cubin"]
+      #$ nvlink -optf "tmp/a_dlink.sm_52.cubin.optf"
+      #$ fatbinary --create="tmp/a_dlink.fatbin" -64 --cicc-cmdline="-ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 " -link "--image3=kind=elf,sm=52,file=tmp/a_dlink.sm_52.cubin" --embedded-fatbin="tmp/a_dlink.fatbin.c" 
+      #$ resource file tmp/a_dlink.obj.res: [-D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -c -TP -EHsc -DFATBINFILE="\\"tmp/a_dlink.fatbin.c\\"" -DREGISTERLINKBINARYFILE="\\"tmp/a_dlink.reg.c\\"" -I. -D__NV_EXTRA_INITIALIZATION= -D__NV_EXTRA_FINALIZATION= -D__CUDA_INCLUDE_COMPILER_INTERNAL_HEADERS__  "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"    -D__CUDACC_VER_MAJOR__=12 -D__CUDACC_VER_MINOR__=4 -D__CUDACC_VER_BUILD__=131 -D__CUDA_API_VER_MAJOR__=12 -D__CUDA_API_VER_MINOR__=4 -D__NVCC_DIAG_PRAGMA_SUPPORT__=1 "D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable\\bin\\crt\\link.stub" ]
+      #$ cl.exe @"tmp/a_dlink.obj.res" -Fo"tmp/a_dlink.obj" 
+      link.stub
+      #$ resource file tmp/a.exe.res: [-D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\a_dlink.obj" "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.obj" -link -INCREMENTAL:NO   "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"  cudadevrt.lib  cudart_static.lib]
+      #$ cl.exe @"tmp/a.exe.res" -Fe"a.exe" 
+        正在创建库 a.lib 和对象 a.exp
+      
+      
+      Compilation of the CUDA compiler identification source "CMakeCUDACompilerId.cu" produced "a.exe"
+      
+      Compilation of the CUDA compiler identification source "CMakeCUDACompilerId.cu" produced "a.exp"
+      
+      Compilation of the CUDA compiler identification source "CMakeCUDACompilerId.cu" produced "a.lib"
+      
+      The CUDA compiler identification is NVIDIA, found in:
+        D:/Qtproject/medicalpro/tmp_cuda_ninja_probe_vsenv/build/CMakeFiles/3.29.9/CompilerIdCUDA/a.exe
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:1216 (message)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:250 (CMAKE_DETERMINE_MSVC_SHOWINCLUDES_PREFIX)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCUDACompiler.cmake:131 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Detecting CUDA compiler /showIncludes prefix:
+        nvcc fatal   : Don't know what to do with 'D:/c'
+        
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:1216 (message)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:250 (CMAKE_DETERMINE_MSVC_SHOWINCLUDES_PREFIX)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCUDACompiler.cmake:131 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Detecting CUDA compiler /showIncludes prefix:
+        nvcc fatal   : Don't know what to do with 'D:/c'
+        
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/Internal/CMakeNVCCParseImplicitInfo.cmake:128 (message)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCUDACompiler.cmake:242 (cmake_nvcc_parse_implicit_info)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed CUDA nvcc implicit link information:
+        found 'PATH=' string: [D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\VCPackages;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TeamFoundation\\Team Explorer;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\bin\\Roslyn;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\\\x64;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\;C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64\\;C:\\Program Files (x86)\\HTML Help Workshop;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\DiagnosticsHub\\Collector;D:\\Windows Kits\\10\\bin\\10.0.26100.0\\\\x64;D:\\Windows Kits\\10\\bin\\\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\\\MSBuild\\Current\\Bin\\amd64;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\;D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\VCPackages;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TeamFoundation\\Team Explorer;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\bin\\Roslyn;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\\\x64;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\;C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64\\;C:\\Program Files (x86)\\HTML Help Workshop;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\DiagnosticsHub\\Collector;D:\\Windows Kits\\10\\bin\\10.0.26100.0\\\\x64;D:\\Windows Kits\\10\\bin\\\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\\\MSBuild\\Current\\Bin\\amd64;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\;C:\\Users\\cheng\\.codex\\tmp\\arg0\\codex-arg05vlvbk;D:\\Program Files (x86)\\VMware\\VMware Workstation\\bin\\;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\bin;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\libnvvp;d:\\cursor\\resources\\app\\bin;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR;C:\\Program Files\\dotnet\\;C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\;D:\\Git\\cmd;D:\\Windows Kits\\10\\bin;D:\\Program Files\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages\\microsoft.windows.sdk.buildtools\\10.0.19041.8\\bin;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\;D:\\Program Files\\doxygen\\bin;D:\\Windows Kits\\10\\Windows Performance Toolkit\\;D:\\Qt\\5.15.2\\msvc2019_64\\lib\\cmake\\Qt5;C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin;D:\\Qt\\5.15.2\\msvc2019_64;D:\\Qt\\5.15.2\\msvc2019_64\\bin;D:\\Qt\\5.15.2\\msvc2019_64\\include;C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2023.1.0\\;C:\\Program Files\\nodejs\\;D:\\Program Files\\CMake1\\bin;D:\\Git\\usr\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\VTK\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\OpenNI2\\Tools;D:\\Program Files\\MiKTeX\\miktex\\bin\\x64\\;C:\\Program Files\\Pandoc\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\;C:\\Users\\cheng\\AppData\\Local\\Microsoft\\WindowsApps;E:\\IntelliJ IDEA Community Edition 2024.3.5\\bin;;D:\\Program Files\\Java\\jdk-17\\bin;D:\\MITK v2024.12\\bin;D:\\cursor\\resources\\app\\bin;C:\\Users\\cheng\\.dotnet\\tools;D:\\Microsoft VS Code\\bin;D:\\Qt6.9\\5.15.2\\msvc2019_64\\bin;D:\\Program Files\\JetBrains\\DataGrip 2025.1.3\\bin;;C:\\Users\\cheng\\AppData\\Local\\GitHubDesktop\\bin;C:\\Users\\cheng\\AppData\\Roaming\\npm;c:\\Users\\cheng\\.vscode\\extensions\\openai.chatgpt-26.519.32039-win32-x64\\bin\\windows-x86_64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\Ninja;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\Linux\\bin\\ConnectionManagerExe;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\Ninja;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\Linux\\bin\\ConnectionManagerExe;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg]
+        found 'LIBRARIES=' string: ["/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"]
+        found 'INCLUDES=' string: ["-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"  ]
+        considering line: []
+        considering line: [D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA>call "D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../../VC/Auxiliary/Build/vcvars64.bat" ]
+        considering line: [**********************************************************************]
+        considering line: [** Visual Studio 2022 Developer Command Prompt v17.14.2]
+        considering line: [** Copyright (c) 2022 Microsoft Corporation]
+        considering line: [**********************************************************************]
+        considering line: [[vcvarsall.bat] Environment initialized for: 'x64']
+        considering line: [D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../../VC/Auxiliary/Build/vcvars64.bat]
+        considering line: [IntelliJ IDEA Community Edition=E:\\IntelliJ IDEA Community Edition 2024.3.5\\bin]
+        considering line: []
+        considering line: [erase tmp/a_dlink.reg.c]
+        considering line: [CMakeCUDACompilerId.cu]
+        considering line: [resource file tmp/CMakeCUDACompilerId.cpp4.ii.res: [-D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -E -TP -EHsc -D__CUDACC__ -D__NVCC__  "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"    -D__CUDACC_VER_MAJOR__=12 -D__CUDACC_VER_MINOR__=4 -D__CUDACC_VER_BUILD__=131 -D__CUDA_API_VER_MAJOR__=12 -D__CUDA_API_VER_MINOR__=4 -D__NVCC_DIAG_PRAGMA_SUPPORT__=1 -FI "cuda_runtime.h" "CMakeCUDACompilerId.cu" ]]
+        considering line: [cl.exe @"tmp/CMakeCUDACompilerId.cpp4.ii.res" > "tmp/CMakeCUDACompilerId.cpp4.ii" ]
+        considering line: [CMakeCUDACompilerId.cu]
+        considering line: [cudafe++ --ms_c++14 --microsoft_version=1944 --msvc_target_version=1944 --compiler_bindir "D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../.." --sdk_dir "D:/Windows Kits/10/" --display_error_number --orig_src_file_name "CMakeCUDACompilerId.cu" --orig_src_path_name "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\CMakeCUDACompilerId.cu" --allow_managed --m64 --parse_templates --gen_c_file_name "tmp/CMakeCUDACompilerId.cudafe1.cpp" --stub_file_name "CMakeCUDACompilerId.cudafe1.stub.c" --gen_module_id_file --module_id_file_name "tmp/CMakeCUDACompilerId.module_id" "tmp/CMakeCUDACompilerId.cpp4.ii" ]
+        considering line: [resource file tmp/CMakeCUDACompilerId.cpp1.ii.res: [-D__CUDA_ARCH__=520 -D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -E -TP  -DCUDA_DOUBLE_MATH_FUNCTIONS -EHsc -D__CUDACC__ -D__NVCC__  "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"    -D__CUDACC_VER_MAJOR__=12 -D__CUDACC_VER_MINOR__=4 -D__CUDACC_VER_BUILD__=131 -D__CUDA_API_VER_MAJOR__=12 -D__CUDA_API_VER_MINOR__=4 -D__NVCC_DIAG_PRAGMA_SUPPORT__=1 -FI "cuda_runtime.h" "CMakeCUDACompilerId.cu" ]]
+        considering line: [cl.exe @"tmp/CMakeCUDACompilerId.cpp1.ii.res" > "tmp/CMakeCUDACompilerId.cpp1.ii" ]
+        considering line: [CMakeCUDACompilerId.cu]
+        considering line: [cicc --ms_c++14 --microsoft_version=1944 --msvc_target_version=1944 --compiler_bindir "D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../.." --sdk_dir "D:/Windows Kits/10/" --display_error_number --orig_src_file_name "CMakeCUDACompilerId.cu" --orig_src_path_name "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\CMakeCUDACompilerId.cu" --allow_managed  -arch compute_52 -m64 --no-version-ident -ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 --include_file_name "CMakeCUDACompilerId.fatbin.c" -tused --module_id_file_name "tmp/CMakeCUDACompilerId.module_id" --gen_c_file_name "tmp/CMakeCUDACompilerId.cudafe1.c" --stub_file_name "tmp/CMakeCUDACompilerId.cudafe1.stub.c" --gen_device_file_name "tmp/CMakeCUDACompilerId.cudafe1.gpu"  "tmp/CMakeCUDACompilerId.cpp1.ii" -o "tmp/CMakeCUDACompilerId.ptx"]
+        considering line: [ptxas -arch=sm_52 -m64 "tmp/CMakeCUDACompilerId.ptx"  -o "tmp/CMakeCUDACompilerId.sm_52.cubin" ]
+        considering line: [fatbinary --create="tmp/CMakeCUDACompilerId.fatbin" -64 --cicc-cmdline="-ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 " "--image3=kind=elf,sm=52,file=tmp/CMakeCUDACompilerId.sm_52.cubin" "--image3=kind=ptx,sm=52,file=tmp/CMakeCUDACompilerId.ptx" --embedded-fatbin="tmp/CMakeCUDACompilerId.fatbin.c" ]
+        considering line: [resource file tmp/CMakeCUDACompilerId.obj.res: [-D__CUDA_ARCH__=520 -D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -c -TP  -DCUDA_DOUBLE_MATH_FUNCTIONS -EHsc "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"   "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.cudafe1.cpp" ]]
+        considering line: [cl.exe @"tmp/CMakeCUDACompilerId.obj.res" -Fo"tmp/CMakeCUDACompilerId.obj" ]
+        considering line: [CMakeCUDACompilerId.cudafe1.cpp]
+        considering line: [resource file tmp/a_dlink.sm_52.cubin.optf: [-m64 --arch=sm_52 --register-link-binaries="tmp/a_dlink.reg.c"    "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64" -cpu-arch=X86_64 "tmp/CMakeCUDACompilerId.obj"  cudadevrt.lib  -o "tmp/a_dlink.sm_52.cubin"]]
+          extracted link line: [resource file tmp/a_dlink.sm_52.cubin.optf: [-m64 --arch=sm_52 --register-link-binaries="tmp/a_dlink.reg.c"    "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64" -cpu-arch=X86_64 "tmp/CMakeCUDACompilerId.obj"  cudadevrt.lib  -o "tmp/a_dlink.sm_52.cubin"]]
+        considering line: [nvlink -optf "tmp/a_dlink.sm_52.cubin.optf"]
+          ignoring nvlink line
+        considering line: [fatbinary --create="tmp/a_dlink.fatbin" -64 --cicc-cmdline="-ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 " -link "--image3=kind=elf,sm=52,file=tmp/a_dlink.sm_52.cubin" --embedded-fatbin="tmp/a_dlink.fatbin.c" ]
+        considering line: [resource file tmp/a_dlink.obj.res: [-D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -c -TP -EHsc -DFATBINFILE="\\"tmp/a_dlink.fatbin.c\\"" -DREGISTERLINKBINARYFILE="\\"tmp/a_dlink.reg.c\\"" -I. -D__NV_EXTRA_INITIALIZATION= -D__NV_EXTRA_FINALIZATION= -D__CUDA_INCLUDE_COMPILER_INTERNAL_HEADERS__  "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"    -D__CUDACC_VER_MAJOR__=12 -D__CUDACC_VER_MINOR__=4 -D__CUDACC_VER_BUILD__=131 -D__CUDA_API_VER_MAJOR__=12 -D__CUDA_API_VER_MINOR__=4 -D__NVCC_DIAG_PRAGMA_SUPPORT__=1 "D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable\\bin\\crt\\link.stub" ]]
+        considering line: [cl.exe @"tmp/a_dlink.obj.res" -Fo"tmp/a_dlink.obj" ]
+        considering line: [link.stub]
+        considering line: [resource file tmp/a.exe.res: [-D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\a_dlink.obj" "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.obj" -link -INCREMENTAL:NO   "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"  cudadevrt.lib  cudart_static.lib]]
+          extracted link line: [resource file tmp/a.exe.res: [-D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\a_dlink.obj" "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.obj" -link -INCREMENTAL:NO   "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"  cudadevrt.lib  cudart_static.lib]]
+        considering line: [cl.exe @"tmp/a.exe.res" -Fe"a.exe" ]
+          extracted link line: [cl.exe -D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\a_dlink.obj" "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.obj" -link -INCREMENTAL:NO   "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"  cudadevrt.lib  cudart_static.lib -Fe"a.exe" ]
+        considering line: [  正在创建库 a.lib 和对象 a.exp]
+        considering line: []
+      
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        link line: [cuda-fake-ld cl.exe -D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\a_dlink.obj" "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.obj" -link -INCREMENTAL:NO   "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"  cudadevrt.lib  cudart_static.lib -Fe"a.exe" ]
+          arg [cuda-fake-ld] ==> ignore
+          arg [cl.exe] ==> recognize MSVC cl
+          arg [-D__CUDA_ARCH_LIST__=520] ==> ignore
+          arg [-D__NV_LEGACY_LAUNCH] ==> ignore
+          arg [-nologo] ==> ignore
+          arg [D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\a_dlink.obj] ==> ignore
+          arg [D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.obj] ==> ignore
+          arg [-link] ==> ignore MSVC cl option
+          arg [-INCREMENTAL:NO] ==> ignore
+          arg [/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64] ==> dir [D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64]
+          arg [cudadevrt.lib] ==> lib [cudadevrt.lib]
+          arg [cudart_static.lib] ==> lib [cudart_static.lib]
+          arg [-Fea.exe] ==> ignore
+        collapse library dir [D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64] ==> [D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/lib/x64]
+        implicit libs: [cudadevrt.lib;cudart_static.lib]
+        implicit objs: []
+        implicit dirs: [D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/lib/x64]
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/Internal/CMakeNVCCParseImplicitInfo.cmake:146 (message)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCUDACompiler.cmake:242 (cmake_nvcc_parse_implicit_info)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed CUDA nvcc include information:
+        found 'PATH=' string: [D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\VCPackages;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TeamFoundation\\Team Explorer;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\bin\\Roslyn;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\\\x64;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\;C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64\\;C:\\Program Files (x86)\\HTML Help Workshop;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\DiagnosticsHub\\Collector;D:\\Windows Kits\\10\\bin\\10.0.26100.0\\\\x64;D:\\Windows Kits\\10\\bin\\\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\\\MSBuild\\Current\\Bin\\amd64;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\;D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\VCPackages;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TeamFoundation\\Team Explorer;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\bin\\Roslyn;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\\\x64;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Common\\VSPerfCollectionTools\\vs2019\\;C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64\\;C:\\Program Files (x86)\\HTML Help Workshop;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\DiagnosticsHub\\Collector;D:\\Windows Kits\\10\\bin\\10.0.26100.0\\\\x64;D:\\Windows Kits\\10\\bin\\\\x64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\\\MSBuild\\Current\\Bin\\amd64;C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\;C:\\Users\\cheng\\.codex\\tmp\\arg0\\codex-arg05vlvbk;D:\\Program Files (x86)\\VMware\\VMware Workstation\\bin\\;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\bin;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.1\\libnvvp;d:\\cursor\\resources\\app\\bin;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR;C:\\Program Files\\dotnet\\;C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\;D:\\Git\\cmd;D:\\Windows Kits\\10\\bin;D:\\Program Files\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin;D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages\\microsoft.windows.sdk.buildtools\\10.0.19041.8\\bin;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\;D:\\Program Files\\doxygen\\bin;D:\\Windows Kits\\10\\Windows Performance Toolkit\\;D:\\Qt\\5.15.2\\msvc2019_64\\lib\\cmake\\Qt5;C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin;D:\\Qt\\5.15.2\\msvc2019_64;D:\\Qt\\5.15.2\\msvc2019_64\\bin;D:\\Qt\\5.15.2\\msvc2019_64\\include;C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2023.1.0\\;C:\\Program Files\\nodejs\\;D:\\Program Files\\CMake1\\bin;D:\\Git\\usr\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\VTK\\bin;E:\\ICPtry\\PCL\\PCL 1.12.1\\3rdParty\\OpenNI2\\Tools;D:\\Program Files\\MiKTeX\\miktex\\bin\\x64\\;C:\\Program Files\\Pandoc\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python312\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\Scripts\\;C:\\Users\\cheng\\AppData\\Local\\Programs\\Python\\Python39\\;C:\\Users\\cheng\\AppData\\Local\\Microsoft\\WindowsApps;E:\\IntelliJ IDEA Community Edition 2024.3.5\\bin;;D:\\Program Files\\Java\\jdk-17\\bin;D:\\MITK v2024.12\\bin;D:\\cursor\\resources\\app\\bin;C:\\Users\\cheng\\.dotnet\\tools;D:\\Microsoft VS Code\\bin;D:\\Qt6.9\\5.15.2\\msvc2019_64\\bin;D:\\Program Files\\JetBrains\\DataGrip 2025.1.3\\bin;;C:\\Users\\cheng\\AppData\\Local\\GitHubDesktop\\bin;C:\\Users\\cheng\\AppData\\Roaming\\npm;c:\\Users\\cheng\\.vscode\\extensions\\openai.chatgpt-26.519.32039-win32-x64\\bin\\windows-x86_64;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\Ninja;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\Linux\\bin\\ConnectionManagerExe;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\Ninja;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\Linux\\bin\\ConnectionManagerExe;D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg]
+        found 'LIBRARIES=' string: ["/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"]
+        found 'INCLUDES=' string: ["-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"  ]
+        considering line: []
+        considering line: [D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA>call "D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../../VC/Auxiliary/Build/vcvars64.bat" ]
+        considering line: [**********************************************************************]
+        considering line: [** Visual Studio 2022 Developer Command Prompt v17.14.2]
+        considering line: [** Copyright (c) 2022 Microsoft Corporation]
+        considering line: [**********************************************************************]
+        considering line: [[vcvarsall.bat] Environment initialized for: 'x64']
+        considering line: [D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../../VC/Auxiliary/Build/vcvars64.bat]
+        considering line: [IntelliJ IDEA Community Edition=E:\\IntelliJ IDEA Community Edition 2024.3.5\\bin]
+        considering line: []
+        considering line: [erase tmp/a_dlink.reg.c]
+        considering line: [CMakeCUDACompilerId.cu]
+        considering line: [resource file tmp/CMakeCUDACompilerId.cpp4.ii.res: [-D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -E -TP -EHsc -D__CUDACC__ -D__NVCC__  "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"    -D__CUDACC_VER_MAJOR__=12 -D__CUDACC_VER_MINOR__=4 -D__CUDACC_VER_BUILD__=131 -D__CUDA_API_VER_MAJOR__=12 -D__CUDA_API_VER_MINOR__=4 -D__NVCC_DIAG_PRAGMA_SUPPORT__=1 -FI "cuda_runtime.h" "CMakeCUDACompilerId.cu" ]]
+        considering line: [cl.exe @"tmp/CMakeCUDACompilerId.cpp4.ii.res" > "tmp/CMakeCUDACompilerId.cpp4.ii" ]
+        considering line: [CMakeCUDACompilerId.cu]
+        considering line: [cudafe++ --ms_c++14 --microsoft_version=1944 --msvc_target_version=1944 --compiler_bindir "D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../.." --sdk_dir "D:/Windows Kits/10/" --display_error_number --orig_src_file_name "CMakeCUDACompilerId.cu" --orig_src_path_name "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\CMakeCUDACompilerId.cu" --allow_managed --m64 --parse_templates --gen_c_file_name "tmp/CMakeCUDACompilerId.cudafe1.cpp" --stub_file_name "CMakeCUDACompilerId.cudafe1.stub.c" --gen_module_id_file --module_id_file_name "tmp/CMakeCUDACompilerId.module_id" "tmp/CMakeCUDACompilerId.cpp4.ii" ]
+        considering line: [resource file tmp/CMakeCUDACompilerId.cpp1.ii.res: [-D__CUDA_ARCH__=520 -D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -E -TP  -DCUDA_DOUBLE_MATH_FUNCTIONS -EHsc -D__CUDACC__ -D__NVCC__  "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"    -D__CUDACC_VER_MAJOR__=12 -D__CUDACC_VER_MINOR__=4 -D__CUDACC_VER_BUILD__=131 -D__CUDA_API_VER_MAJOR__=12 -D__CUDA_API_VER_MINOR__=4 -D__NVCC_DIAG_PRAGMA_SUPPORT__=1 -FI "cuda_runtime.h" "CMakeCUDACompilerId.cu" ]]
+        considering line: [cl.exe @"tmp/CMakeCUDACompilerId.cpp1.ii.res" > "tmp/CMakeCUDACompilerId.cpp1.ii" ]
+        considering line: [CMakeCUDACompilerId.cu]
+        considering line: [cicc --ms_c++14 --microsoft_version=1944 --msvc_target_version=1944 --compiler_bindir "D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/../../../../../../.." --sdk_dir "D:/Windows Kits/10/" --display_error_number --orig_src_file_name "CMakeCUDACompilerId.cu" --orig_src_path_name "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\CMakeCUDACompilerId.cu" --allow_managed  -arch compute_52 -m64 --no-version-ident -ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 --include_file_name "CMakeCUDACompilerId.fatbin.c" -tused --module_id_file_name "tmp/CMakeCUDACompilerId.module_id" --gen_c_file_name "tmp/CMakeCUDACompilerId.cudafe1.c" --stub_file_name "tmp/CMakeCUDACompilerId.cudafe1.stub.c" --gen_device_file_name "tmp/CMakeCUDACompilerId.cudafe1.gpu"  "tmp/CMakeCUDACompilerId.cpp1.ii" -o "tmp/CMakeCUDACompilerId.ptx"]
+        considering line: [ptxas -arch=sm_52 -m64 "tmp/CMakeCUDACompilerId.ptx"  -o "tmp/CMakeCUDACompilerId.sm_52.cubin" ]
+        considering line: [fatbinary --create="tmp/CMakeCUDACompilerId.fatbin" -64 --cicc-cmdline="-ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 " "--image3=kind=elf,sm=52,file=tmp/CMakeCUDACompilerId.sm_52.cubin" "--image3=kind=ptx,sm=52,file=tmp/CMakeCUDACompilerId.ptx" --embedded-fatbin="tmp/CMakeCUDACompilerId.fatbin.c" ]
+        considering line: [resource file tmp/CMakeCUDACompilerId.obj.res: [-D__CUDA_ARCH__=520 -D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -c -TP  -DCUDA_DOUBLE_MATH_FUNCTIONS -EHsc "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"   "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.cudafe1.cpp" ]]
+        considering line: [cl.exe @"tmp/CMakeCUDACompilerId.obj.res" -Fo"tmp/CMakeCUDACompilerId.obj" ]
+        considering line: [CMakeCUDACompilerId.cudafe1.cpp]
+        considering line: [resource file tmp/a_dlink.sm_52.cubin.optf: [-m64 --arch=sm_52 --register-link-binaries="tmp/a_dlink.reg.c"    "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64" -cpu-arch=X86_64 "tmp/CMakeCUDACompilerId.obj"  cudadevrt.lib  -o "tmp/a_dlink.sm_52.cubin"]]
+          extracted link line: [resource file tmp/a_dlink.sm_52.cubin.optf: [-m64 --arch=sm_52 --register-link-binaries="tmp/a_dlink.reg.c"    "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64" -cpu-arch=X86_64 "tmp/CMakeCUDACompilerId.obj"  cudadevrt.lib  -o "tmp/a_dlink.sm_52.cubin"]]
+        considering line: [nvlink -optf "tmp/a_dlink.sm_52.cubin.optf"]
+          ignoring nvlink line
+        considering line: [fatbinary --create="tmp/a_dlink.fatbin" -64 --cicc-cmdline="-ftz=0 -prec_div=1 -prec_sqrt=1 -fmad=1 " -link "--image3=kind=elf,sm=52,file=tmp/a_dlink.sm_52.cubin" --embedded-fatbin="tmp/a_dlink.fatbin.c" ]
+        considering line: [resource file tmp/a_dlink.obj.res: [-D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo -c -TP -EHsc -DFATBINFILE="\\"tmp/a_dlink.fatbin.c\\"" -DREGISTERLINKBINARYFILE="\\"tmp/a_dlink.reg.c\\"" -I. -D__NV_EXTRA_INITIALIZATION= -D__NV_EXTRA_FINALIZATION= -D__CUDA_INCLUDE_COMPILER_INTERNAL_HEADERS__  "-ID:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../include"    -D__CUDACC_VER_MAJOR__=12 -D__CUDACC_VER_MINOR__=4 -D__CUDACC_VER_BUILD__=131 -D__CUDA_API_VER_MAJOR__=12 -D__CUDA_API_VER_MINOR__=4 -D__NVCC_DIAG_PRAGMA_SUPPORT__=1 "D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable\\bin\\crt\\link.stub" ]]
+        considering line: [cl.exe @"tmp/a_dlink.obj.res" -Fo"tmp/a_dlink.obj" ]
+        considering line: [link.stub]
+        considering line: [resource file tmp/a.exe.res: [-D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\a_dlink.obj" "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.obj" -link -INCREMENTAL:NO   "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"  cudadevrt.lib  cudart_static.lib]]
+          extracted link line: [resource file tmp/a.exe.res: [-D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\a_dlink.obj" "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.obj" -link -INCREMENTAL:NO   "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"  cudadevrt.lib  cudart_static.lib]]
+        considering line: [cl.exe @"tmp/a.exe.res" -Fe"a.exe" ]
+          extracted link line: [cl.exe -D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\a_dlink.obj" "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.obj" -link -INCREMENTAL:NO   "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"  cudadevrt.lib  cudart_static.lib -Fe"a.exe" ]
+        considering line: [  正在创建库 a.lib 和对象 a.exp]
+        considering line: []
+      
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        link line: [cuda-fake-ld cl.exe -D__CUDA_ARCH_LIST__=520 -D__NV_LEGACY_LAUNCH -nologo "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\a_dlink.obj" "D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.obj" -link -INCREMENTAL:NO   "/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64"  cudadevrt.lib  cudart_static.lib -Fe"a.exe" ]
+          arg [cuda-fake-ld] ==> ignore
+          arg [cl.exe] ==> recognize MSVC cl
+          arg [-D__CUDA_ARCH_LIST__=520] ==> ignore
+          arg [-D__NV_LEGACY_LAUNCH] ==> ignore
+          arg [-nologo] ==> ignore
+          arg [D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\a_dlink.obj] ==> ignore
+          arg [D:\\Qtproject\\medicalpro\\tmp_cuda_ninja_probe_vsenv\\build\\CMakeFiles\\3.29.9\\CompilerIdCUDA\\tmp\\CMakeCUDACompilerId.obj] ==> ignore
+          arg [-link] ==> ignore MSVC cl option
+          arg [-INCREMENTAL:NO] ==> ignore
+          arg [/LIBPATH:D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64] ==> dir [D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64]
+          arg [cudadevrt.lib] ==> lib [cudadevrt.lib]
+          arg [cudart_static.lib] ==> lib [cudart_static.lib]
+          arg [-Fea.exe] ==> ignore
+        collapse library dir [D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/bin/../lib/x64] ==> [D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/lib/x64]
+        implicit libs: [cudadevrt.lib;cudart_static.lib]
+        implicit objs: []
+        implicit dirs: [D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/lib/x64]
+        implicit fwks: []
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerABI.cmake:67 (try_compile)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "D:/Qtproject/medicalpro/tmp_cuda_ninja_probe_vsenv/build/CMakeFiles/CMakeScratch/TryCompile-j3lmpi"
+      binary: "D:/Qtproject/medicalpro/tmp_cuda_ninja_probe_vsenv/build/CMakeFiles/CMakeScratch/TryCompile-j3lmpi"
+    cmakeVariables:
+      CMAKE_CUDA_ARCHITECTURES: "52"
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: 'D:/Qtproject/medicalpro/tmp_cuda_ninja_probe_vsenv/build/CMakeFiles/CMakeScratch/TryCompile-j3lmpi'
+        
+        Run Build Command(s): "D:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_53084
+        [1/2] "D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe"  /nologo /TP   /DWIN32 /D_WINDOWS /EHsc  /Zi /Ob0 /Od /RTC1 -MDd /showIncludes /FoCMakeFiles\\cmTC_53084.dir\\CMakeCXXCompilerABI.cpp.obj /FdCMakeFiles\\cmTC_53084.dir\\ /FS -c "D:\\Program Files\\CMake\\share\\cmake-3.29\\Modules\\CMakeCXXCompilerABI.cpp"
+        [2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "D:\\Program Files\\CMake\\bin\\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\\cmTC_53084.dir --rc="D:\\Windows Kits\\10\\bin\\10.0.26100.0\\x64\\rc.exe" --mt="D:\\Windows Kits\\10\\bin\\10.0.26100.0\\x64\\mt.exe" --manifests  -- "D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\link.exe" /nologo CMakeFiles\\cmTC_53084.dir\\CMakeCXXCompilerABI.cpp.obj  /out:cmTC_53084.exe /implib:cmTC_53084.lib /pdb:cmTC_53084.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerABI.cmake:173 (message)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerABI.cmake:67 (try_compile)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeTestCUDACompiler.cmake:19 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting CUDA compiler ABI info"
+    directories:
+      source: "D:/Qtproject/medicalpro/tmp_cuda_ninja_probe_vsenv/build/CMakeFiles/CMakeScratch/TryCompile-1gur3p"
+      binary: "D:/Qtproject/medicalpro/tmp_cuda_ninja_probe_vsenv/build/CMakeFiles/CMakeScratch/TryCompile-1gur3p"
+    cmakeVariables:
+      CMAKE_CUDA_ARCHITECTURES: "52"
+      CMAKE_CUDA_FLAGS: "-D_WINDOWS -Xcompiler=\" /EHsc\""
+      CMAKE_CUDA_FLAGS_DEBUG: "-Xcompiler=\" -Zi -Ob0 -Od /RTC1\""
+      CMAKE_CUDA_RUNTIME_LIBRARY: "Static"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "CMAKE_CUDA_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: 'D:/Qtproject/medicalpro/tmp_cuda_ninja_probe_vsenv/build/CMakeFiles/CMakeScratch/TryCompile-1gur3p'
+        
+        Run Build Command(s): "D:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_8faa9
+        [1/2] D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable\\bin\\nvcc.exe -forward-unknown-to-host-compiler -ccbin="D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe"   -D_WINDOWS -Xcompiler=" /EHsc"  -Xcompiler=" -Zi -Ob0 -Od /RTC1" "--generate-code=arch=compute_52,code=[compute_52,sm_52]" -Xcompiler=-MDd   -Xcompiler=-v -MD -MT CMakeFiles\\cmTC_8faa9.dir\\CMakeCUDACompilerABI.cu.obj -MF CMakeFiles\\cmTC_8faa9.dir\\CMakeCUDACompilerABI.cu.obj.d -x cu -c "D:\\Program Files\\CMake\\share\\cmake-3.29\\Modules\\CMakeCUDACompilerABI.cu" -o CMakeFiles\\cmTC_8faa9.dir\\CMakeCUDACompilerABI.cu.obj -Xcompiler=-FdCMakeFiles\\cmTC_8faa9.dir\\,-FS
+        cl: 命令行 warning D9002 :忽略未知选项“-v”\x0d
+        CMakeCUDACompilerABI.cu\x0d
+        cl: 命令行 warning D9002 :忽略未知选项“-v”\x0d
+        CMakeCUDACompilerABI.cu\x0d
+        CMakeCUDACompilerABI.cu\x0d
+        cl: 命令行 warning D9002 :忽略未知选项“-v”\x0d
+        tmpxft_000155f8_00000000-10_CMakeCUDACompilerABI.cudafe1.cpp\x0d
+        D:\\Program Files\\CMake\\share\\cmake-3.29\\Modules\\CMakeCompilerCUDAArch.h(10): warning C4305: “return”: 从“int”到“bool”截断\x0d
+        [2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "D:\\Program Files\\CMake\\bin\\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\\cmTC_8faa9.dir --rc="D:\\Windows Kits\\10\\bin\\10.0.26100.0\\x64\\rc.exe" --mt="D:\\Windows Kits\\10\\bin\\10.0.26100.0\\x64\\mt.exe" --manifests  -- "D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\link.exe" /nologo CMakeFiles\\cmTC_8faa9.dir\\CMakeCUDACompilerABI.cu.obj  /out:cmTC_8faa9.exe /implib:cmTC_8faa9.lib /pdb:cmTC_8faa9.pdb /version:0.0 /machine:x64 -v /debug /INCREMENTAL  cudadevrt.lib  cudart_static.lib -LIBPATH:"D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/lib/x64" && cd ."
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerABI.cmake:137 (message)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeTestCUDACompiler.cmake:19 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed CUDA implicit include dir info: rv=start
+        warn: unable to parse implicit include dirs!
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeDetermineCompilerABI.cmake:173 (message)"
+      - "D:/Program Files/CMake/share/cmake-3.29/Modules/CMakeTestCUDACompiler.cmake:19 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed CUDA implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        ignore line: [Change Dir: 'D:/Qtproject/medicalpro/tmp_cuda_ninja_probe_vsenv/build/CMakeFiles/CMakeScratch/TryCompile-1gur3p']
+        ignore line: []
+        ignore line: [Run Build Command(s): "D:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_8faa9]
+        ignore line: [[1/2] D:\\Qtproject\\medicalpro\\tools\\cuda-12.4.1-portable\\bin\\nvcc.exe -forward-unknown-to-host-compiler -ccbin="D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe"   -D_WINDOWS -Xcompiler=" /EHsc"  -Xcompiler=" -Zi -Ob0 -Od /RTC1" "--generate-code=arch=compute_52 code=[compute_52 sm_52]" -Xcompiler=-MDd   -Xcompiler=-v -MD -MT CMakeFiles\\cmTC_8faa9.dir\\CMakeCUDACompilerABI.cu.obj -MF CMakeFiles\\cmTC_8faa9.dir\\CMakeCUDACompilerABI.cu.obj.d -x cu -c "D:\\Program Files\\CMake\\share\\cmake-3.29\\Modules\\CMakeCUDACompilerABI.cu" -o CMakeFiles\\cmTC_8faa9.dir\\CMakeCUDACompilerABI.cu.obj -Xcompiler=-FdCMakeFiles\\cmTC_8faa9.dir\\ -FS]
+        ignore line: [cl: 命令行 warning D9002 :忽略未知选项“-v”\x0d]
+        ignore line: [CMakeCUDACompilerABI.cu\x0d]
+        ignore line: [cl: 命令行 warning D9002 :忽略未知选项“-v”\x0d]
+        ignore line: [CMakeCUDACompilerABI.cu\x0d]
+        ignore line: [CMakeCUDACompilerABI.cu\x0d]
+        ignore line: [cl: 命令行 warning D9002 :忽略未知选项“-v”\x0d]
+        ignore line: [tmpxft_000155f8_00000000-10_CMakeCUDACompilerABI.cudafe1.cpp\x0d]
+        ignore line: [D:\\Program Files\\CMake\\share\\cmake-3.29\\Modules\\CMakeCompilerCUDAArch.h(10): warning C4305: “return”: 从“int”到“bool”截断\x0d]
+        ignore line: [[2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "D:\\Program Files\\CMake\\bin\\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\\cmTC_8faa9.dir --rc="D:\\Windows Kits\\10\\bin\\10.0.26100.0\\x64\\rc.exe" --mt="D:\\Windows Kits\\10\\bin\\10.0.26100.0\\x64\\mt.exe" --manifests  -- "D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\link.exe" /nologo CMakeFiles\\cmTC_8faa9.dir\\CMakeCUDACompilerABI.cu.obj  /out:cmTC_8faa9.exe /implib:cmTC_8faa9.lib /pdb:cmTC_8faa9.pdb /version:0.0 /machine:x64 -v /debug /INCREMENTAL  cudadevrt.lib  cudart_static.lib -LIBPATH:"D:/Qtproject/medicalpro/tools/cuda-12.4.1-portable/lib/x64" && cd ."]
+        ignore line: []
+        ignore line: []
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+...

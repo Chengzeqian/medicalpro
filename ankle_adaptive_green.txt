@@ -1,0 +1,7 @@
+********* Start testing of AnkleRegistrationParallelSearchTest *********
+Config: Using QtTest library 5.15.2, Qt 5.15.2 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2019), windows 10
+PASS   : AnkleRegistrationParallelSearchTest::initTestCase()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_adaptive_refine_reduces_when_identity_is_close_to_best_strong_roi_score()
+PASS   : AnkleRegistrationParallelSearchTest::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms
+********* Finished testing of AnkleRegistrationParallelSearchTest *********

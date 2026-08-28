@@ -41,6 +41,14 @@ struct Normal3D {
     Normal3D(float nx_, float ny_, float nz_) : nx(nx_), ny(ny_), nz(nz_) {}
 };
 
+struct ConstrainedMeshResult {
+    std::vector<Point3D> vertices;
+    std::vector<Normal3D> normals;
+    std::vector<std::array<int, 3>> triangles;
+    std::vector<int> original_vertex_indices;
+    bool success = false;
+};
+
 // 4x4 Transform matrix (row-major)
 struct Transform4x4 {
     float data[16];
@@ -184,10 +192,19 @@ struct TransformCandidateScore {
     int candidate_index;
     int score;               // Negative truncated distance energy (*1000)
     float mean_dist_mm;      // Derived from energy, lower is better
+    float normal_consistency_score; // Point-to-plane support score in [0, 1]
+    float curvature_score;          // Matched target curvature support in [0, 1]
+    bool geometry_score_available;
     bool success;
 
     TransformCandidateScore()
-        : candidate_index(-1), score(0), mean_dist_mm(0), success(false) {}
+        : candidate_index(-1)
+        , score(0)
+        , mean_dist_mm(0)
+        , normal_consistency_score(0)
+        , curvature_score(0)
+        , geometry_score_available(false)
+        , success(false) {}
 };
 
 // Mesh statistics
@@ -259,6 +276,14 @@ public:
     // Get mesh statistics
     MeshStats getMeshStats() const;
 
+    // Build a constrained target mesh from the current target mesh.
+    ConstrainedMeshResult buildConstrainedTargetMesh(
+        const Point3D& target_region_center,
+        float target_region_radius_mm,
+        float membership_radius_mm,
+        const std::vector<Point3D>& constraint_points,
+        int minimum_point_count) const;
+
     // ========================================
     // Source Point Cloud Operations
     // ========================================
@@ -301,6 +326,11 @@ public:
     // Run registration with initial transform
     RegistrationResult runRegistration(const Transform4x4& initial_transform,
                                        const RegistrationParams& params = RegistrationParams());
+
+    // Refine multiple initial transforms while reusing one GICP initialization.
+    std::vector<RegistrationResult> refineTransformCandidates(
+        const std::vector<Transform4x4>& initial_transforms,
+        const RegistrationParams& params = RegistrationParams());
 
     // Get last registration result
     RegistrationResult getLastResult() const;

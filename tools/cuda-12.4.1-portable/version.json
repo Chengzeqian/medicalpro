@@ -1,0 +1,6 @@
+{
+  "cuda": { "name": "CUDA SDK", "version": "12.4.1-portable" },
+  "cuda_nvcc": { "name": "CUDA NVCC", "version": "12.4.131" },
+  "cuda_cudart": { "name": "CUDA Runtime (cudart)", "version": "12.4.127" },
+  "cuda_cccl": { "name": "CUDA C++ Core Compute Libraries", "version": "12.4.127" }
+}

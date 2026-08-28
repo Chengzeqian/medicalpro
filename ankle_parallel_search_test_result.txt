@@ -1,0 +1,7 @@
+********* Start testing of AnkleRegistrationParallelSearchTest *********
+Config: Using QtTest library 5.15.2, Qt 5.15.2 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2019), windows 10
+PASS   : AnkleRegistrationParallelSearchTest::initTestCase()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_plan_spans_roll_and_three_axis_translation_perturbations()
+PASS   : AnkleRegistrationParallelSearchTest::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 0ms
+********* Finished testing of AnkleRegistrationParallelSearchTest *********

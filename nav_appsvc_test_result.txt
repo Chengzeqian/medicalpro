@@ -1,0 +1,19 @@
+********* Start testing of NavigationWorkspaceApplicationServiceTest *********
+Config: Using QtTest library 5.15.2, Qt 5.15.2 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2019), windows 10
+PASS   : NavigationWorkspaceApplicationServiceTest::initTestCase()
+PASS   : NavigationWorkspaceApplicationServiceTest::service_builds_workspace_snapshot_from_runtime_inputs()
+PASS   : NavigationWorkspaceApplicationServiceTest::service_builds_v2_snapshot_from_case_package_and_per_bone_results()
+PASS   : NavigationWorkspaceApplicationServiceTest::service_exposes_case_bound_primary_instrument_assets()
+PASS   : NavigationWorkspaceApplicationServiceTest::service_evaluates_stage_gate_from_workspace_snapshot()
+PASS   : NavigationWorkspaceApplicationServiceTest::service_records_runtime_workspace_states_into_snapshot_truth_source()
+PASS   : NavigationWorkspaceApplicationServiceTest::service_builds_runtime_status_summaries_for_workspace_states()
+PASS   : NavigationWorkspaceApplicationServiceTest::service_preserves_navigation_run_facts_when_recording_gate_updates()
+PASS   : NavigationWorkspaceApplicationServiceTest::controller_builds_preparation_summary_from_active_instruments_and_calibration_states()
+PASS   : NavigationWorkspaceApplicationServiceTest::binder_exposes_read_only_planning_summary_with_case_assets()
+PASS   : NavigationWorkspaceApplicationServiceTest::binder_exposes_case_level_evaluation_summary()
+PASS   : NavigationWorkspaceApplicationServiceTest::binder_formats_preparation_assets_for_research_workspace()
+FAIL!  : NavigationWorkspaceApplicationServiceTest::binder_formats_registration_metrics_for_research_workspace() 'text.contains(QStringLiteral("平移：1.20 / -0.80 / 0.50 mm"))' returned FALSE. ()
+D:\Qtproject\medicalpro\tests\unit\NavigationWorkspaceApplicationServiceTest.cpp(706) : failure location
+PASS   : NavigationWorkspaceApplicationServiceTest::cleanupTestCase()
+Totals: 13 passed, 1 failed, 0 skipped, 0 blacklisted, 60ms
+********* Finished testing of NavigationWorkspaceApplicationServiceTest *********

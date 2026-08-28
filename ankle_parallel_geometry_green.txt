@@ -1,0 +1,8 @@
+********* Start testing of AnkleRegistrationParallelSearchTest *********
+Config: Using QtTest library 5.15.2, Qt 5.15.2 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2019), windows 10
+PASS   : AnkleRegistrationParallelSearchTest::initTestCase()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_prefers_geometrically_consistent_candidate_when_distance_is_close()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_converts_candidate_evaluation_to_variant_map()
+PASS   : AnkleRegistrationParallelSearchTest::cleanupTestCase()
+Totals: 4 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms
+********* Finished testing of AnkleRegistrationParallelSearchTest *********

@@ -1,0 +1,25 @@
+********* Start testing of AnkleRegistrationParallelSearchTest *********
+Config: Using QtTest library 5.15.2, Qt 5.15.2 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2019), windows 10
+PASS   : AnkleRegistrationParallelSearchTest::initTestCase()
+PASS   : AnkleRegistrationParallelSearchTest::point_registration_execution_options_expose_parallel_search_defaults()
+PASS   : AnkleRegistrationParallelSearchTest::point_registration_result_metrics_can_store_parallel_search_contract_keys()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_plan_generates_requested_candidates_and_identity_seed()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_plan_spans_roll_and_three_axis_translation_perturbations()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_plan_includes_medium_compound_pose_candidates_within_default_budget()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_keeps_lowest_scored_top_k_candidates()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_uses_hit_ratio_and_coverage_to_break_close_coarse_score_ties()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_returns_empty_top_k_for_non_positive_count()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_profile_resolves_three_level_cell_sizes()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_profile_resolves_two_level_cell_sizes()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_profile_falls_back_to_single_level_for_unknown_profile()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_extracts_candidate_ids_in_order()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_filters_candidates_by_requested_ids()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_adaptive_refine_reduces_when_identity_is_best_strong_roi_score()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_adaptive_refine_reduces_when_identity_is_close_to_best_strong_roi_score()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_adaptive_refine_keeps_full_set_when_identity_is_not_close_to_best()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_adaptive_refine_keeps_full_set_when_roi_score_is_uncertain()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_adaptive_refine_can_be_disabled()
+PASS   : AnkleRegistrationParallelSearchTest::parallel_search_converts_candidate_evaluation_to_variant_map()
+PASS   : AnkleRegistrationParallelSearchTest::cleanupTestCase()
+Totals: 21 passed, 0 failed, 0 skipped, 0 blacklisted, 2ms
+********* Finished testing of AnkleRegistrationParallelSearchTest *********
